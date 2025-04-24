@@ -1,0 +1,9 @@
+[package]
+name = "spl"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+spl_ast = { version = "0.1.0", path = "../spl_ast" }
+spl_run = { version = "0.1.0", path = "../spl_run" }
+tokio = "1.44.2"

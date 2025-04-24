@@ -1,0 +1,11 @@
+[package]
+name = "spl_run"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+futures = "0.3.31"
+ollama-rs = { git = "https://github.com/starpit/ollama-rs.git", branch = "tools-pub-7", features = ["stream"] }
+spl_ast = { version = "0.1.0", path = "../spl_ast" }
+tokio = { version = "1.44.1", features = ["io-std"] }
+tokio-stream = "0.1.17"
