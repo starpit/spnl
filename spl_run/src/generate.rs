@@ -8,7 +8,7 @@ use ollama_rs::{
         chat::{ChatMessage, /* ChatMessageResponse, MessageRole,*/ request::ChatMessageRequest,},
         // tools::{ToolFunctionInfo, ToolInfo, ToolType},
     },
-    // models::ModelOptions,
+    models::ModelOptions,
 };
 
 use crate::result::SplResult;
@@ -18,6 +18,7 @@ pub async fn generate(
     model: &str,
     input: &Unit,
     max_tokens: u64,
+    temp: f32,
     m: Option<&MultiProgress>,
 ) -> SplResult {
     if model.starts_with("ollama/") || model.starts_with("ollama_chat/") {
@@ -27,7 +28,7 @@ pub async fn generate(
             &model[12..]
         };
 
-        generate_ollama(model, input, max_tokens, m).await
+        generate_ollama(model, input, max_tokens, temp, m).await
     } else {
         todo!()
     }
@@ -37,6 +38,7 @@ async fn generate_ollama(
     model: &str,
     input: &Unit,
     max_tokens: u64,
+    temp: f32,
     m: Option<&MultiProgress>,
 ) -> SplResult {
     let ollama = Ollama::default();
@@ -64,8 +66,8 @@ async fn generate_ollama(
     };
     let history = Vec::from(history_slice);
 
-    let req = ChatMessageRequest::new(model.into(), vec![prompt.clone()]);
-    //        .options(options)
+    let req = ChatMessageRequest::new(model.into(), vec![prompt.clone()])
+        .options(ModelOptions::default().temperature(temp));
     // .format(ollama_rs::generation::parameters::FormatType::Json)
     //        .tools(tools);
 
@@ -115,6 +117,7 @@ async fn generate_ollama(
             model.to_string(),
             Box::new(Unit::String(response_string)),
             max_tokens,
+            temp,
         )))
     }
 }

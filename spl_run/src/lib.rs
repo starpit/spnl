@@ -32,8 +32,8 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SplResult {
         Unit::String(s) => Ok(Unit::String(s.clone())),
         Unit::Cross((d, u)) => fold(d, &u).await,
         Unit::Plus((d, u)) => map(d, &u).await,
-        Unit::Generate((model, input, max_tokens)) => {
-            generate::generate(model.as_str(), &run(&input, m).await?, max_tokens, m).await
+        Unit::Generate((model, input, max_tokens, temp)) => {
+            generate::generate(model.as_str(), &run(&input, m).await?, max_tokens, temp, m).await
         }
     }
 }
