@@ -27,8 +27,6 @@ async fn map(description: String, units: &Vec<Unit>) -> SplResult {
 pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SplResult {
     let p = plan(unit);
     match p {
-        Unit::Number(n) => Ok(Unit::Number(n.clone())),
-        Unit::Bool(b) => Ok(Unit::Bool(b.clone())),
         Unit::String(s) => Ok(Unit::String(s.clone())),
         Unit::Cross((d, u)) => fold(d, &u).await,
         Unit::Plus((d, u)) => map(d, &u).await,

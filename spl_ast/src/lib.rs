@@ -1,9 +1,9 @@
 #[macro_export]
 macro_rules! spl {
     // bool
-    (false) => ($crate::Unit::Bool(false));
-    (true) => ($crate::Unit::Bool(true));
-    (self $(. $e:tt)* ) => (self $(. $e)* );
+    //(false) => ($crate::Unit::Bool(false));
+    //(true) => ($crate::Unit::Bool(true));
+    //(self $(. $e:tt)* ) => (self $(. $e)* );
 
     // with-xxx
     /*(with-input-from-file ($var:ident $path:tt)
@@ -96,28 +96,18 @@ macro_rules! spl {
     }};
 
     // read as i32 from stdin
-    (askn $message:tt) => ($crate::spl!(askn $message 100));
-    (askn $message:tt $default:tt) => {{
-        let default: i32 = $crate::spl_arg!($default);
+    (askn $message:tt) => ($crate::spl!(askd $message 100));
+    // read as f32 from stdin
+    (askf $message:tt) => ($crate::spl!(askd $message 0.5));
+
+    // read with default value
+    (askd $message:tt $default:tt) => {{
+        let default = $crate::spl_arg!($default);
         println!("{} [default={default}]", $crate::spl_arg!($message));
         let mut buffer = String::new();
         let mut bytes_read = ::std::io::stdin().read_line(&mut buffer)?;
         if buffer.trim().len() == 0 {
             default
-        } else {
-            buffer.trim().parse()?
-        }
-    }};
-
-    // read as f32 from stdin
-    (askf $message:tt) => ($crate::spl!(askf $message 0.5));
-    (askf $message:tt $default:tt) => {{
-        let default: f32 = $crate::spl_arg!($default);
-        println!("{} [default={default}]", $crate::spl_arg!($message));
-        let mut buffer = String::new();
-        let mut bytes_read = ::std::io::stdin().read_line(&mut buffer)?;
-        if buffer.trim().len() == 0 {
-            $crate::spl_arg!($default)
         } else {
             buffer.trim().parse()?
         }
@@ -194,8 +184,6 @@ macro_rules! spl_arg {
 
 #[derive(Debug, Clone)]
 pub enum Unit {
-    Bool(bool),
-    Number(usize),
     String(String),
 
     /// (description, units)
@@ -211,8 +199,6 @@ impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {
             Unit::Cross((d, v)) | Unit::Plus((d, v)) => write!(f, "{}: {:?}", d, v),
-            Unit::Bool(b) => write!(f, "{}", b),
-            Unit::Number(n) => write!(f, "{}", n),
             Unit::String(s) => write!(f, "{}", s),
             _ => Ok(()),
         }
@@ -231,9 +217,7 @@ impl From<&String> for Unit {
 impl PartialEq for Unit {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Unit::Number(a), Unit::Number(b)) => a == b,
             (Unit::String(a), Unit::String(b)) => a == b,
-            (Unit::Bool(a), Unit::Bool(b)) => a == b,
             _ => false,
         }
     }
