@@ -1,5 +1,3 @@
-use crate::result::{SplEval, SplResult};
-use spl_ast::Unit;
 use tokio::io::{AsyncWriteExt, stdout};
 use tokio_stream::StreamExt;
 
@@ -12,7 +10,10 @@ use ollama_rs::{
     // models::ModelOptions,
 };
 
-pub async fn generate<'a>(model: &'a str, input: &Unit<'a>) -> SplResult<'a> {
+use crate::result::SplResult;
+use spl_ast::Unit;
+
+pub async fn generate(model: &str, input: &Unit, quiet: bool) -> SplResult {
     if model.starts_with("ollama/") || model.starts_with("ollama_chat/") {
         let model = if model.starts_with("ollama/") {
             &model[7..]
@@ -20,17 +21,17 @@ pub async fn generate<'a>(model: &'a str, input: &Unit<'a>) -> SplResult<'a> {
             &model[12..]
         };
 
-        generate_ollama(model, input).await
+        generate_ollama(model, input, quiet).await
     } else {
         todo!()
     }
 }
 
-async fn generate_ollama<'a>(model: &'a str, input: &Unit<'a>) -> SplResult<'a> {
+async fn generate_ollama(model: &str, input: &Unit, quiet: bool) -> SplResult {
     let ollama = Ollama::default();
 
     let input_messages: Vec<ChatMessage> = match input {
-        Unit::Cross(v) | Unit::Plus(v) => {
+        Unit::Cross((_, v)) | Unit::Plus((_, v)) => {
             v.iter().map(|i| ChatMessage::user(i.to_string())).collect()
         }
         o => vec![ChatMessage::user(o.to_string())],
@@ -55,16 +56,14 @@ async fn generate_ollama<'a>(model: &'a str, input: &Unit<'a>) -> SplResult<'a> 
         )
         .await?;
 
-    let emit = true;
-
     // let mut last_res: Option<ChatMessageResponse> = None;
     let mut response_string = String::new();
     let mut stdout = stdout();
-    if emit {
+    if !quiet {
         stdout.write_all(b"\x1b[1mAssistant: \x1b[0m").await?;
     }
     while let Some(Ok(res)) = stream.next().await {
-        if emit {
+        if !quiet {
             stdout.write_all(b"\x1b[32m").await?; // green
             stdout.write_all(res.message.content.as_bytes()).await?;
             stdout.flush().await?;
@@ -73,9 +72,9 @@ async fn generate_ollama<'a>(model: &'a str, input: &Unit<'a>) -> SplResult<'a> 
         response_string += res.message.content.as_str();
         // last_res = Some(res);
     }
-    if emit {
+    if !quiet {
         stdout.write_all(b"\n").await?;
     }
 
-    Ok(SplEval::String(response_string))
+    Ok(Unit::String(response_string))
 }

@@ -123,22 +123,22 @@ macro_rules! spl {
     (% $x:tt $y:tt) => ($crate::spl_arg!($x) % $crate::spl_arg!($y));
 
     (file $f:tt) => ($crate::Unit::String(::std::fs::read_to_string($crate::spl_arg!($f)).unwrap()));
-    (cross $( $e:tt )+) => {{
+    (cross $description:tt $( $e:tt )+) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         $(
             args.push($crate::spl_arg!($e).into());
         )+
-        $crate::Unit::Cross(args)
+        $crate::Unit::Cross(($crate::spl_arg!($description).into(), args))
     }};
-    (plus $( $e:tt )+) => {{
+    (plus $description:tt $( $e:tt )+) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         $(
             args.push($crate::spl_arg!($e).into());
         )+
-        $crate::Unit::Plus(args)
+        $crate::Unit::Plus(($crate::spl_arg!($description).into(), args))
     }};
 
-    (g $model:tt $input:tt) => ($crate::Unit::Generate(($crate::spl_arg!($model), Box::new($crate::spl_arg!($input).into()))));
+    (g $model:tt $input:tt) => ($crate::Unit::Generate(($crate::spl_arg!($model).to_string(), Box::new($crate::spl_arg!($input).into()))));
 }
 
 #[macro_export]
@@ -148,39 +148,40 @@ macro_rules! spl_arg {
 }
 
 #[derive(Debug, Clone)]
-pub enum Unit<'a> {
+pub enum Unit {
     Bool(bool),
     Number(usize),
-    Slice(&'a str),
     String(String),
-    Cross(Vec<Unit<'a>>),
-    Plus(Vec<Unit<'a>>),
+
+    /// (description, units)
+    Cross((String, Vec<Unit>)),
+
+    /// (description, units)
+    Plus((String, Vec<Unit>)),
 
     /// (model, input)
-    Generate((&'a str, Box<Unit<'a>>)),
+    Generate((String, Box<Unit>)),
 }
-impl<'a> From<&'a str> for Unit<'a> {
-    fn from(s: &'a str) -> Self {
-        Self::Slice(s)
-    }
-}
-impl<'a> ::std::fmt::Display for Unit<'a> {
+impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {
-            Unit::Cross(v) | Unit::Plus(v) => write!(f, "{:?}", v),
+            Unit::Cross((d, v)) | Unit::Plus((d, v)) => write!(f, "{}: {:?}", d, v),
             Unit::Bool(b) => write!(f, "{}", b),
             Unit::Number(n) => write!(f, "{}", n),
-            Unit::Slice(s) => write!(f, "{}", s),
             Unit::String(s) => write!(f, "{}", s),
             Unit::Generate((model, input)) => write!(f, "model={} input={:?}", model, input),
         }
     }
 }
-impl<'a> PartialEq for Unit<'a> {
+impl From<&str> for Unit {
+    fn from(s: &str) -> Self {
+        Self::String(s.into())
+    }
+}
+impl PartialEq for Unit {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Unit::Number(a), Unit::Number(b)) => a == b,
-            (Unit::Slice(a), Unit::Slice(b)) => a == b,
             (Unit::String(a), Unit::String(b)) => a == b,
             (Unit::Bool(a), Unit::Bool(b)) => a == b,
             _ => false,

@@ -5,8 +5,9 @@ use spl_run::{result::SplError, run};
 async fn main() -> Result<(), SplError> {
     // let program = spl!(g "ollama/granite3.2:2b" (cross (file "/tmp/foo") "Tell me a story"));
     let program = spl!(g "ollama/granite3.2:2b"
-                       (cross "Please pick the shortest of the following"
-                        (plus
+                       (cross "Prompt to select the best email"
+                        "Please pick the shortest of the following"
+                        (plus "Generate candidate emails in parallel"
                          (g "ollama/granite3.2:2b" "write an introductory email")
                          (g "ollama/granite3.2:2b" "write an introductory email")
                          (g "ollama/granite3.2:2b" "write an introductory email")
@@ -16,6 +17,6 @@ async fn main() -> Result<(), SplError> {
                        )
     );
 
-    println!("{:?} -> {:?}", program, run(&program).await?);
+    println!("{:?} -> {:?}", program, run(&program, false).await?);
     Ok(())
 }
