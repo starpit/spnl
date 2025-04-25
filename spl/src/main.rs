@@ -20,9 +20,9 @@ async fn main() -> Result<(), SplError> {
             )
     );
 
-    let res = run(&program, None).await?.to_string();
-    if res.len() > 0 {
-        println!("{}", res);
+    let res = run(&program, None).await?;
+    if res.to_string().len() > 0 {
+        println!("{:?}", res);
     }
     Ok(())
 }

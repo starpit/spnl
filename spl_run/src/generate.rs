@@ -42,10 +42,19 @@ async fn generate_ollama(
     let ollama = Ollama::default();
 
     let input_messages: Vec<ChatMessage> = match input {
-        Unit::Cross((_, v)) | Unit::Plus((_, v)) => {
-            v.iter().map(|i| ChatMessage::user(i.to_string())).collect()
-        }
-        o => vec![ChatMessage::user(o.to_string())],
+        Unit::Cross((_, v)) | Unit::Plus((_, v)) => v
+            .into_iter()
+            .map(|i| {
+                ChatMessage::user(match i {
+                    Unit::String(s) => s.clone(),
+                    x => x.to_string(),
+                })
+            })
+            .collect(),
+        o => vec![ChatMessage::user(match o {
+            Unit::String(s) => s.clone(),
+            x => x.to_string(),
+        })],
     };
 
     let (prompt, history_slice): (&ChatMessage, &[ChatMessage]) = match input_messages.split_last()
