@@ -87,6 +87,14 @@ macro_rules! spl {
         $( $crate::spl!( $($e2)* ) );*
     });*/
 
+    // read from stdin
+    (ask $message:tt) => {{
+        println!("{}", $crate::spl_arg!($message));
+        let mut buffer = String::new();
+        let mut bytes_read = ::std::io::stdin().read_line(&mut buffer)?;
+        $crate::Unit::String(buffer)
+    }};
+
     // loop
     (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spl!( $($e)* ) );* });
 
@@ -138,7 +146,8 @@ macro_rules! spl {
         $crate::Unit::Plus(($crate::spl_arg!($description).into(), args))
     }};
 
-    (g $model:tt $input:tt) => ($crate::Unit::Generate(($crate::spl_arg!($model).to_string(), Box::new($crate::spl_arg!($input).into()))));
+    (g $model:tt $input:tt) => ($crate::Unit::Generate(($crate::spl_arg!($model).to_string(), Box::new($crate::spl_arg!($input).into()), 0)));
+    (g $model:tt $input:tt $max_tokens:tt) => ($crate::Unit::Generate(($crate::spl_arg!($model).to_string(), Box::new($crate::spl_arg!($input).into()), $crate::spl_arg!($max_tokens))));
 }
 
 #[macro_export]
@@ -159,8 +168,8 @@ pub enum Unit {
     /// (description, units)
     Plus((String, Vec<Unit>)),
 
-    /// (model, input)
-    Generate((String, Box<Unit>)),
+    /// (model, input, max_tokens)
+    Generate((String, Box<Unit>, u64)),
 }
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
@@ -169,7 +178,7 @@ impl ::std::fmt::Display for Unit {
             Unit::Bool(b) => write!(f, "{}", b),
             Unit::Number(n) => write!(f, "{}", n),
             Unit::String(s) => write!(f, "{}", s),
-            Unit::Generate((model, input)) => write!(f, "model={} input={:?}", model, input),
+            _ => Ok(()),
         }
     }
 }

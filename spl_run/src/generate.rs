@@ -1,3 +1,4 @@
+use indicatif::{MultiProgress, ProgressBar};
 use tokio::io::{AsyncWriteExt, stdout};
 use tokio_stream::StreamExt;
 
@@ -13,7 +14,12 @@ use ollama_rs::{
 use crate::result::SplResult;
 use spl_ast::Unit;
 
-pub async fn generate(model: &str, input: &Unit, quiet: bool) -> SplResult {
+pub async fn generate(
+    model: &str,
+    input: &Unit,
+    max_tokens: u64,
+    m: Option<&MultiProgress>,
+) -> SplResult {
     if model.starts_with("ollama/") || model.starts_with("ollama_chat/") {
         let model = if model.starts_with("ollama/") {
             &model[7..]
@@ -21,13 +27,18 @@ pub async fn generate(model: &str, input: &Unit, quiet: bool) -> SplResult {
             &model[12..]
         };
 
-        generate_ollama(model, input, quiet).await
+        generate_ollama(model, input, max_tokens, m).await
     } else {
         todo!()
     }
 }
 
-async fn generate_ollama(model: &str, input: &Unit, quiet: bool) -> SplResult {
+async fn generate_ollama(
+    model: &str,
+    input: &Unit,
+    max_tokens: u64,
+    m: Option<&MultiProgress>,
+) -> SplResult {
     let ollama = Ollama::default();
 
     let input_messages: Vec<ChatMessage> = match input {
@@ -56,6 +67,15 @@ async fn generate_ollama(model: &str, input: &Unit, quiet: bool) -> SplResult {
         )
         .await?;
 
+    let quiet = m.is_some();
+    let mut pb = m.and_then(|m| {
+        Some(m.add(if max_tokens == 0 {
+            ProgressBar::no_length()
+        } else {
+            ProgressBar::new(max_tokens)
+        }))
+    });
+
     // let mut last_res: Option<ChatMessageResponse> = None;
     let mut response_string = String::new();
     let mut stdout = stdout();
@@ -68,6 +88,9 @@ async fn generate_ollama(model: &str, input: &Unit, quiet: bool) -> SplResult {
             stdout.write_all(res.message.content.as_bytes()).await?;
             stdout.flush().await?;
             stdout.write_all(b"\x1b[0m").await?; // reset color
+        } else {
+            pb.as_mut()
+                .map(|pb| pb.inc(res.message.content.len() as u64));
         }
         response_string += res.message.content.as_str();
         // last_res = Some(res);
@@ -76,5 +99,13 @@ async fn generate_ollama(model: &str, input: &Unit, quiet: bool) -> SplResult {
         stdout.write_all(b"\n").await?;
     }
 
-    Ok(Unit::String(response_string))
+    if let Some(_) = m {
+        Ok(Unit::String(response_string))
+    } else {
+        Ok(Unit::Generate((
+            model.to_string(),
+            Box::new(Unit::String(response_string)),
+            max_tokens,
+        )))
+    }
 }
