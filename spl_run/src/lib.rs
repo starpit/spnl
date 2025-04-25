@@ -39,11 +39,12 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SplResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::result::SplError;
 
-    #[test]
-    fn it_works() -> Result<(), SplError> {
-        let result = run(&Unit::Bool(true), false)?;
-        assert_eq!(result, Unit::Bool(true));
+    #[tokio::test]
+    async fn it_works() -> Result<(), SplError> {
+        let result = run(&"hello".into(), None).await?;
+        assert_eq!(result, Unit::String("hello".to_string()));
         Ok(())
     }
 }

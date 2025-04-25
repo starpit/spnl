@@ -174,6 +174,9 @@ macro_rules! spl {
             $crate::spl_arg!($max_tokens), $crate::spl_arg!($temp)
         ))
     );
+
+    // Other
+    ($e:expr) => (Unit::String($e.into()));
 }
 
 #[macro_export]
@@ -229,7 +232,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let result = spl!(true);
-        assert_eq!(result, Unit::Bool(true));
+        let result = spl!("hello");
+        assert_eq!(result, Unit::String("hello".to_string()));
     }
 }
