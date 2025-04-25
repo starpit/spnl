@@ -17,7 +17,7 @@ use spl_ast::Unit;
 pub async fn generate(
     model: &str,
     input: &Unit,
-    max_tokens: u64,
+    max_tokens: i32,
     temp: f32,
     m: Option<&MultiProgress>,
 ) -> SplResult {
@@ -34,30 +34,23 @@ pub async fn generate(
     }
 }
 
+fn messagify(input: &Unit) -> Vec<ChatMessage> {
+    match input {
+        Unit::Cross((_, v)) | Unit::Plus((_, v)) => v.into_iter().flat_map(messagify).collect(),
+        o => vec![ChatMessage::user(o.to_string())],
+    }
+}
+
 async fn generate_ollama(
     model: &str,
     input: &Unit,
-    max_tokens: u64,
+    max_tokens: i32,
     temp: f32,
     m: Option<&MultiProgress>,
 ) -> SplResult {
     let ollama = Ollama::default();
 
-    let input_messages: Vec<ChatMessage> = match input {
-        Unit::Cross((_, v)) | Unit::Plus((_, v)) => v
-            .into_iter()
-            .map(|i| {
-                ChatMessage::user(match i {
-                    Unit::String(s) => s.clone(),
-                    x => x.to_string(),
-                })
-            })
-            .collect(),
-        o => vec![ChatMessage::user(match o {
-            Unit::String(s) => s.clone(),
-            x => x.to_string(),
-        })],
-    };
+    let input_messages: Vec<ChatMessage> = messagify(input);
 
     let (prompt, history_slice): (&ChatMessage, &[ChatMessage]) = match input_messages.split_last()
     {
@@ -83,13 +76,19 @@ async fn generate_ollama(
         Some(m.add(if max_tokens == 0 {
             ProgressBar::no_length()
         } else {
-            ProgressBar::new(max_tokens)
+            ProgressBar::new(max_tokens as u64)
         }))
     });
 
+    let mut stdout = stdout();
+    if !quiet {
+        stdout.write_all(b"\x1b[1mUser: \x1b[0m").await?;
+        stdout.write_all(prompt.content.as_bytes()).await?;
+        stdout.write_all(b"\n").await?;
+    }
+
     // let mut last_res: Option<ChatMessageResponse> = None;
     let mut response_string = String::new();
-    let mut stdout = stdout();
     if !quiet {
         stdout.write_all(b"\x1b[1mAssistant: \x1b[0m").await?;
     }

@@ -12,13 +12,13 @@ pub mod result;
 async fn fold(description: String, units: &Vec<Unit>) -> SplResult {
     let m = MultiProgress::new();
     let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(&m)))).await?;
-    m.println(&description)?;
+    m.println(format!("\x1b[1mCross: \x1b[0m{}", &description))?;
     Ok(Unit::Plus((description, evaluated)))
 }
 
 async fn map(description: String, units: &Vec<Unit>) -> SplResult {
     let m = MultiProgress::new();
-    m.println(&description)?;
+    m.println(format!("\x1b[1mPlus: \x1b[0m{}", &description))?;
     let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(&m)))).await?;
     Ok(Unit::Plus((description, evaluated)))
 }

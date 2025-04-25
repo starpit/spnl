@@ -95,22 +95,32 @@ macro_rules! spl {
         buffer
     }};
 
-    // read as u64 from stdin
-    (askn $message:tt) => {{
-        println!("{}", $crate::spl_arg!($message));
+    // read as i32 from stdin
+    (askn $message:tt) => ($crate::spl!(askn $message 100));
+    (askn $message:tt $default:tt) => {{
+        let default: i32 = $crate::spl_arg!($default);
+        println!("{} [default={default}]", $crate::spl_arg!($message));
         let mut buffer = String::new();
         let mut bytes_read = ::std::io::stdin().read_line(&mut buffer)?;
-        let n: u64 = buffer.trim().parse()?;
-        n
+        if buffer.trim().len() == 0 {
+            default
+        } else {
+            buffer.trim().parse()?
+        }
     }};
 
     // read as f32 from stdin
-    (askf $message:tt) => {{
-        println!("{}", $crate::spl_arg!($message));
+    (askf $message:tt) => ($crate::spl!(askf $message 0.5));
+    (askf $message:tt $default:tt) => {{
+        let default: f32 = $crate::spl_arg!($default);
+        println!("{} [default={default}]", $crate::spl_arg!($message));
         let mut buffer = String::new();
         let mut bytes_read = ::std::io::stdin().read_line(&mut buffer)?;
-        let n: f32 = buffer.trim().parse()?;
-        n
+        if buffer.trim().len() == 0 {
+            $crate::spl_arg!($default)
+        } else {
+            buffer.trim().parse()?
+        }
     }};
 
     // loop
@@ -195,7 +205,7 @@ pub enum Unit {
     Plus((String, Vec<Unit>)),
 
     /// (model, input, max_tokens)
-    Generate((String, Box<Unit>, u64, f32)),
+    Generate((String, Box<Unit>, i32, f32)),
 }
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
