@@ -140,7 +140,7 @@ macro_rules! spl {
 
     (print $( $e:tt )+) => ( print!( $($e),+ ) );
     (println $( $e:tt )+) => ( println!( $($e),+ ) );
-    (format $( $e:tt )+) => ( $crate::Unit::String(format!( $($e),+ ) ));
+    (format $( $e:tt )+) => ( &format!( $($e),+ ) );
 
     // math
     (+ $x:tt $y:tt) => ($crate::spl_arg!($x) + $crate::spl_arg!($y));
@@ -165,9 +165,15 @@ macro_rules! spl {
         $crate::Unit::Plus(($crate::spl_arg!($description).into(), args))
     }};
 
-    (g $model:tt $input:tt) => ($crate::Unit::Generate(($crate::spl_arg!($model).to_string(), Box::new($crate::spl_arg!($input).into()), 0, 0.0)));
-    (g $model:tt $input:tt $max_tokens:tt) => ($crate::Unit::Generate(($crate::spl_arg!($model).to_string(), Box::new($crate::spl_arg!($input).into()), $crate::spl_arg!($max_tokens), 0.0)));
-    (g $model:tt $input:tt $max_tokens:tt $temp:tt) => ($crate::Unit::Generate(($crate::spl_arg!($model).to_string(), Box::new($crate::spl_arg!($input).into()), $crate::spl_arg!($max_tokens), $crate::spl_arg!($temp))));
+    (g $model:tt $input:tt) => ($crate::spl!(g $model $input 0 0.0));
+    (g $model:tt $input:tt $max_tokens:tt) => ($crate::spl!(g $model $input $max_tokens 0.0));
+    (g $model:tt $input:tt $max_tokens:tt $temp:tt) => (
+        $crate::Unit::Generate((
+            $crate::spl_arg!($model).to_string(),
+            Box::new($crate::spl_arg!($input).into()),
+            $crate::spl_arg!($max_tokens), $crate::spl_arg!($temp)
+        ))
+    );
 }
 
 #[macro_export]
@@ -205,6 +211,11 @@ impl ::std::fmt::Display for Unit {
 impl From<&str> for Unit {
     fn from(s: &str) -> Self {
         Self::String(s.into())
+    }
+}
+impl From<&String> for Unit {
+    fn from(s: &String) -> Self {
+        Self::String(s.clone())
     }
 }
 impl PartialEq for Unit {

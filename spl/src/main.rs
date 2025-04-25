@@ -5,21 +5,23 @@ use spl_run::{result::SplError, run};
 async fn main() -> Result<(), SplError> {
     //let program = spl!(g "ollama/granite3.2:2b" (cross "Sample cross" (file "/tmp/foo") "Tell me a story" (ask "What is your question")));
     let program = spl!(
-        let
-            ((max_tokens (askn "Max length of email?"))
-             (temp (askf "Temperature?"))
-             (prompt (format "write an introductory email, limited to at most {max_tokens} characters")))
-
-            (g "ollama/granite3.2:2b"
+        let ((model "ollama/granite3.2:2b"))
+            (g model
              (cross "Ask the model to select the best option from the candidates"
-              //"Select exactly one of the following candidate email messages, judging based on shortest length"
               "Compute an evaluation score that ranks each of the given candidate introductory emails, respond with a list such as [3,1,2,4] which ranks the emails from best to worst and uses their input index, and then print the best one."
-              (plus "Generate candidate emails in parallel"
-               (g "ollama/granite3.2:2b" prompt max_tokens temp)
-               (g "ollama/granite3.2:2b" prompt max_tokens temp)
-               (g "ollama/granite3.2:2b" prompt max_tokens temp)
-               (g "ollama/granite3.2:2b" prompt max_tokens temp)
-               (g "ollama/granite3.2:2b" prompt max_tokens temp)
+
+              (let
+               ((max_tokens (askn "Max length of email?"))
+                (temp (askf "Temperature?"))
+                (prompt (format "write an introductory email, limited to at most {max_tokens} characters")))
+
+               (plus "Generate candidate emails in parallel"
+                (g model prompt max_tokens temp)
+                (g model prompt max_tokens temp)
+                (g model prompt max_tokens temp)
+                (g model prompt max_tokens temp)
+                (g model prompt max_tokens temp)
+               )
               )
              )
             )
