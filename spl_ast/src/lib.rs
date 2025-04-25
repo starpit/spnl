@@ -1,3 +1,5 @@
+pub use dialoguer::Input;
+
 #[macro_export]
 macro_rules! spl {
     // bool
@@ -89,10 +91,9 @@ macro_rules! spl {
 
     // read as string from stdin
     (ask $message:tt) => {{
-        println!("{}", $crate::spl_arg!($message));
-        let mut buffer = String::new();
-        let mut bytes_read = ::std::io::stdin().read_line(&mut buffer)?;
-        buffer
+        $crate::Input::<String>::new()
+            .with_prompt($message)
+            .interact_text()?
     }};
 
     // read as i32 from stdin
@@ -102,15 +103,10 @@ macro_rules! spl {
 
     // read with default value
     (askd $message:tt $default:tt) => {{
-        let default = $crate::spl_arg!($default);
-        println!("{} [default={default}]", $crate::spl_arg!($message));
-        let mut buffer = String::new();
-        let mut bytes_read = ::std::io::stdin().read_line(&mut buffer)?;
-        if buffer.trim().len() == 0 {
-            default
-        } else {
-            buffer.trim().parse()?
-        }
+        $crate::Input::new()
+            .with_prompt($message)
+            .default($default)
+            .interact_text()?
     }};
 
     // loop
