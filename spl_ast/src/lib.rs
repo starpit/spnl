@@ -87,12 +87,21 @@ macro_rules! spl {
         $( $crate::spl!( $($e2)* ) );*
     });*/
 
-    // read from stdin
+    // read as string from stdin
     (ask $message:tt) => {{
         println!("{}", $crate::spl_arg!($message));
         let mut buffer = String::new();
         let mut bytes_read = ::std::io::stdin().read_line(&mut buffer)?;
-        $crate::Unit::String(buffer)
+        buffer
+    }};
+
+    // read as u64 from stdin
+    (askn $message:tt) => {{
+        println!("{}", $crate::spl_arg!($message));
+        let mut buffer = String::new();
+        let mut bytes_read = ::std::io::stdin().read_line(&mut buffer)?;
+        let n: u64 = buffer.trim().parse()?;
+        n
     }};
 
     // loop
