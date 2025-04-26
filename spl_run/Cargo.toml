@@ -5,9 +5,12 @@ edition = "2024"
 
 [dependencies]
 async-recursion = "1.1.1"
+duct = "0.13.7"
+fs4 = "0.13.1"
 futures = "0.3.31"
 indicatif = { version = "0.17.11", features = ["rayon"] }
 ollama-rs = { git = "https://github.com/starpit/ollama-rs.git", branch = "tools-pub-7", features = ["stream"] }
+rayon = "1.10.0"
 spl_ast = { version = "0.1.0", path = "../spl_ast" }
 tokio = { version = "1.44.1", features = ["io-std"] }
 tokio-stream = "0.1.17"

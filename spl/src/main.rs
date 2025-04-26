@@ -8,9 +8,9 @@ async fn main() -> Result<(), SplError> {
             (g model
              (cross "Ask the model to select the best option from the candidates"
               (let
-               ((max_tokens (askn "Max length of email?"))
-                (temp (askf "Temperature?"))
-                (prompt (format "write an introductory email for a job application, limited to at most {max_tokens} characters")))
+               ((max_tokens (ask "Max length of email?" 100))
+                (temp (ask "Temperature?" 0.5))
+                (prompt (format "write an introductory email for a job application, limited to at most {max_tokens} characters. use your imagination, go wild")))
 
                (plus "Generate candidate emails in parallel"
                 (g model prompt max_tokens temp)
