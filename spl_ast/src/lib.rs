@@ -96,13 +96,8 @@ macro_rules! spl {
             .interact_text()?
     }};
 
-    // read as i32 from stdin
-    (askn $message:tt) => ($crate::spl!(askd $message 100));
-    // read as f32 from stdin
-    (askf $message:tt) => ($crate::spl!(askd $message 0.5));
-
     // read with default value
-    (askd $message:tt $default:tt) => {{
+    (ask $message:tt $default:tt) => {{
         $crate::Input::new()
             .with_prompt($message)
             .default($default)
