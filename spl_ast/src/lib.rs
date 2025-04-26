@@ -1,5 +1,6 @@
 pub use dialoguer::Input;
 
+// Inspiration: https://github.com/JunSuzukiJapan/macro-lisp
 #[macro_export]
 macro_rules! spl {
     // bool
