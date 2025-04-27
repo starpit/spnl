@@ -24,7 +24,7 @@ pub async fn pull_if_needed(program: &Unit) -> Result<(), Error> {
             m if model.starts_with("ollama/") => ollama_pull_if_needed(&m[7..]),
             m if model.starts_with("ollama_chat/") => ollama_pull_if_needed(&m[12..]),
             _ => {
-                eprintln!("Skipping model pull for {}", model);
+                // eprintln!("Skipping model pull for {}", model);
                 Ok(())
             }
         })

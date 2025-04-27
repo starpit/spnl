@@ -4,7 +4,8 @@ use spl_run::{result::SplError, run};
 #[tokio::main]
 async fn main() -> Result<(), SplError> {
     let program = spl!(
-        let ((model "ollama/granite3.2:2b"))
+        let (//(model "ollama/granite3.2:2b"))
+            (model "openai/ibm-granite/granite-3.3-8b-instruct"))
             (g model
              (cross "Ask the model to select the best option from the candidates"
               (let
