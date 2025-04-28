@@ -1665,19 +1665,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "spl"
+name = "spl_ast"
+version = "0.1.0"
+dependencies = [
+ "dialoguer",
+]
+
+[[package]]
+name = "spl_cli"
 version = "0.1.0"
 dependencies = [
  "spl_ast",
  "spl_run",
  "tokio",
-]
-
-[[package]]
-name = "spl_ast"
-version = "0.1.0"
-dependencies = [
- "dialoguer",
 ]
 
 [[package]]
