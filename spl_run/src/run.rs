@@ -34,6 +34,26 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SplResult {
         Unit::Generate((model, input, max_tokens, temp)) => {
             generate(model.as_str(), &run(&input, m).await?, max_tokens, temp, m).await
         }
+
+        Unit::Ask((message, default)) => {
+            use dialoguer::Input;
+            Ok(Unit::String(if let Some(default) = default {
+                Input::<String>::with_theme(&MyTheme)
+                    .with_prompt(message)
+                    .default(default)
+                    .interact_text()?
+            } else {
+                Input::<String>::with_theme(&MyTheme)
+                    .with_prompt(message)
+                    .interact_text()?
+            }))
+        }
+        Unit::Loop(l) => loop {
+            let mut iter = l.iter();
+            while let Some(e) = iter.next() {
+                run(e, m).await?;
+            }
+        },
     }
 }
 
@@ -47,5 +67,40 @@ mod tests {
         let result = run(&"hello".into(), None).await?;
         assert_eq!(result, Unit::String("hello".to_string()));
         Ok(())
+    }
+}
+
+// avoid : suffix for Input
+// https://github.com/console-rs/dialoguer/issues/255#issuecomment-1975230358
+use dialoguer::theme::Theme;
+use std::fmt;
+pub struct MyTheme;
+impl Theme for MyTheme {
+    /// Formats a prompt.
+    fn format_prompt(&self, f: &mut dyn fmt::Write, prompt: &str) -> fmt::Result {
+        write!(f, "{prompt}")
+    }
+
+    /// Formats an input prompt.
+    fn format_input_prompt(
+        &self,
+        f: &mut dyn fmt::Write,
+        prompt: &str,
+        default: Option<&str>,
+    ) -> fmt::Result {
+        match default {
+            Some(default) => write!(f, "[{default}] {prompt}"),
+            None => write!(f, "{prompt} "),
+        }
+    }
+
+    /// Formats an input prompt after selection.
+    fn format_input_prompt_selection(
+        &self,
+        f: &mut dyn fmt::Write,
+        prompt: &str,
+        selection: &str,
+    ) -> fmt::Result {
+        write!(f, "{prompt} {selection}")
     }
 }

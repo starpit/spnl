@@ -1,10 +1,14 @@
-use clap::Parser;
-
 use crate::args::Args;
 use spl_ast::{Unit, spl};
 
-pub fn demo() -> Unit {
-    let Args { model, n, temperature, max_tokens, .. } = Args::parse();
+pub fn demo(args: Args) -> Unit {
+    let Args {
+        model,
+        n,
+        temperature,
+        max_tokens,
+        ..
+    } = args;
 
     spl!(
         g model
@@ -14,7 +18,7 @@ pub fn demo() -> Unit {
           (plusn n (format "Generate {n} candidate emails in parallel")
            (g model
             (format "write an introductory email for a job application, limited to at most {max_tokens} characters. use your imagination, go wild.")
-            max_tokens temperature)
+            temperature max_tokens)
           )
 
           "My name is Shiloh. I am a data scientist with 10 years of experience and need an introductory email to apply for a position at IBM in their research department"

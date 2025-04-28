@@ -1,4 +1,4 @@
-pub use dialoguer::Input;
+// pub use dialoguer::Input;
 
 // Inspiration: https://github.com/JunSuzukiJapan/macro-lisp
 #[macro_export]
@@ -91,22 +91,14 @@ macro_rules! spl {
     });*/
 
     // read as string from stdin
-    (ask $message:tt) => {{
-        $crate::Input::<String>::new()
-            .with_prompt($message)
-            .interact_text()?
-    }};
+    (ask $message:tt) => ( Unit::Ask(($crate::spl_arg!($message).into(), None)) );
 
     // read with default value
-    (ask $message:tt $default:tt) => {{
-        $crate::Input::new()
-            .with_prompt($message)
-            .default($default)
-            .interact_text()?
-    }};
+    (ask $message:tt $default:tt) => ( Unit::Ask(($crate::spl_arg!($message).into(), Some($crate::spl_arg!($default).into()), None)) );
 
     // loop
-    (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spl!( $($e)* ) );* });
+    // (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spl!( $($e)* ) );* } );
+    (loop $( ( $($e:tt)* ) )* ) => ( $crate::Unit::Loop(vec![$( $crate::spl!( $($e)* ) ),*]) );
 
     // dotimes
     (dotimes ($var:ident $count:tt) $( ( $($e:tt)* ) )* ) => (
@@ -164,9 +156,9 @@ macro_rules! spl {
         $crate::Unit::Plus(($crate::spl_arg!($description).into(), args))
     }};
 
-    (g $model:tt $input:tt) => ($crate::spl!(g $model $input 0 0.0));
-    (g $model:tt $input:tt $max_tokens:tt) => ($crate::spl!(g $model $input $max_tokens 0.0));
-    (g $model:tt $input:tt $max_tokens:tt $temp:tt) => (
+    (g $model:tt $input:tt) => ($crate::spl!(g $model $input 0.0 0));
+    (g $model:tt $input:tt $temp:tt) => ($crate::spl!(g $model $input $temp 0));
+    (g $model:tt $input:tt $temp:tt $max_tokens:tt) => (
         $crate::Unit::Generate((
             $crate::spl_arg!($model).to_string(),
             Box::new($crate::spl_arg!($input).into()),
@@ -176,7 +168,9 @@ macro_rules! spl {
 
     (system $e:tt) => ($crate::Unit::System($crate::spl_arg!($e).into()));
 
-    // Other
+    // execute rust
+    (rust $( $st:stmt )* ) => ( $($st);* );
+    // other
     ($e:expr) => (Unit::String($e.into()));
 }
 
@@ -201,6 +195,12 @@ pub enum Unit {
 
     /// (model, input, max_tokens)
     Generate((String, Box<Unit>, i32, f32)),
+
+    /// Loop
+    Loop(Vec<Unit>),
+
+    /// Ask (prompt, default)
+    Ask((String, Option<String>)),
 }
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
