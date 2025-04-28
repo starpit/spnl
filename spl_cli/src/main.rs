@@ -12,21 +12,25 @@ struct Args {
     /// Temperature
     #[arg(short, long, default_value_t = 0.0)]
     temperature: f32,
+
+    /// Max Completion/Generated Tokens
+    #[arg(short = 'l', long, default_value_t = 100)]
+    max_tokens: i32,
 }
 #[tokio::main]
 async fn main() -> Result<(), SplError> {
     let args = Args::parse();
     let model = args.model;
     let temp = args.temperature;
+    let max_tokens = args.max_tokens;
 
     let program = spl!(
         g model
          (cross "Ask the model to select the best option from the candidates"
           (let
-           ((max_tokens (ask "Max length of email?" 100))
-            (prompt (format "write an introductory email for a job application, limited to at most {max_tokens} characters. use your imagination, go wild")))
+           ((prompt (format "write an introductory email for a job application, limited to at most {max_tokens} characters. use your imagination, go wild")))
 
-           (plus "Generate candidate emails in parallel"
+           (plus "Generate 5 candidate emails in parallel"
             (g model prompt max_tokens temp)
             (g model prompt max_tokens temp)
             (g model prompt max_tokens temp)
