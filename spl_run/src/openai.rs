@@ -6,7 +6,8 @@ use async_openai::{
     Client,
     config::OpenAIConfig,
     types::{
-        ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
+        ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
+        ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
         ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
     },
 };
@@ -101,6 +102,12 @@ pub async fn generate_openai(
 fn messagify(input: &Unit) -> Vec<ChatCompletionRequestMessage> {
     match input {
         Unit::Cross((_, v)) | Unit::Plus((_, v)) => v.into_iter().flat_map(messagify).collect(),
+        Unit::System(s) => vec![ChatCompletionRequestMessage::System(
+            ChatCompletionRequestSystemMessage {
+                name: None,
+                content: ChatCompletionRequestSystemMessageContent::Text(s.clone()),
+            },
+        )],
         o => vec![ChatCompletionRequestMessage::User(
             ChatCompletionRequestUserMessage {
                 name: None,

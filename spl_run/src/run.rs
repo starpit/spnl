@@ -28,6 +28,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SplResult {
     let _ = pull_future.await?;
     match p {
         Unit::String(s) => Ok(Unit::String(s.clone())),
+        Unit::System(s) => Ok(Unit::System(s.clone())),
         Unit::Cross((d, u)) => cross(d, &u).await,
         Unit::Plus((d, u)) => plus(d, &u).await,
         Unit::Generate((model, input, max_tokens, temp)) => {

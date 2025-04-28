@@ -97,6 +97,7 @@ pub async fn generate_ollama(
 fn messagify(input: &Unit) -> Vec<ChatMessage> {
     match input {
         Unit::Cross((_, v)) | Unit::Plus((_, v)) => v.into_iter().flat_map(messagify).collect(),
+        Unit::System(s) => vec![ChatMessage::system(s.clone())],
         o => vec![ChatMessage::user(o.to_string())],
     }
 }

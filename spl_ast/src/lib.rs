@@ -156,6 +156,13 @@ macro_rules! spl {
         )+
         $crate::Unit::Plus(($crate::spl_arg!($description).into(), args))
     }};
+    (plusn $n:tt $description:tt $e:tt) => {{
+        let mut args: Vec<$crate::Unit> = vec![];
+        for i in 0..$crate::spl_arg!($n) {
+            args.push($crate::spl_arg!($e).into());
+        }
+        $crate::Unit::Plus(($crate::spl_arg!($description).into(), args))
+    }};
 
     (g $model:tt $input:tt) => ($crate::spl!(g $model $input 0 0.0));
     (g $model:tt $input:tt $max_tokens:tt) => ($crate::spl!(g $model $input $max_tokens 0.0));
@@ -166,6 +173,8 @@ macro_rules! spl {
             $crate::spl_arg!($max_tokens), $crate::spl_arg!($temp)
         ))
     );
+
+    (system $e:tt) => ($crate::Unit::System($crate::spl_arg!($e).into()));
 
     // Other
     ($e:expr) => (Unit::String($e.into()));
@@ -180,6 +189,9 @@ macro_rules! spl_arg {
 #[derive(Debug, Clone)]
 pub enum Unit {
     String(String),
+
+    /// System prompt
+    System(String),
 
     /// (description, units)
     Cross((String, Vec<Unit>)),
