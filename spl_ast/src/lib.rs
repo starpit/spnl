@@ -102,8 +102,8 @@ macro_rules! spl {
 
     // dotimes
     (dotimes ($var:ident $count:tt) $( ( $($e:tt)* ) )* ) => (
-        for $var in 0..$crate::lisp_arg!($count) {
-            $( $crate::lisp!( $($e)* ) );*
+        for $var in 0..$crate::spl_arg!($count) {
+            $( $crate::spl!( $($e)* ) );*
         }
     );
 
@@ -139,21 +139,28 @@ macro_rules! spl {
         $(
             args.push($crate::spl_arg!($e).into());
         )+
-        $crate::Unit::Cross(($crate::spl_arg!($description).into(), args))
+        $crate::Unit::Cross((Some($crate::spl_arg!($description).into()), args))
+    }};
+    (cross $description:tt $( $e:tt )+) => {{
+        let mut args: Vec<$crate::Unit> = vec![];
+        $(
+            args.push($crate::spl_arg!($e).into());
+        )+
+        $crate::Unit::Cross((Some($crate::spl_arg!($description).into()), args))
     }};
     (plus $description:tt $( $e:tt )+) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         $(
             args.push($crate::spl_arg!($e).into());
         )+
-        $crate::Unit::Plus(($crate::spl_arg!($description).into(), args))
+        $crate::Unit::Plus((Some($crate::spl_arg!($description).into()), args))
     }};
     (plusn $n:tt $description:tt $e:tt) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         for i in 0..$crate::spl_arg!($n) {
             args.push($crate::spl_arg!($e).into());
         }
-        $crate::Unit::Plus(($crate::spl_arg!($description).into(), args))
+        $crate::Unit::Plus((Some($crate::spl_arg!($description).into()), args))
     }};
 
     (g $model:tt $input:tt) => ($crate::spl!(g $model $input 0.0 0));
@@ -188,10 +195,10 @@ pub enum Unit {
     System(String),
 
     /// (description, units)
-    Cross((String, Vec<Unit>)),
+    Cross((Option<String>, Vec<Unit>)),
 
     /// (description, units)
-    Plus((String, Vec<Unit>)),
+    Plus((Option<String>, Vec<Unit>)),
 
     /// (model, input, max_tokens)
     Generate((String, Box<Unit>, i32, f32)),
@@ -205,7 +212,13 @@ pub enum Unit {
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {
-            Unit::Cross((d, v)) | Unit::Plus((d, v)) => write!(f, "{}: {:?}", d, v),
+            Unit::Cross((d, v)) | Unit::Plus((d, v)) => {
+                if let Some(description) = d {
+                    write!(f, "{}: {:?}", description, v)
+                } else {
+                    write!(f, "{:?}", v)
+                }
+            }
             Unit::String(s) => write!(f, "{}", s),
             _ => Ok(()),
         }

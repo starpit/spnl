@@ -7,16 +7,20 @@ use crate::pull::pull_if_needed;
 use crate::result::SplResult;
 use spl_ast::Unit;
 
-async fn cross(description: String, units: &Vec<Unit>) -> SplResult {
+async fn cross(description: Option<String>, units: &Vec<Unit>) -> SplResult {
     let m = MultiProgress::new();
     let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(&m)))).await?;
-    m.println(format!("\x1b[1mCross: \x1b[0m{}", &description))?;
+    if let Some(description) = &description {
+        m.println(format!("\x1b[1mCross: \x1b[0m{}", description))?;
+    }
     Ok(Unit::Plus((description, evaluated)))
 }
 
-async fn plus(description: String, units: &Vec<Unit>) -> SplResult {
+async fn plus(description: Option<String>, units: &Vec<Unit>) -> SplResult {
     let m = MultiProgress::new();
-    m.println(format!("\x1b[1mPlus: \x1b[0m{}", &description))?;
+    if let Some(description) = &description {
+        m.println(format!("\x1b[1mPlus: \x1b[0m{}", description))?;
+    }
     let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(&m)))).await?;
     Ok(Unit::Plus((description, evaluated)))
 }
