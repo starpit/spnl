@@ -1,5 +1,5 @@
 [package]
-name = "spl_run"
+name = "spnl_run"
 version = "0.1.0"
 edition = "2024"
 
@@ -13,6 +13,6 @@ futures = "0.3.31"
 indicatif = { version = "0.17.11", features = ["rayon"] }
 ollama-rs = { git = "https://github.com/starpit/ollama-rs.git", branch = "tools-pub-7", features = ["stream"] }
 rayon = "1.10.0"
-spl_ast = { version = "0.1.0", path = "../spl_ast" }
+spnl_ast = { version = "0.1.0", path = "../spnl_ast" }
 tokio = { version = "1.44.1", features = ["io-std"] }
 tokio-stream = "0.1.17"

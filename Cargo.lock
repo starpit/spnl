@@ -1773,21 +1773,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "spl_ast"
+name = "spnl_ast"
 version = "0.1.0"
 
 [[package]]
-name = "spl_cli"
+name = "spnl_cli"
 version = "0.1.0"
 dependencies = [
  "clap",
- "spl_ast",
- "spl_run",
+ "spnl_ast",
+ "spnl_run",
  "tokio",
 ]
 
 [[package]]
-name = "spl_run"
+name = "spnl_run"
 version = "0.1.0"
 dependencies = [
  "async-openai",
@@ -1799,7 +1799,7 @@ dependencies = [
  "indicatif",
  "ollama-rs",
  "rayon",
- "spl_ast",
+ "spnl_ast",
  "tokio",
  "tokio-stream",
 ]

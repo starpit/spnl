@@ -2,8 +2,8 @@ use indicatif::{MultiProgress, ProgressBar};
 use tokio::io::{AsyncWriteExt, stdout};
 use tokio_stream::StreamExt;
 
-use crate::result::SplResult;
-use spl_ast::Unit;
+use crate::result::SpnlResult;
+use spnl_ast::Unit;
 
 use ollama_rs::{
     Ollama,
@@ -20,7 +20,7 @@ pub async fn generate_ollama(
     max_tokens: i32,
     temp: f32,
     m: Option<&MultiProgress>,
-) -> SplResult {
+) -> SpnlResult {
     let ollama = Ollama::default();
 
     let input_messages: Vec<ChatMessage> = messagify(input);

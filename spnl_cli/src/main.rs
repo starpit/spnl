@@ -2,13 +2,13 @@ use clap::Parser;
 
 use crate::args::Args;
 use crate::demos::*;
-use spl_run::{result::SplError, run};
+use spnl_run::{result::SpnlError, run};
 
 mod args;
 mod demos;
 
 #[tokio::main]
-async fn main() -> Result<(), SplError> {
+async fn main() -> Result<(), SpnlError> {
     let args = Args::parse();
     let program = match args.demo {
         Demo::Chat => chat::demo(args),

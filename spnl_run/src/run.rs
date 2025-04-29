@@ -4,10 +4,10 @@ use indicatif::MultiProgress;
 use crate::generate::generate;
 use crate::plan::plan;
 use crate::pull::pull_if_needed;
-use crate::result::SplResult;
-use spl_ast::Unit;
+use crate::result::SpnlResult;
+use spnl_ast::Unit;
 
-async fn cross(description: Option<String>, units: &Vec<Unit>) -> SplResult {
+async fn cross(description: Option<String>, units: &Vec<Unit>) -> SpnlResult {
     let m = MultiProgress::new();
     let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(&m)))).await?;
     if let Some(description) = &description {
@@ -16,7 +16,7 @@ async fn cross(description: Option<String>, units: &Vec<Unit>) -> SplResult {
     Ok(Unit::Plus((description, evaluated)))
 }
 
-async fn plus(description: Option<String>, units: &Vec<Unit>) -> SplResult {
+async fn plus(description: Option<String>, units: &Vec<Unit>) -> SpnlResult {
     let m = MultiProgress::new();
     if let Some(description) = &description {
         m.println(format!("\x1b[1mPlus: \x1b[0m{}", description))?;
@@ -26,7 +26,7 @@ async fn plus(description: Option<String>, units: &Vec<Unit>) -> SplResult {
 }
 
 #[async_recursion]
-pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SplResult {
+pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
     let pull_future = pull_if_needed(unit);
     let p = plan(unit);
     let _ = pull_future.await?;
@@ -64,10 +64,10 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SplResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::result::SplError;
+    use crate::result::SpnlError;
 
     #[tokio::test]
-    async fn it_works() -> Result<(), SplError> {
+    async fn it_works() -> Result<(), SpnlError> {
         let result = run(&"hello".into(), None).await?;
         assert_eq!(result, Unit::String("hello".to_string()));
         Ok(())

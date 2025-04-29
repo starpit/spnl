@@ -1,14 +1,14 @@
 [package]
-name = "spl_cli"
+name = "spnl_cli"
 version = "0.1.0"
 edition = "2024"
 
 [[bin]]
-name = "spl"
+name = "spnl"
 path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.5.37", features = ["derive"] }
-spl_ast = { version = "0.1.0", path = "../spl_ast" }
-spl_run = { version = "0.1.0", path = "../spl_run" }
+spnl_ast = { version = "0.1.0", path = "../spnl_ast" }
+spnl_run = { version = "0.1.0", path = "../spnl_run" }
 tokio = "1.44.2"

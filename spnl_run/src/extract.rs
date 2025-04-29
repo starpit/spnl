@@ -1,4 +1,4 @@
-use spl_ast::Unit;
+use spnl_ast::Unit;
 
 /// Extract models referenced by the program
 pub fn extract_models(program: &Unit) -> Vec<String> {

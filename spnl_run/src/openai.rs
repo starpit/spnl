@@ -12,8 +12,8 @@ use async_openai::{
     },
 };
 
-use crate::result::SplResult;
-use spl_ast::Unit;
+use crate::result::SpnlResult;
+use spnl_ast::Unit;
 
 pub async fn generate_openai(
     model: &str,
@@ -21,7 +21,7 @@ pub async fn generate_openai(
     max_tokens: i32,
     temp: f32,
     m: Option<&MultiProgress>,
-) -> SplResult {
+) -> SpnlResult {
     let client = Client::with_config(OpenAIConfig::new().with_api_base("http://localhost:8000/v1"));
 
     let input_messages = messagify(input);

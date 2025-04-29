@@ -1,18 +1,18 @@
-# SPL: SPan Language UX Experimentation
+# SPNL: SPaN Language UX Experimentation
 
 This repository consists of Rust workspaces that implement
 - **spl_ast**: Span Language AST and an `spl!` Rust macro that generates the AST
-- **spl_run**: Runs a given SPL AST
+- **spl_run**: Runs a given SPNL AST
 - **spl**: A trivial command line front end
 
-## SPL AST
+## SPNL AST
 
 The AST is currently specified using a Lisp-like DSL. The `spl!` macro
 accepts this DSL and creates the underlying data structures.
 
 ### `g` `plus` and `cross`
 
-There are three main SPL operators signified in the DSL as `g`,
+There are three main SPNL operators signified in the DSL as `g`,
 `plus`, and `cross`:
 
 - `(g model input)`: Used to ask a model to generate new output

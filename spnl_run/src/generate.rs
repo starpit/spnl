@@ -1,7 +1,7 @@
 use indicatif::MultiProgress;
 
-use crate::result::SplResult;
-use spl_ast::Unit;
+use crate::result::SpnlResult;
+use spnl_ast::Unit;
 
 use crate::ollama::generate_ollama;
 use crate::openai::generate_openai;
@@ -12,7 +12,7 @@ pub async fn generate(
     max_tokens: i32,
     temp: f32,
     m: Option<&MultiProgress>,
-) -> SplResult {
+) -> SpnlResult {
     if model.starts_with("ollama/") || model.starts_with("ollama_chat/") {
         let model = if model.starts_with("ollama/") {
             &model[7..]
