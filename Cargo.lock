@@ -1100,8 +1100,9 @@ dependencies = [
 
 [[package]]
 name = "ollama-rs"
-version = "0.3.0"
-source = "git+https://github.com/starpit/ollama-rs.git?branch=tools-pub-7#90820473b4b6e037a82f4c5bd2e254935bae8da7"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0bd0e2c30868e72ffca8143873c6c1e288b2efda9d3950e9ae0d0b4039c49c3"
 dependencies = [
  "async-stream",
  "log",
@@ -1830,9 +1831,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
-version = "2.0.100"
+version = "2.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b09a44accad81e1ba1cd74a32461ba89dee89095ba17b32f5d03683b1b1fc2a0"
+checksum = "8ce2b7fc941b3a24138a0a7cf8e858bfc6a992e7978a068a5c760deb0ed43caf"
 dependencies = [
  "proc-macro2",
  "quote",

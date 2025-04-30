@@ -11,7 +11,7 @@ duct = "0.13.7"
 fs4 = "0.13.1"
 futures = "0.3.31"
 indicatif = { version = "0.17.11", features = ["rayon"] }
-ollama-rs = { git = "https://github.com/starpit/ollama-rs.git", branch = "tools-pub-7", features = ["stream"] }
+ollama-rs = { version = "0.3.1", features = ["stream"] }
 rayon = "1.10.0"
 spnl_ast = { version = "0.1.0", path = "../spnl_ast" }
 tokio = { version = "1.44.1", features = ["io-std"] }
