@@ -14,6 +14,7 @@ async fn main() -> Result<(), SpnlError> {
         Demo::Chat => chat::demo(args),
         Demo::Email => email::demo(args),
         Demo::Email2 => email2::demo(args),
+        Demo::Email3 => email3::demo(args),
     };
 
     run(&program, None).await.map(|res| {
