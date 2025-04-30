@@ -13,6 +13,7 @@ async fn main() -> Result<(), SpnlError> {
     let program = match args.demo {
         Demo::Chat => chat::demo(args),
         Demo::Email => email::demo(args),
+        Demo::Email2 => email2::demo(args),
     };
 
     run(&program, None).await.map(|res| {

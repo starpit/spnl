@@ -28,7 +28,7 @@ pub async fn generate_openai(
 
     let quiet = m.is_some();
     let mut stdout = stdout();
-    if !quiet {
+    /* if !quiet {
         if let Some(ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
             content: ChatCompletionRequestUserMessageContent::Text(content),
             ..
@@ -38,7 +38,7 @@ pub async fn generate_openai(
             stdout.write_all(content.as_bytes()).await?;
             stdout.write_all(b"\n").await?;
         }
-    }
+    } */
 
     let request = CreateChatCompletionRequestArgs::default()
         .model(model)

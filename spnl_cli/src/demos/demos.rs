@@ -2,4 +2,5 @@
 pub enum Demo {
     Chat,
     Email,
+    Email2,
 }

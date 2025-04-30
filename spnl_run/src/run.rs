@@ -7,9 +7,14 @@ use crate::pull::pull_if_needed;
 use crate::result::SpnlResult;
 use spnl_ast::Unit;
 
-async fn cross(description: Option<String>, units: &Vec<Unit>) -> SpnlResult {
-    let m = MultiProgress::new();
-    let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(&m)))).await?;
+async fn cross(
+    description: Option<String>,
+    units: &Vec<Unit>,
+    mm: Option<&MultiProgress>,
+) -> SpnlResult {
+    let mym = MultiProgress::new();
+    let m = if let Some(m) = mm { m } else { &mym };
+    let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(m)))).await?;
     if let Some(description) = &description {
         m.println(format!("\x1b[1mCross: \x1b[0m{}", description))?;
     }
@@ -33,7 +38,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
     match p {
         Unit::String(s) => Ok(Unit::String(s.clone())),
         Unit::System(s) => Ok(Unit::System(s.clone())),
-        Unit::Cross((d, u)) => cross(d, &u).await,
+        Unit::Cross((d, u)) => cross(d, &u, m).await,
         Unit::Plus((d, u)) => plus(d, &u).await,
         Unit::Generate((model, input, max_tokens, temp)) => {
             generate(model.as_str(), &run(&input, m).await?, max_tokens, temp, m).await

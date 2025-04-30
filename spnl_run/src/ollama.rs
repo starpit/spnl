@@ -32,8 +32,11 @@ pub async fn generate_ollama(
     };
     let history = Vec::from(history_slice);
 
-    let req = ChatMessageRequest::new(model.into(), vec![prompt.clone()])
-        .options(ModelOptions::default().temperature(temp));
+    let req = ChatMessageRequest::new(model.into(), vec![prompt.clone()]).options(
+        ModelOptions::default()
+            .temperature(temp)
+            .num_predict(if max_tokens == 0 { -1 } else { max_tokens }),
+    );
     // .format(ollama_rs::generation::parameters::FormatType::Json)
     //        .tools(tools);
 
@@ -54,11 +57,11 @@ pub async fn generate_ollama(
     });
 
     let mut stdout = stdout();
-    if !quiet {
+    /* if !quiet {
         stdout.write_all(b"\x1b[1mUser: \x1b[0m").await?;
         stdout.write_all(prompt.content.as_bytes()).await?;
         stdout.write_all(b"\n").await?;
-    }
+    } */
 
     // let mut last_res: Option<ChatMessageResponse> = None;
     let mut response_string = String::new();
