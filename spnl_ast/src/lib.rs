@@ -147,7 +147,7 @@ impl ptree::TreeItem for Unit {
                     d.as_deref().unwrap_or("")
                 )),
                 Unit::Generate((m, _, _, _)) =>
-                    style.paint(format!("\x1b[31;1mGenerate\x1b[0m {m}")),
+                    style.paint(format!("\x1b[31;1mGenerate\x1b[0m \x1b[2m{m}\x1b[0m")),
                 Unit::Loop(_) => style.paint("Loop".to_string()),
                 Unit::Ask(m) => style.paint(format!("Ask {m}")),
             }
