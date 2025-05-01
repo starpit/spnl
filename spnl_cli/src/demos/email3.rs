@@ -11,31 +11,13 @@ pub fn demo(args: Args) -> Unit {
         ..
     } = args;
 
-    spnl!(
-        g model
-         (cross
-          (system "You compute an evaluation score from 0 to 100 that ranks given candidate introductory emails. Better emails are ones that mention specifics, such as names of people and companies. You present a list of the top 3 ordered by their rank showing the score and always show the full content of each candidate email.")
+    let generate_system_prompt = spnl!(file "email3-generate-system-prompt.txt");
+    let evaluate_system_prompt = spnl!(file "email3-evaluate-system-prompt.txt");
 
-          (plusn n (desc (format "Generate {n} candidate emails in parallel"))
-           (g model
-            (cross
-             (system "You are IBM Sales Assistant, an expert in writing emails for IBM sellers to help in prospecting.
+    let generate_user_prompt = spnl!(ask "Tell me about yourself" "My name is Greg. I am a data scientist with 10 years of experience applying for a position at IBM in their research department");
 
-You MUST strictly adhere to the following guidelines. Pay attention to each of the following guideline attributes. You must include all these guideline attributes in the email if mentioned below (subject, greeting, signatures, etc.) and the guideline attributes also should adhere to its list of requirements mentioned. But allow the user to override the guidelines in your response if they explicitly ask in their query. Be professional and don't use asterisks, emojis, links, or any other symbols in the email.
+    let generate_one_candidate_email = spnl!(g model (cross (system generate_system_prompt) generate_user_prompt) temperature max_tokens);
+    let candidate_emails = spnl!(plusn n (desc (format "Generate {n} candidate emails in parallel")) generate_one_candidate_email);
 
-The guidelines are:
-{guidelines}
-
-Email should start with a Subject: ....
-
-Just give me the email text. Add a new line between each of these segments. Don't include any other words, text, or comments.")
-
-             "My name is Shiloh. I am a data scientist with 10 years of experience and need an introductory email to apply for a position at IBM in their research department"
-            )
-
-            temperature max_tokens
-           )
-          )
-         )
-    )
+    spnl!(g model (cross (system evaluate_system_prompt) candidate_emails))
 }

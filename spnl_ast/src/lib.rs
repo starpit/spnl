@@ -20,7 +20,7 @@ macro_rules! spnl {
     (ask $message:tt) => ( Unit::Ask(($crate::spnl_arg!($message).into(), None)) );
 
     // read with default value
-    (ask $message:tt $default:tt) => ( Unit::Ask(($crate::spnl_arg!($message).into(), Some($crate::spnl_arg!($default).into()), None)) );
+    (ask $message:tt $default:tt) => ( Unit::Ask(($crate::spnl_arg!($message).into(), Some($crate::spnl_arg!($default).into()))) );
 
     // loop
     // (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spnl!( $($e)* ) );* } );
@@ -59,7 +59,7 @@ macro_rules! spnl {
     (/ $x:tt $y:tt) => ($crate::spnl_arg!($x) / $crate::spnl_arg!($y));
     (% $x:tt $y:tt) => ($crate::spnl_arg!($x) % $crate::spnl_arg!($y));*/
 
-    (file $f:tt) => ($crate::Unit::String(::std::fs::read_to_string($crate::spnl_arg!($f)).unwrap()));
+    (file $f:tt) => (include_str!($crate::spnl_arg!($f)));
     (cross (desc $description:tt) $( $e:tt )+) => (
         $crate::Unit::Cross((Some($crate::spnl_arg!($description).into()), vec![$( $crate::spnl_arg!( $e ).into() ),+]))
     );
@@ -71,7 +71,7 @@ macro_rules! spnl {
     (plusn $n:tt (desc $description:tt) $e:tt) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         for i in 0..$crate::spnl_arg!($n) {
-            args.push($crate::spnl_arg!($e).into());
+            args.push($crate::spnl_arg!($e).clone());
         }
         $crate::Unit::Plus((Some($crate::spnl_arg!($description).into()), args))
     }};
@@ -86,6 +86,7 @@ macro_rules! spnl {
         ))
     );
 
+    (user $e:tt) => ($crate::Unit::String($crate::spnl_arg!($e).into()));
     (system $e:tt) => ($crate::Unit::System($crate::spnl_arg!($e).into()));
 
     // execute rust
@@ -120,7 +121,7 @@ pub enum Unit {
     Loop(Vec<Unit>),
 
     /// Ask (prompt, default)
-    Ask((String, Option<String>)),
+    Ask((String, Option<String>, Option<String>)),
 }
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {

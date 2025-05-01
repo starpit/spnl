@@ -98,7 +98,7 @@ impl Theme for MyTheme {
         default: Option<&str>,
     ) -> fmt::Result {
         match default {
-            Some(default) => write!(f, "[{default}] {prompt}"),
+            Some(default) => write!(f, "{prompt} \x1b[2m[{default}]\x1b[0m: "),
             None => write!(f, "{prompt} "),
         }
     }
