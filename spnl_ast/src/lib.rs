@@ -68,7 +68,7 @@ macro_rules! spnl {
         $crate::Unit::Plus((Some($crate::spnl_arg!($description).into()), vec![$( $crate::spnl_arg!( $e ).into() ),+]))
     );
     (plus $( $e:tt )+) => ( $crate::Unit::Plus((None, vec![$( $crate::spnl_arg!( $e ).into() ),+])) );
-    (plusn $n:tt (desc $description:tt) $e:tt) => {{
+    (plusn $n:tt $description:tt $e:tt) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         for i in 0..$crate::spnl_arg!($n) {
             args.push($crate::spnl_arg!($e).clone());

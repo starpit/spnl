@@ -35,6 +35,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
     let pull_future = pull_if_needed(unit);
     let p = plan(unit);
     let _ = pull_future.await?;
+
     match p {
         Unit::String(s) => Ok(Unit::String(s.clone())),
         Unit::System(s) => Ok(Unit::System(s.clone())),
