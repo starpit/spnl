@@ -118,10 +118,14 @@ pub enum Unit {
     /// Ask with a given message>
     Ask(String),
 }
-fn truncate(s: &str, max_chars: usize) -> &str {
+fn truncate(s: &str, max_chars: usize) -> String {
+    if s.len() < max_chars {
+        return s.to_string();
+    }
+
     match s.char_indices().nth(max_chars) {
-        None => s,
-        Some((idx, _)) => &s[..idx],
+        None => s.to_string(),
+        Some((idx, _)) => format!("{}…", &s[..idx]),
     }
 }
 impl ptree::TreeItem for Unit {
@@ -135,9 +139,9 @@ impl ptree::TreeItem for Unit {
             f,
             "{}",
             match self {
-                Unit::String(s) => style.paint(format!("\x1b[33mUser\x1b[0m {}", truncate(s, 50))),
+                Unit::String(s) => style.paint(format!("\x1b[33mUser\x1b[0m {}", truncate(s, 70))),
                 Unit::System(s) =>
-                    style.paint(format!("\x1b[34mSystem\x1b[0m {}", truncate(s, 50))),
+                    style.paint(format!("\x1b[34mSystem\x1b[0m {}", truncate(s, 70))),
                 Unit::Plus((d, _)) => style.paint(format!(
                     "\x1b[31;1mPlus\x1b[0m {}",
                     d.as_deref().unwrap_or("")
