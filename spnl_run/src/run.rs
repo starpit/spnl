@@ -46,18 +46,23 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
         }
 
         Unit::Ask((message, default)) => {
-            use dialoguer::Input;
-            Ok(Unit::String(if let Some(default) = default {
-                Input::<String>::with_theme(&MyTheme)
-                    .with_prompt(message)
-                    .default(default)
-                    .interact_text()?
-            } else {
-                Input::<String>::with_theme(&MyTheme)
-                    .with_prompt(message)
-                    .interact_text()?
-            }))
+            use rustyline::error::ReadlineError;
+            let mut rl = rustyline::DefaultEditor::new().unwrap();
+            let _ = rl.load_history("history.txt");
+            let prompt = match rl.readline(message.as_str()) {
+                Ok(line) => {
+                    rl.add_history_entry(line.as_str()).unwrap();
+                    line
+                }
+                Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
+                    ::std::process::exit(0)
+                }
+                Err(err) => panic!("{}", err),
+            };
+            rl.append_history("history.txt").unwrap();
+            Ok(Unit::String(prompt))
         }
+
         Unit::Loop(l) => loop {
             let mut iter = l.iter();
             while let Some(e) = iter.next() {
@@ -77,40 +82,5 @@ mod tests {
         let result = run(&"hello".into(), None).await?;
         assert_eq!(result, Unit::String("hello".to_string()));
         Ok(())
-    }
-}
-
-// avoid : suffix for Input
-// https://github.com/console-rs/dialoguer/issues/255#issuecomment-1975230358
-use dialoguer::theme::Theme;
-use std::fmt;
-pub struct MyTheme;
-impl Theme for MyTheme {
-    /// Formats a prompt.
-    fn format_prompt(&self, f: &mut dyn fmt::Write, prompt: &str) -> fmt::Result {
-        write!(f, "{prompt}")
-    }
-
-    /// Formats an input prompt.
-    fn format_input_prompt(
-        &self,
-        f: &mut dyn fmt::Write,
-        prompt: &str,
-        default: Option<&str>,
-    ) -> fmt::Result {
-        match default {
-            Some(default) => write!(f, "{prompt} \x1b[2m[{default}]\x1b[0m: "),
-            None => write!(f, "{prompt} "),
-        }
-    }
-
-    /// Formats an input prompt after selection.
-    fn format_input_prompt_selection(
-        &self,
-        f: &mut dyn fmt::Write,
-        prompt: &str,
-        selection: &str,
-    ) -> fmt::Result {
-        write!(f, "{prompt} {selection}")
     }
 }

@@ -1,3 +1,5 @@
+use rustyline::error::ReadlineError;
+
 use crate::args::Args;
 use spnl_ast::{Unit, spnl};
 
@@ -11,17 +13,28 @@ pub fn demo(args: Args) -> Unit {
         ..
     } = args;
 
-    let generate_one_candidate_email = spnl!(
-        g model
-          (cross (system (file "email3-generate-system-prompt.txt"))
-                 (ask "Tell me about yourself:"))
-          temperature max_tokens);
+    let mut rl = rustyline::DefaultEditor::new().unwrap();
+    if rl.load_history("history.txt").is_err() {
+        println!("No previous history.");
+    }
+    let prompt = match rl.readline("Tell me about yourself: ") {
+        Ok(line) => {
+            rl.add_history_entry(line.as_str()).unwrap();
+            line
+        }
+        Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => ::std::process::exit(0),
+        Err(err) => panic!("{}", err),
+    };
+    rl.append_history("history.txt").unwrap();
 
     let candidate_emails = spnl!(
-        plusn n
-            (format "Generate {n} candidate emails in parallel")
-            generate_one_candidate_email
+        plusn n "Generate candidate emails in parallel"
+         (g model (cross
+                   (system (file "email3-generate-system-prompt.txt"))
+                   (user prompt))
+
+          temperature max_tokens)
     );
 
-    spnl!(g model (cross (system (file "email3-evaluate-system-prompt.txt")) candidate_emails))
+    spnl!(g model (cross (desc "Evaluating candidate emails") (system (file "email3-evaluate-system-prompt.txt")) candidate_emails))
 }

@@ -6,5 +6,5 @@ pub fn demo(args: Args) -> Unit {
         model, temperature, ..
     } = args;
 
-    spnl!(loop (g model (cross (system "You are a helpful chat bot") (ask "❯")) temperature))
+    spnl!(loop (g model (cross (system "You are a helpful chat bot") (ask "❯ ")) temperature))
 }

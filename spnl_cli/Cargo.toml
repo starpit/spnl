@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.5.37", features = ["derive"] }
+rustyline = { version = "15.0.0", features = ["with-file-history"] }
 spnl_ast = { version = "0.1.0", path = "../spnl_ast" }
 spnl_run = { version = "0.1.0", path = "../spnl_run" }
 tokio = "1.44.2"

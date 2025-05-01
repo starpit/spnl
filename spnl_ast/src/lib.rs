@@ -1,5 +1,3 @@
-// pub use dialoguer::Input;
-
 // Inspiration: https://github.com/JunSuzukiJapan/macro-lisp
 #[macro_export]
 macro_rules! spnl {
@@ -9,12 +7,12 @@ macro_rules! spnl {
     //(self $(. $e:tt)* ) => (self $(. $e)* );
 
     // let
-    /*(let ( $( ($var:ident $e:tt) )* )
+    /* (let ( $( ($var:ident $e:tt) )* )
         $( ( $($e2:tt)* ) )*
     ) => ({
         $(let mut $var = $crate::spnl_arg!($e);)*
         $( $crate::spnl!( $($e2)* ) );*
-    });*/
+    }); */
 
     // read as string from stdin
     (ask $message:tt) => ( Unit::Ask(($crate::spnl_arg!($message).into(), None)) );
@@ -53,9 +51,9 @@ macro_rules! spnl {
     (format $( $e:tt )+) => ( &format!( $($e),+ ) );
 
     // math
-    /*(+ $x:tt $y:tt) => ($crate::spnl_arg!($x) + $crate::spnl_arg!($y));
+    /*(+ $x:tt $y:tt) => ($crate::spnl_arg!($x) + $crate::spnl_arg!($y));*/
     (- $x:tt $y:tt) => ($crate::spnl_arg!($x) - $crate::spnl_arg!($y));
-    (* $x:tt $y:tt) => ($crate::spnl_arg!($x) * $crate::spnl_arg!($y));
+    /*(* $x:tt $y:tt) => ($crate::spnl_arg!($x) * $crate::spnl_arg!($y));
     (/ $x:tt $y:tt) => ($crate::spnl_arg!($x) / $crate::spnl_arg!($y));
     (% $x:tt $y:tt) => ($crate::spnl_arg!($x) % $crate::spnl_arg!($y));*/
 
@@ -86,7 +84,7 @@ macro_rules! spnl {
         ))
     );
 
-    (user $e:tt) => ($crate::Unit::String($crate::spnl_arg!($e).into()));
+    (user $e:tt) => ($crate::Unit::String($e.clone()));
     (system $e:tt) => ($crate::Unit::System($crate::spnl_arg!($e).into()));
 
     // execute rust
@@ -141,6 +139,12 @@ impl ::std::fmt::Display for Unit {
 impl From<&str> for Unit {
     fn from(s: &str) -> Self {
         Self::String(s.into())
+    }
+}
+impl ::std::str::FromStr for Unit {
+    type Err = Box<dyn ::std::error::Error>;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::String(s.to_string()))
     }
 }
 impl From<&String> for Unit {
