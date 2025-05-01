@@ -15,10 +15,7 @@ macro_rules! spnl {
     }); */
 
     // read as string from stdin
-    (ask $message:tt) => ( Unit::Ask(($crate::spnl_arg!($message).into(), None)) );
-
-    // read with default value
-    (ask $message:tt $default:tt) => ( Unit::Ask(($crate::spnl_arg!($message).into(), Some($crate::spnl_arg!($default).into()))) );
+    (ask $message:tt) => ( Unit::Ask($crate::spnl_arg!($message).into()) );
 
     // loop
     // (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spnl!( $($e)* ) );* } );
@@ -118,8 +115,8 @@ pub enum Unit {
     /// Loop
     Loop(Vec<Unit>),
 
-    /// Ask (prompt, default)
-    Ask((String, Option<String>)),
+    /// Ask with a given message>
+    Ask(String),
 }
 fn truncate(s: &str, max_chars: usize) -> &str {
     match s.char_indices().nth(max_chars) {
@@ -152,7 +149,7 @@ impl ptree::TreeItem for Unit {
                 Unit::Generate((m, _, _, _)) =>
                     style.paint(format!("\x1b[31;1mGenerate\x1b[0m {m}")),
                 Unit::Loop(_) => style.paint("Loop".to_string()),
-                Unit::Ask((m, _)) => style.paint(format!("Ask {m}")),
+                Unit::Ask(m) => style.paint(format!("Ask {m}")),
             }
         )
     }

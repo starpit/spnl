@@ -45,7 +45,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
             generate(model.as_str(), &run(&input, m).await?, max_tokens, temp, m).await
         }
 
-        Unit::Ask((message, default)) => {
+        Unit::Ask(message) => {
             use rustyline::error::ReadlineError;
             let mut rl = rustyline::DefaultEditor::new().unwrap();
             let _ = rl.load_history("history.txt");
