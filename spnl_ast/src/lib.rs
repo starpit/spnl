@@ -121,7 +121,7 @@ pub enum Unit {
     Loop(Vec<Unit>),
 
     /// Ask (prompt, default)
-    Ask((String, Option<String>, Option<String>)),
+    Ask((String, Option<String>)),
 }
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
