@@ -17,6 +17,8 @@ async fn main() -> Result<(), SpnlError> {
         Demo::Email3 => email3::demo(args),
     };
 
+    ptree::print_tree(&program)?;
+
     run(&program, None).await.map(|res| {
         if res.to_string().len() > 0 {
             println!("{:?}", res);

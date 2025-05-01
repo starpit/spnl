@@ -36,5 +36,7 @@ pub fn demo(args: Args) -> Unit {
           temperature max_tokens)
     );
 
-    spnl!(g model (cross (desc "Evaluating candidate emails") (system (file "email3-evaluate-system-prompt.txt")) candidate_emails))
+    spnl!(g model (cross (desc "Evaluating candidate emails")
+                   (system (file "email3-evaluate-system-prompt.txt"))
+                   candidate_emails))
 }

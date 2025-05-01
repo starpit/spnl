@@ -121,6 +121,50 @@ pub enum Unit {
     /// Ask (prompt, default)
     Ask((String, Option<String>)),
 }
+fn truncate(s: &str, max_chars: usize) -> &str {
+    match s.char_indices().nth(max_chars) {
+        None => s,
+        Some((idx, _)) => &s[..idx],
+    }
+}
+impl ptree::TreeItem for Unit {
+    type Child = Self;
+    fn write_self<W: ::std::io::Write>(
+        &self,
+        f: &mut W,
+        style: &ptree::Style,
+    ) -> ::std::io::Result<()> {
+        write!(
+            f,
+            "{}",
+            match self {
+                Unit::String(s) => style.paint(format!("\x1b[33mUser\x1b[0m {}", truncate(s, 50))),
+                Unit::System(s) =>
+                    style.paint(format!("\x1b[34mSystem\x1b[0m {}", truncate(s, 50))),
+                Unit::Plus((d, _)) => style.paint(format!(
+                    "\x1b[31;1mPlus\x1b[0m {}",
+                    d.as_deref().unwrap_or("")
+                )),
+                Unit::Cross((d, _)) => style.paint(format!(
+                    "\x1b[31;1mCross\x1b[0m {}",
+                    d.as_deref().unwrap_or("")
+                )),
+                Unit::Generate((m, _, _, _)) =>
+                    style.paint(format!("\x1b[31;1mGenerate\x1b[0m {m}")),
+                Unit::Loop(_) => style.paint("Loop".to_string()),
+                Unit::Ask((m, _)) => style.paint(format!("Ask {m}")),
+            }
+        )
+    }
+    fn children(&self) -> ::std::borrow::Cow<[Self::Child]> {
+        ::std::borrow::Cow::from(match self {
+            Unit::Ask(_) | Unit::String(_) | Unit::System(_) => vec![],
+            Unit::Plus((_, v)) | Unit::Cross((_, v)) => v.clone(),
+            Unit::Loop(v) => v.clone(),
+            Unit::Generate((_, i, _, _)) => vec![*i.clone()],
+        })
+    }
+}
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {

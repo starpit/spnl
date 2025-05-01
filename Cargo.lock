@@ -1003,6 +1003,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "lazy_static"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76f033c7ad61445c5b347c7382dd1237847eb1bce590fe50365dcb33d546be73"
+
+[[package]]
 name = "libc"
 version = "0.2.172"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1295,6 +1301,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02b3e5e68a3a1a02aad3ec490a98007cbc13c37cbe84a3cd7b8e406d76e7f778"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "ptree"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "289cfd20ebec0e7ff2572e370dd7a1c9973ba666d3c38c5e747de0a4ada21f17"
+dependencies = [
+ "anstyle",
+ "serde",
+ "tint",
 ]
 
 [[package]]
@@ -1851,12 +1868,16 @@ dependencies = [
 [[package]]
 name = "spnl_ast"
 version = "0.1.0"
+dependencies = [
+ "ptree",
+]
 
 [[package]]
 name = "spnl_cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "ptree",
  "rustyline",
  "spnl_ast",
  "spnl_run",
@@ -1987,6 +2008,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "tint"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7af24570664a3074673dbbf69a65bdae0ae0b72f2949b1adfbacb736ee4d6896"
+dependencies = [
+ "lazy_static",
 ]
 
 [[package]]
