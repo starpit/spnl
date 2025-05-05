@@ -15,7 +15,7 @@ macro_rules! spnl {
     }); */
 
     // read as string from stdin
-    (ask $message:tt) => ( Unit::Ask($crate::spnl_arg!($message).into()) );
+    (ask $message:tt) => ( $crate::Unit::Ask($crate::spnl_arg!($message).into()) );
 
     // loop
     // (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spnl!( $($e)* ) );* } );
@@ -81,13 +81,13 @@ macro_rules! spnl {
         ))
     );
 
-    (user $e:tt) => ($crate::Unit::String($e.clone()));
+    (user $e:tt) => ($crate::Unit::String($e.clone().into()));
     (system $e:tt) => ($crate::Unit::System($crate::spnl_arg!($e).into()));
 
     // execute rust
     //(rust $( $st:stmt )* ) => ( $($st);* );
     // other
-    ($e:expr) => (Unit::String($e.into()));
+    ($e:expr) => ($crate::Unit::String($e.into()));
 }
 
 #[macro_export]
