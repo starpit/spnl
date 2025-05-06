@@ -63,6 +63,7 @@ macro_rules! spnl {
         $crate::Unit::Plus((Some($crate::spnl_arg!($description).into()), vec![$( $crate::spnl_arg!( $e ).into() ),+]))
     );
     (plus $( $e:tt )+) => ( $crate::Unit::Plus((None, vec![$( $crate::spnl_arg!( $e ).into() ),+])) );
+    (plusl $e:tt ) => ( $crate::Unit::Plus((None, $crate::spnl_arg!( $e ))) );
     (plusn $n:tt $description:tt $e:tt) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         for i in 0..$crate::spnl_arg!($n) {
@@ -139,9 +140,9 @@ impl ptree::TreeItem for Unit {
             f,
             "{}",
             match self {
-                Unit::String(s) => style.paint(format!("\x1b[33mUser\x1b[0m {}", truncate(s, 70))),
+                Unit::String(s) => style.paint(format!("\x1b[33mUser\x1b[0m {}", truncate(s, 700))),
                 Unit::System(s) =>
-                    style.paint(format!("\x1b[34mSystem\x1b[0m {}", truncate(s, 70))),
+                    style.paint(format!("\x1b[34mSystem\x1b[0m {}", truncate(s, 700))),
                 Unit::Plus((d, _)) => style.paint(format!(
                     "\x1b[31;1mPlus\x1b[0m {}",
                     d.as_deref().unwrap_or("")
