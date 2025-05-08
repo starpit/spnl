@@ -22,5 +22,5 @@ pub fn demo(args: Args) -> Unit {
                  (g model (format "write an introductory email for a job application, limited to at most {max_tokens} characters.")
                   temperature max_tokens))
 
-          "My name is Shiloh. I am a data scientist with 10 years of experience and need an introductory email to apply for a position at IBM in their research department"))
+           (user "My name is Shiloh. I am a data scientist with 10 years of experience and need an introductory email to apply for a position at IBM in their research department")))
 }

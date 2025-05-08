@@ -55,6 +55,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
             rl.append_history("history.txt").unwrap();
             Ok(Unit::User((prompt,)))
         }
+        Unit::Repeat(_) => todo!(),
 
         Unit::Loop(l) => loop {
             let mut iter = l.iter();

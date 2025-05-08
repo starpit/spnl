@@ -62,7 +62,7 @@ macro_rules! spnl {
     (file $f:tt) => (include_str!($crate::spnl_arg!($f)));
     (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
     (plus $( $e:tt )+) => ( $crate::Unit::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
-    (plusl $e:tt ) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
+    (plusl $e:tt) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
     (plusn $n:tt $e:tt) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         for i in 0..$crate::spnl_arg!($n) {
@@ -70,6 +70,7 @@ macro_rules! spnl {
         }
         $crate::Unit::Plus(args)
     }};
+    (repeat $n:tt $e:tt) => ($crate::Unit::Repeat(($crate::spnl_arg!($n), $crate::spnl_arg!($e))));
 
     (g $model:tt $input:tt) => ($crate::spnl!(g $model $input 0.0 0));
     (g $model:tt $input:tt $temp:tt) => ($crate::spnl!(g $model $input $temp 0));
@@ -114,6 +115,9 @@ pub enum Unit {
     /// Map
     Plus(Vec<Unit>),
 
+    /// Helpful for repeating an operation n times in a Plus
+    Repeat((usize, Box<Unit>)),
+
     /// (model, input, max_tokens)
     #[serde(rename = "g")]
     Generate((String, Box<Unit>, i32, f32)),
@@ -121,7 +125,7 @@ pub enum Unit {
     /// Loop
     Loop(Vec<Unit>),
 
-    /// Ask with a given message>
+    /// Ask with a given message
     Ask((String,)),
 }
 fn truncate(s: &str, max_chars: usize) -> String {
@@ -153,6 +157,7 @@ impl ptree::TreeItem for Unit {
                 Unit::Cross(_) => style.paint("\x1b[31;1mCross\x1b[0m".to_string()),
                 Unit::Generate((m, _, _, _)) =>
                     style.paint(format!("\x1b[31;1mGenerate\x1b[0m \x1b[2m{m}\x1b[0m")),
+                Unit::Repeat((n, _)) => style.paint(format!("Repeat {n}")),
                 Unit::Loop(_) => style.paint("Loop".to_string()),
                 Unit::Ask((m,)) => style.paint(format!("Ask {m}")),
                 Unit::Print((m,)) => style.paint(format!("Print {}", truncate(m, 700))),
@@ -164,6 +169,7 @@ impl ptree::TreeItem for Unit {
             Unit::Ask(_) | Unit::User(_) | Unit::System(_) | Unit::Print(_) => vec![],
             Unit::Plus(v) | Unit::Cross(v) => v.clone(),
             Unit::Loop(v) => v.clone(),
+            Unit::Repeat((_, v)) => vec![*v.clone()],
             Unit::Generate((_, i, _, _)) => vec![*i.clone()],
         })
     }
@@ -171,7 +177,8 @@ impl ptree::TreeItem for Unit {
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {
-            Unit::Cross(v) | Unit::Plus(v) => write!(f, "{:?}", v),
+            Unit::Cross(v) => write!(f, "Cross {:?}", v),
+            Unit::Plus(v) => write!(f, "Plus {:?}", v),
             Unit::System((s,)) | Unit::User((s,)) => write!(f, "{}", s),
             _ => Ok(()),
         }
@@ -194,8 +201,19 @@ impl From<&String> for Unit {
     }
 }
 
+/// Deserialize a SPNL query from a string
 pub fn from_str(s: &str) -> serde_lexpr::error::Result<Unit> {
     serde_lexpr::from_str(s)
+}
+
+/// Deserialize a SPNL query from a reader
+pub fn from_reader(r: impl ::std::io::Read) -> serde_lexpr::error::Result<Unit> {
+    serde_lexpr::from_reader(r)
+}
+
+/// Deserialize a SPNL query from a file path
+pub fn from_file(f: &str) -> serde_lexpr::error::Result<Unit> {
+    serde_lexpr::from_reader(::std::fs::File::open(f)?)
 }
 
 #[cfg(test)]

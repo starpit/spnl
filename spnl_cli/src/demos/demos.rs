@@ -1,4 +1,4 @@
-#[derive(clap::ValueEnum, Clone, Debug)]
+#[derive(clap::ValueEnum, Clone, Debug, serde::Serialize)]
 pub enum Demo {
     Chat,
     Email,
