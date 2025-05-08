@@ -2,7 +2,7 @@ use clap::Parser;
 
 use crate::args::Args;
 use crate::demos::*;
-use spnl_run::{result::SpnlError, run};
+use spnl::run::{result::SpnlError, run};
 
 mod args;
 mod demos;

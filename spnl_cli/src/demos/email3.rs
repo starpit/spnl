@@ -1,7 +1,7 @@
 use rustyline::error::ReadlineError;
 
 use crate::args::Args;
-use spnl_ast::{Unit, spnl};
+use spnl::{Unit, spnl};
 
 // https://github.ibm.com/AI4BA/agentic-policy
 pub fn demo(args: Args) -> Unit {

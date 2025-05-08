@@ -1,10 +1,10 @@
 use indicatif::MultiProgress;
 
-use crate::result::SpnlResult;
-use spnl_ast::Unit;
+use crate::Unit;
+use crate::run::result::SpnlResult;
 
-use crate::ollama::generate_ollama;
-use crate::openai::generate_openai;
+use crate::run::ollama::generate_ollama;
+use crate::run::openai::generate_openai;
 
 pub async fn generate(
     model: &str,

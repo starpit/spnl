@@ -1,3 +1,5 @@
+pub mod run;
+
 // Inspiration: https://github.com/JunSuzukiJapan/macro-lisp
 #[macro_export]
 macro_rules! spnl {
@@ -241,8 +243,7 @@ mod tests {
     }
     #[test]
     fn macro_cross_3() {
-        let result =
-            spnl!(cross (user "hello") (system "world") (plus (user "sloop")));
+        let result = spnl!(cross (user "hello") (system "world") (plus (user "sloop")));
         assert_eq!(
             result,
             Unit::Cross(vec![

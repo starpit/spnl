@@ -1,9 +1,0 @@
-[package]
-name = "spnl_ast"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-ptree = { version = "0.5.2", default-features = false, features = ["ansi"] }
-serde = "1.0.219"
-serde-lexpr = "0.1.3"

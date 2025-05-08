@@ -1,11 +1,10 @@
 use async_recursion::async_recursion;
 use indicatif::MultiProgress;
 
-use crate::generate::generate;
-use crate::plan::plan;
-use crate::pull::pull_if_needed;
-use crate::result::SpnlResult;
-use spnl_ast::Unit;
+use crate::{
+    Unit,
+    run::{generate::generate, plan::plan, pull::pull_if_needed, result::SpnlResult},
+};
 
 async fn cross(units: &Vec<Unit>, mm: Option<&MultiProgress>) -> SpnlResult {
     let mym = MultiProgress::new();
@@ -69,7 +68,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::result::SpnlError;
+    use crate::run::result::SpnlError;
 
     #[tokio::test]
     async fn it_works() -> Result<(), SpnlError> {

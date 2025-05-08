@@ -1,5 +1,5 @@
 use crate::args::Args;
-use spnl_ast::{Unit, spnl};
+use spnl::{Unit, spnl};
 
 pub fn demo(args: Args) -> Unit {
     let Args {

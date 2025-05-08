@@ -1,4 +1,4 @@
-use spnl_ast::Unit;
+use crate::Unit;
 
 pub fn plan(ast: &Unit) -> Unit {
     match ast {

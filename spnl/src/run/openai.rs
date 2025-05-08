@@ -12,8 +12,7 @@ use async_openai::{
     },
 };
 
-use crate::result::SpnlResult;
-use spnl_ast::Unit;
+use crate::{Unit, run::result::SpnlResult};
 
 pub async fn generate_openai(
     model: &str,

@@ -1,4 +1,4 @@
-use spnl_ast::Unit;
+use crate::Unit;
 
 /// Extract models referenced by the program
 pub fn extract_models(program: &Unit) -> Vec<String> {
@@ -6,7 +6,7 @@ pub fn extract_models(program: &Unit) -> Vec<String> {
 }
 
 /// Take a list of Yaml fragments and produce a vector of the string-valued entries of the given field
-pub fn extract_values(program: &Unit, field: &str) -> Vec<String> {
+fn extract_values(program: &Unit, field: &str) -> Vec<String> {
     let mut values = vec![];
     extract_values_iter(program, field, &mut values);
 

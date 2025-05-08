@@ -1,8 +1,11 @@
 use clap::Parser;
 use lipsum::lipsum_words_with_rng;
 use petname::Generator; // Trait needs to be in scope for `iter`.
-use spnl_ast::{Unit, spnl};
-use spnl_run::{result::SpnlError, run};
+use spnl::{
+    Unit,
+    run::{result::SpnlError, run},
+    spnl,
+};
 
 type GeneratedNames = Vec<String>;
 #[derive(serde::Deserialize)]
@@ -169,7 +172,7 @@ async fn main() -> Result<(), SpnlError> {
     }
 
     match run(&program, Some(&indicatif::MultiProgress::new())).await? {
-        Unit::String(ss) => {
+        Unit::User((ss,)) => {
             let s = if let Some(idx) = ss.find("```json") {
                 ss[idx + 7..ss.len() - 3].trim()
             } else {
@@ -199,7 +202,7 @@ async fn main() -> Result<(), SpnlError> {
             // eprintln!("Actual names raw: {:?}", s);
             eprintln!("Actual names: {:?}", generated_names);
 
-            let (precision, recall) = if chain {
+            let (precision, _) = if chain {
                 score_chain(expected_names, generated_names)
             } else {
                 score(expected_names, generated_names)

@@ -2,8 +2,7 @@ use indicatif::{MultiProgress, ProgressBar};
 use tokio::io::{AsyncWriteExt, stdout};
 use tokio_stream::StreamExt;
 
-use crate::result::SpnlResult;
-use spnl_ast::Unit;
+use crate::{Unit, run::result::SpnlResult};
 
 use ollama_rs::{
     Ollama,
