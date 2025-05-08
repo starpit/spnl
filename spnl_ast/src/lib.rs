@@ -85,7 +85,7 @@ macro_rules! spnl {
     // execute rust
     //(rust $( $st:stmt )* ) => ( $($st);* );
     // other
-    ($e:expr) => ($crate::Unit::User(($e.into(),)));
+    //($e:expr) => ($e.into());
 }
 
 #[macro_export]
@@ -201,10 +201,71 @@ mod tests {
     use super::*;
 
     #[test]
-    fn macro_hello() {
-        let result = spnl!("hello");
+    fn macro_user() {
+        let result = spnl!(user "hello");
         assert_eq!(result, Unit::User(("hello".to_string(),)));
     }
+    #[test]
+    fn macro_system() {
+        let result = spnl!(system "hello");
+        assert_eq!(result, Unit::System(("hello".to_string(),)));
+    }
+    #[test]
+    fn macro_ask() {
+        let result = spnl!(ask "hello");
+        assert_eq!(result, Unit::Ask(("hello".to_string(),)));
+    }
+    #[test]
+    fn macro_plus_1() {
+        let result = spnl!(plus (user "hello"));
+        assert_eq!(result, Unit::Plus(vec![Unit::User(("hello".to_string(),))]));
+    }
+    #[test]
+    fn macro_plus_2() {
+        let result = spnl!(plus (user "hello") (system "world"));
+        assert_eq!(
+            result,
+            Unit::Plus(vec![
+                Unit::User(("hello".to_string(),)),
+                Unit::System(("world".to_string(),))
+            ])
+        );
+    }
+    #[test]
+    fn macro_cross_1() {
+        let result = spnl!(cross (user "hello"));
+        assert_eq!(
+            result,
+            Unit::Cross(vec![Unit::User(("hello".to_string(),))])
+        );
+    }
+    #[test]
+    fn macro_cross_3() {
+        let result =
+            spnl!(cross (user "hello") (system "world") (plus (user "sloop")));
+        assert_eq!(
+            result,
+            Unit::Cross(vec![
+                Unit::User(("hello".to_string(),)),
+                Unit::System(("world".to_string(),)),
+                Unit::Plus(vec![Unit::User(("sloop".to_string(),))])
+            ])
+        );
+    }
+    #[test]
+    fn macro_gen() {
+        let result = spnl!(g "ollama/granite3.2:2b" (user "hello") 0.0 0);
+        assert_eq!(
+            result,
+            Unit::Generate((
+                "ollama/granite3.2:2b".to_string(),
+                Box::new(Unit::User(("hello".to_string(),))),
+                0,
+                0.0
+            ))
+        );
+    }
+
     #[test]
     fn serde_user() -> Result<(), serde_lexpr::error::Error> {
         let result = from_str("(user \"hello\")")?;
