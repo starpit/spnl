@@ -15,13 +15,10 @@ export default function SPNLMasthead() {
     <Masthead>
       <MastheadMain>
         <MastheadBrand>
-          <MastheadLogo>
-          SPNL
-          </MastheadLogo>
+          <MastheadLogo>SPNL</MastheadLogo>
         </MastheadBrand>
       </MastheadMain>
-      <MastheadContent>
-      </MastheadContent>
+      <MastheadContent></MastheadContent>
     </Masthead>
   )
 }

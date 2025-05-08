@@ -41,12 +41,7 @@ export default function Console() {
       // for debugging:
       term.writeln(`\x1b[2mWaiting for first run\x1b[0m`)
     }
-  }, [term, xtermRef])                              
+  }, [term, xtermRef])
 
-  return (
-     <div
-              ref={xtermRef}
-              style={{ height: "400px" }}
-      />
-  )
+  return <div ref={xtermRef} style={{ height: "400px" }} />
 }

@@ -1,5 +1,7 @@
 import { useState } from "react"
-import { CodeEditor } from "@patternfly/react-code-editor"
+import { CodeEditor, CodeEditorControl } from "@patternfly/react-code-editor"
+
+import PlayIcon from "@patternfly/react-icons/dist/esm/icons/play-icon"
 
 const initialQuery = `(g "{model}"
    (cross
@@ -18,20 +20,37 @@ const initialQuery = `(g "{model}"
     (user "My name is Shiloh. I am a data scientist with 10 years of experience and need an introductory email to apply for a position at IBM in their research department"))
 0 0.0)`
 
-export default function QueryEditor() {
-  const [query, setQuery] = useState("")
+type Props = {
+  onExecuteQuery(query: string): void
+}
 
-  return <CodeEditor
-        isDarkTheme
-        isLineNumbersVisible
-  isMinimapVisible={false}
-  code={initialQuery}
-  options={{ fontSize: 16,  wordWrap: "on" }}
-        onChange={setQuery}
-        language="clojure"
-  onEditorDidMount={(editor, _monaco) => {
-    editor.layout()
-  }}
-        height="500px"
-      />
+export default function QueryEditor(props: Props) {
+  const [query, setQuery] = useState(initialQuery)
+
+  const customControls = (
+    <CodeEditorControl
+      icon={<PlayIcon />}
+      aria-label="Execute query"
+      tooltipProps={{ content: "Execute query" }}
+      onClick={props.onExecuteQuery}
+      isVisible={query !== ""}
+    />
+  )
+
+  return (
+    <CodeEditor
+      isDarkTheme
+      isLineNumbersVisible
+      isMinimapVisible={false}
+      code={initialQuery}
+      customControls={customControls}
+      options={{ fontSize: 16, wordWrap: "on" }}
+      onChange={setQuery}
+      language="clojure"
+      onEditorDidMount={(editor, _monaco) => {
+        editor.layout()
+      }}
+      height="500px"
+    />
+  )
 }

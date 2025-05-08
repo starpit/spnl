@@ -6,9 +6,9 @@ import "@patternfly/react-core/dist/styles/base.css"
 
 function App() {
   return (
-    <Page masthead={<Masthead/>}       >
+    <Page masthead={<Masthead />}>
       <PageSection>
-      <Body/>
+        <Body />
       </PageSection>
     </Page>
   )

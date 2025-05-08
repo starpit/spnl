@@ -1,25 +1,42 @@
-import { Flex, FlexItem, Card, CardHeader, CardTitle, CardBody } from "@patternfly/react-core"
+import { useCallback } from "react"
+import {
+  Flex,
+  FlexItem,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardBody,
+} from "@patternfly/react-core"
 
 import QueryEditor from "./QueryEditor"
 import Console from "./Console"
 
 export default function Body() {
+  const onExecuteQuery = useCallback((query: string) => {}, [])
+
   return (
-    <Flex hasGutter>
-      <FlexItem flex={{default: "flex_1"}}>
+    <Flex>
+      <FlexItem flex={{ default: "flex_1" }}>
         <Card isPlain>
-          <CardHeader><CardTitle>Query Editor</CardTitle></CardHeader>
-          <CardBody><QueryEditor/></CardBody>
+          <CardHeader>
+            <CardTitle>Query Editor</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <QueryEditor onExecuteQuery={onExecuteQuery} />
+          </CardBody>
         </Card>
       </FlexItem>
-        
+
       <FlexItem>
         <Card isPlain>
-          <CardHeader><CardTitle>Console</CardTitle></CardHeader>
-          <CardBody><Console/></CardBody>
+          <CardHeader>
+            <CardTitle>Console</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <Console />
+          </CardBody>
         </Card>
-        </FlexItem>
+      </FlexItem>
     </Flex>
   )
 }
-
