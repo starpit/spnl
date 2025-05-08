@@ -10,11 +10,15 @@ pub fn demo(args: Args) -> Unit {
         ..
     } = args;
 
-    spnl!(g model (cross (desc "Ask the model to select the best option from the candidates")
-          (system "You compute an evaluation score from 0 to 100 that ranks given candidate introductory emails. Better emails are ones that mention specifics, such as names of people and companies. You present a list of the top 3 ordered by their rank showing the score and full content of each.")
+    spnl!(g model
+          (cross
+           (print "Ask the model to select the best option from the candidates")
 
-          (plusn n
-                 (format "Generate {n} candidate emails in parallel")
+           (system "You compute an evaluation score from 0 to 100 that ranks given candidate introductory emails. Better emails are ones that mention specifics, such as names of people and companies. You present a list of the top 3 ordered by their rank showing the score and full content of each.")
+
+           (print (format "Generate {n} candidate emails in parallel"))
+
+           (plusn n
                  (g model (format "write an introductory email for a job application, limited to at most {max_tokens} characters.")
                   temperature max_tokens))
 

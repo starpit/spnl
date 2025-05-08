@@ -15,7 +15,10 @@ macro_rules! spnl {
     }); */
 
     // read as string from stdin
-    (ask $message:tt) => ( $crate::Unit::Ask($crate::spnl_arg!($message).into()) );
+    (ask $message:tt) => ( $crate::Unit::Ask(($crate::spnl_arg!($message).into(),)) );
+
+    // print a helpful message to the console
+    (print $message:tt) => ( $crate::Unit::Print(($crate::spnl_arg!($message).into(),)) );
 
     // loop
     // (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spnl!( $($e)* ) );* } );
@@ -55,21 +58,15 @@ macro_rules! spnl {
     (% $x:tt $y:tt) => ($crate::spnl_arg!($x) % $crate::spnl_arg!($y));*/
 
     (file $f:tt) => (include_str!($crate::spnl_arg!($f)));
-    (cross (desc $description:tt) $( $e:tt )+) => (
-        $crate::Unit::Cross((Some($crate::spnl_arg!($description).into()), vec![$( $crate::spnl_arg!( $e ).into() ),+]))
-    );
-    (cross $( $e:tt )+) => ( $crate::Unit::Cross((None, vec![$( $crate::spnl_arg!( $e ).into() ),+])) );
-    (plus (desc $description:tt) $( $e:tt )+) => (
-        $crate::Unit::Plus((Some($crate::spnl_arg!($description).into()), vec![$( $crate::spnl_arg!( $e ).into() ),+]))
-    );
-    (plus $( $e:tt )+) => ( $crate::Unit::Plus((None, vec![$( $crate::spnl_arg!( $e ).into() ),+])) );
-    (plusl $e:tt ) => ( $crate::Unit::Plus((None, $crate::spnl_arg!( $e ))) );
-    (plusn $n:tt $description:tt $e:tt) => {{
+    (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
+    (plus $( $e:tt )+) => ( $crate::Unit::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
+    (plusl $e:tt ) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
+    (plusn $n:tt $e:tt) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         for i in 0..$crate::spnl_arg!($n) {
             args.push($crate::spnl_arg!($e).clone());
         }
-        $crate::Unit::Plus((Some($crate::spnl_arg!($description).into()), args))
+        $crate::Unit::Plus(args)
     }};
 
     (g $model:tt $input:tt) => ($crate::spnl!(g $model $input 0.0 0));
@@ -82,13 +79,13 @@ macro_rules! spnl {
         ))
     );
 
-    (user $e:tt) => ($crate::Unit::String($e.clone().into()));
-    (system $e:tt) => ($crate::Unit::System($crate::spnl_arg!($e).into()));
+    (user $e:tt) => ($crate::Unit::User(($e.clone().into(),)));
+    (system $e:tt) => ($crate::Unit::System(($crate::spnl_arg!($e).into(),)));
 
     // execute rust
     //(rust $( $st:stmt )* ) => ( $($st);* );
     // other
-    ($e:expr) => ($crate::Unit::String($e.into()));
+    ($e:expr) => ($crate::Unit::User(($e.into(),)));
 }
 
 #[macro_export]
@@ -97,27 +94,33 @@ macro_rules! spnl_arg {
     ($e:expr) => ($e);
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Unit {
-    String(String),
+    /// User prompt
+    User((String,)),
 
     /// System prompt
-    System(String),
+    System((String,)),
 
-    /// (description, units)
-    Cross((Option<String>, Vec<Unit>)),
+    /// Print a helpful message to the console
+    Print((String,)),
 
-    /// (description, units)
-    Plus((Option<String>, Vec<Unit>)),
+    /// Reduce
+    Cross(Vec<Unit>),
+
+    /// Map
+    Plus(Vec<Unit>),
 
     /// (model, input, max_tokens)
+    #[serde(rename = "g")]
     Generate((String, Box<Unit>, i32, f32)),
 
     /// Loop
     Loop(Vec<Unit>),
 
     /// Ask with a given message>
-    Ask(String),
+    Ask((String,)),
 }
 fn truncate(s: &str, max_chars: usize) -> String {
     if s.len() < max_chars {
@@ -140,28 +143,24 @@ impl ptree::TreeItem for Unit {
             f,
             "{}",
             match self {
-                Unit::String(s) => style.paint(format!("\x1b[33mUser\x1b[0m {}", truncate(s, 700))),
-                Unit::System(s) =>
+                Unit::User((s,)) =>
+                    style.paint(format!("\x1b[33mUser\x1b[0m {}", truncate(s, 700))),
+                Unit::System((s,)) =>
                     style.paint(format!("\x1b[34mSystem\x1b[0m {}", truncate(s, 700))),
-                Unit::Plus((d, _)) => style.paint(format!(
-                    "\x1b[31;1mPlus\x1b[0m {}",
-                    d.as_deref().unwrap_or("")
-                )),
-                Unit::Cross((d, _)) => style.paint(format!(
-                    "\x1b[31;1mCross\x1b[0m {}",
-                    d.as_deref().unwrap_or("")
-                )),
+                Unit::Plus(_) => style.paint("\x1b[31;1mPlus\x1b[0m".to_string()),
+                Unit::Cross(_) => style.paint("\x1b[31;1mCross\x1b[0m".to_string()),
                 Unit::Generate((m, _, _, _)) =>
                     style.paint(format!("\x1b[31;1mGenerate\x1b[0m \x1b[2m{m}\x1b[0m")),
                 Unit::Loop(_) => style.paint("Loop".to_string()),
-                Unit::Ask(m) => style.paint(format!("Ask {m}")),
+                Unit::Ask((m,)) => style.paint(format!("Ask {m}")),
+                Unit::Print((m,)) => style.paint(format!("Print {}", truncate(m, 700))),
             }
         )
     }
     fn children(&self) -> ::std::borrow::Cow<[Self::Child]> {
         ::std::borrow::Cow::from(match self {
-            Unit::Ask(_) | Unit::String(_) | Unit::System(_) => vec![],
-            Unit::Plus((_, v)) | Unit::Cross((_, v)) => v.clone(),
+            Unit::Ask(_) | Unit::User(_) | Unit::System(_) | Unit::Print(_) => vec![],
+            Unit::Plus(v) | Unit::Cross(v) => v.clone(),
             Unit::Loop(v) => v.clone(),
             Unit::Generate((_, i, _, _)) => vec![*i.clone()],
         })
@@ -170,41 +169,31 @@ impl ptree::TreeItem for Unit {
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {
-            Unit::Cross((d, v)) | Unit::Plus((d, v)) => {
-                if let Some(description) = d {
-                    write!(f, "{}: {:?}", description, v)
-                } else {
-                    write!(f, "{:?}", v)
-                }
-            }
-            Unit::String(s) => write!(f, "{}", s),
+            Unit::Cross(v) | Unit::Plus(v) => write!(f, "{:?}", v),
+            Unit::System((s,)) | Unit::User((s,)) => write!(f, "{}", s),
             _ => Ok(()),
         }
     }
 }
 impl From<&str> for Unit {
     fn from(s: &str) -> Self {
-        Self::String(s.into())
+        Self::User((s.into(),))
     }
 }
 impl ::std::str::FromStr for Unit {
     type Err = Box<dyn ::std::error::Error>;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::String(s.to_string()))
+        Ok(Self::User((s.to_string(),)))
     }
 }
 impl From<&String> for Unit {
     fn from(s: &String) -> Self {
-        Self::String(s.clone())
+        Self::User((s.clone(),))
     }
 }
-impl PartialEq for Unit {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Unit::String(a), Unit::String(b)) => a == b,
-            _ => false,
-        }
-    }
+
+pub fn from_str(s: &str) -> serde_lexpr::error::Result<Unit> {
+    serde_lexpr::from_str(s)
 }
 
 #[cfg(test)]
@@ -212,8 +201,81 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn macro_hello() {
         let result = spnl!("hello");
-        assert_eq!(result, Unit::String("hello".to_string()));
+        assert_eq!(result, Unit::User(("hello".to_string(),)));
+    }
+    #[test]
+    fn serde_user() -> Result<(), serde_lexpr::error::Error> {
+        let result = from_str("(user \"hello\")")?;
+        assert_eq!(result, Unit::User(("hello".to_string(),)));
+        Ok(())
+    }
+    #[test]
+    fn serde_system() -> Result<(), serde_lexpr::error::Error> {
+        let result = from_str("(system \"hello\")")?;
+        assert_eq!(result, Unit::System(("hello".to_string(),)));
+        Ok(())
+    }
+    #[test]
+    fn serde_ask() -> Result<(), serde_lexpr::error::Error> {
+        let result = from_str("(ask \"hello\")")?;
+        assert_eq!(result, Unit::Ask(("hello".to_string(),)));
+        Ok(())
+    }
+    #[test]
+    fn serde_plus_1() -> Result<(), serde_lexpr::error::Error> {
+        let result = from_str("(plus (user \"hello\"))")?;
+        assert_eq!(result, Unit::Plus(vec![Unit::User(("hello".to_string(),))]));
+        Ok(())
+    }
+    #[test]
+    fn serde_plus_2() -> Result<(), serde_lexpr::error::Error> {
+        let result = from_str("(plus (user \"hello\") (system \"world\"))")?;
+        assert_eq!(
+            result,
+            Unit::Plus(vec![
+                Unit::User(("hello".to_string(),)),
+                Unit::System(("world".to_string(),))
+            ])
+        );
+        Ok(())
+    }
+    #[test]
+    fn serde_cross_1() -> Result<(), serde_lexpr::error::Error> {
+        let result = from_str("(cross (user \"hello\"))")?;
+        assert_eq!(
+            result,
+            Unit::Cross(vec![Unit::User(("hello".to_string(),))])
+        );
+        Ok(())
+    }
+    #[test]
+    fn serde_cross_3() -> Result<(), serde_lexpr::error::Error> {
+        let result =
+            from_str("(cross (user \"hello\") (system \"world\") (plus (user \"sloop\")))")?;
+        assert_eq!(
+            result,
+            Unit::Cross(vec![
+                Unit::User(("hello".to_string(),)),
+                Unit::System(("world".to_string(),)),
+                Unit::Plus(vec![Unit::User(("sloop".to_string(),))])
+            ])
+        );
+        Ok(())
+    }
+    #[test]
+    fn serde_gen() -> Result<(), serde_lexpr::error::Error> {
+        let result = from_str("(g \"ollama/granite3.2:2b\" (user \"hello\") 0 0.0)")?;
+        assert_eq!(
+            result,
+            Unit::Generate((
+                "ollama/granite3.2:2b".to_string(),
+                Box::new(Unit::User(("hello".to_string(),))),
+                0,
+                0.0
+            ))
+        );
+        Ok(())
     }
 }

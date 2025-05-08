@@ -23,7 +23,7 @@ fn extract_values_iter(program: &Unit, field: &str, values: &mut Vec<String>) {
         Unit::Generate((model, _, _, _)) => {
             values.push(model.clone());
         }
-        Unit::Plus((_, v)) | Unit::Cross((_, v)) => {
+        Unit::Plus(v) | Unit::Cross(v) => {
             v.iter()
                 .for_each(|vv| extract_values_iter(vv, field, values));
         }

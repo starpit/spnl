@@ -86,11 +86,11 @@ pub async fn generate_ollama(
     }
 
     if let Some(_) = m {
-        Ok(Unit::String(response_string))
+        Ok(Unit::User((response_string,)))
     } else {
         Ok(Unit::Generate((
             model.to_string(),
-            Box::new(Unit::String(response_string)),
+            Box::new(Unit::User((response_string,))),
             max_tokens,
             temp,
         )))
@@ -99,8 +99,8 @@ pub async fn generate_ollama(
 
 fn messagify(input: &Unit) -> Vec<ChatMessage> {
     match input {
-        Unit::Cross((_, v)) | Unit::Plus((_, v)) => v.into_iter().flat_map(messagify).collect(),
-        Unit::System(s) => vec![ChatMessage::system(s.clone())],
+        Unit::Cross(v) | Unit::Plus(v) => v.into_iter().flat_map(messagify).collect(),
+        Unit::System((s,)) => vec![ChatMessage::system(s.clone())],
         o => vec![ChatMessage::user(o.to_string())],
     }
 }

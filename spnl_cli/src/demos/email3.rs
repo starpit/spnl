@@ -28,7 +28,7 @@ pub fn demo(args: Args) -> Unit {
     rl.append_history("history.txt").unwrap();
 
     let candidate_emails = spnl!(
-        plusn n "Generate candidate emails in parallel"
+        plusn n
          (g model (cross
                    (system (file "email3-generate-system-prompt.txt"))
                    (user prompt))
@@ -36,7 +36,9 @@ pub fn demo(args: Args) -> Unit {
           temperature max_tokens)
     );
 
-    spnl!(g model (cross (desc "Evaluating candidate emails")
+    spnl!(g model (cross
+                   (print "Evaluating candidate emails")
                    (system (file "email3-evaluate-system-prompt.txt"))
+                   (print "Generate candidate emails in parallel")
                    candidate_emails))
 }

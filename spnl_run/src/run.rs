@@ -7,27 +7,17 @@ use crate::pull::pull_if_needed;
 use crate::result::SpnlResult;
 use spnl_ast::Unit;
 
-async fn cross(
-    description: Option<String>,
-    units: &Vec<Unit>,
-    mm: Option<&MultiProgress>,
-) -> SpnlResult {
+async fn cross(units: &Vec<Unit>, mm: Option<&MultiProgress>) -> SpnlResult {
     let mym = MultiProgress::new();
     let m = if let Some(m) = mm { m } else { &mym };
     let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(m)))).await?;
-    if let Some(description) = &description {
-        m.println(format!("\x1b[1mCross: \x1b[0m{}", description))?;
-    }
-    Ok(Unit::Plus((description, evaluated)))
+    Ok(Unit::Plus(evaluated))
 }
 
-async fn plus(description: Option<String>, units: &Vec<Unit>) -> SpnlResult {
+async fn plus(units: &Vec<Unit>) -> SpnlResult {
     let m = MultiProgress::new();
-    if let Some(description) = &description {
-        m.println(format!("\x1b[1mPlus: \x1b[0m{}", description))?;
-    }
     let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(&m)))).await?;
-    Ok(Unit::Plus((description, evaluated)))
+    Ok(Unit::Plus(evaluated))
 }
 
 #[async_recursion]
@@ -37,15 +27,19 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
     let _ = pull_future.await?;
 
     match p {
-        Unit::String(s) => Ok(Unit::String(s.clone())),
+        Unit::Print((m,)) => {
+            println!("{}", m);
+            Ok(Unit::Print((m.clone(),)))
+        }
+        Unit::User(s) => Ok(Unit::User(s.clone())),
         Unit::System(s) => Ok(Unit::System(s.clone())),
-        Unit::Cross((d, u)) => cross(d, &u, m).await,
-        Unit::Plus((d, u)) => plus(d, &u).await,
+        Unit::Cross(u) => cross(&u, m).await,
+        Unit::Plus(u) => plus(&u).await,
         Unit::Generate((model, input, max_tokens, temp)) => {
             generate(model.as_str(), &run(&input, m).await?, max_tokens, temp, m).await
         }
 
-        Unit::Ask(message) => {
+        Unit::Ask((message,)) => {
             use rustyline::error::ReadlineError;
             let mut rl = rustyline::DefaultEditor::new().unwrap();
             let _ = rl.load_history("history.txt");
@@ -60,7 +54,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
                 Err(err) => panic!("{}", err),
             };
             rl.append_history("history.txt").unwrap();
-            Ok(Unit::String(prompt))
+            Ok(Unit::User((prompt,)))
         }
 
         Unit::Loop(l) => loop {
@@ -80,7 +74,7 @@ mod tests {
     #[tokio::test]
     async fn it_works() -> Result<(), SpnlError> {
         let result = run(&"hello".into(), None).await?;
-        assert_eq!(result, Unit::String("hello".to_string()));
+        assert_eq!(result, Unit::User(("hello".to_string(),)));
         Ok(())
     }
 }
