@@ -5,8 +5,6 @@ import { Terminal } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
 import { ClipboardAddon } from "@xterm/addon-clipboard"
 
-import CopyIcon from "@patternfly/react-icons/dist/esm/icons/copy-icon"
-
 import "@xterm/xterm/css/xterm.css"
 
 export default function Console() {
@@ -47,22 +45,5 @@ export default function Console() {
     }
   }, [term, xtermRef])
 
-  return (
-    <div>
-      <div className="pf-v6-c-code-editor">
-        <div className="pf-v6-c-code-editor__header">
-          <div className="pf-v6-c-code-editor__header-content">
-            <div className="pf-v6-c-code-editor__controls">
-              <Tooltip content="Copy to clipboard">
-                <Button icon={<CopyIcon />} variant="plain" />
-              </Tooltip>
-            </div>
-            <div className="pf-v6-c-code-editor__header-main">Console</div>
-          </div>
-        </div>
-
-        <div ref={xtermRef} />
-      </div>
-    </div>
-  )
+  return <div ref={xtermRef} />
 }

@@ -1,7 +1,6 @@
 @import "react-tree-graph/dist/style.css";
 
 .spnl-node > text {
-  font-size: 10px;
   font-weight: bold;
 }
 
@@ -14,9 +13,12 @@
   fill: #e4f6ff;
 }
 
-.spnl-node-plus > rect,
-.spnl-node-X > rect {
+.spnl-node-plus > rect {
   fill: #ffd8d9;
+}
+
+.spnl-node-X > rect {
+  fill: #ff8389;
 }
 
 .spnl-node-U > rect {

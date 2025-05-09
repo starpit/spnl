@@ -9,6 +9,7 @@ import {
   CardBody,
 } from "@patternfly/react-core"
 
+import Header from "./Header"
 import Console from "./Console"
 import Topology from "./Topology"
 import QueryEditor from "./QueryEditor"
@@ -49,11 +50,21 @@ export default function Body() {
       </GridItem>
 
       <GridItem span={4}>
-        <Topology unit={unit} />
+        <div className="pf-v6-c-code-editor">
+          <Header title="Topology" />
+          <div className="pf-v6-c-code-editor__main">
+            <div className="pf-v6-c-code-editor__code">
+              <Topology unit={unit} />
+            </div>
+          </div>
+        </div>
       </GridItem>
 
       <GridItem span={12}>
-        <Console />
+        <div className="pf-v6-c-code-editor">
+          <Header title="Console" />
+          <Console />
+        </div>
       </GridItem>
     </Grid>
   )

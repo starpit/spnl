@@ -8,12 +8,15 @@ type Props = {
   unit: null | import("./Unit").Unit
 }
 
+const NODE_SIZE = 24
+const LABEL_FONT_SIZE = 14
+
 function node(id: string, label: string, children: Data[] = []): Data {
   return {
     name: label,
     keyProp: id + "." + label,
     children,
-    nodeProps: { width: 20, height: 20 },
+    nodeProps: { width: NODE_SIZE, height: NODE_SIZE },
     gProps: {
       class: "node spnl-node spnl-node-" + (label === "+" ? "plus" : label),
     },
@@ -68,8 +71,8 @@ export default function Topology(props: Props) {
         width={400}
         nodeShape="rect"
         textProps={{
-          x: "-14",
-          y: "-1",
+          dx: -(NODE_SIZE / 2 - LABEL_FONT_SIZE / 2),
+          dy: NODE_SIZE / 2 - LABEL_FONT_SIZE / 2,
         }}
       />
     )
