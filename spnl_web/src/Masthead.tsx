@@ -15,7 +15,7 @@ export default function SPNLMasthead() {
     <Masthead>
       <MastheadMain>
         <MastheadBrand>
-          <MastheadLogo>SPNL</MastheadLogo>
+          <MastheadLogo>Span Query Playground</MastheadLogo>
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent></MastheadContent>

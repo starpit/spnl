@@ -1,8 +1,9 @@
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import {
-  Flex,
-  FlexItem,
+  Grid,
+  GridItem,
   Card,
+  CardExpandableContent,
   CardHeader,
   CardTitle,
   CardBody,
@@ -13,30 +14,44 @@ import Console from "./Console"
 
 export default function Body() {
   const onExecuteQuery = useCallback((query: string) => {}, [])
+  const [isExpanded1, setIsExpanded1] = useState(true)
+  const [isExpanded2, setIsExpanded2] = useState(true)
+  const toggleExpanded1 = useCallback(
+    () => setIsExpanded1((v) => !v),
+    [setIsExpanded1],
+  )
+  const toggleExpanded2 = useCallback(
+    () => setIsExpanded2((v) => !v),
+    [setIsExpanded2],
+  )
 
   return (
-    <Flex>
-      <FlexItem flex={{ default: "flex_1" }}>
-        <Card isPlain>
-          <CardHeader>
+    <Grid hasGutter>
+      <GridItem span={6}>
+        <Card isLarge isExpanded={isExpanded1}>
+          <CardHeader onExpand={toggleExpanded1}>
             <CardTitle>Query Editor</CardTitle>
           </CardHeader>
-          <CardBody>
-            <QueryEditor onExecuteQuery={onExecuteQuery} />
-          </CardBody>
+          <CardExpandableContent>
+            <CardBody>
+              <QueryEditor onExecuteQuery={onExecuteQuery} />
+            </CardBody>
+          </CardExpandableContent>
         </Card>
-      </FlexItem>
+      </GridItem>
 
-      <FlexItem>
-        <Card isPlain>
-          <CardHeader>
+      <GridItem span={6}>
+        <Card isLarge isExpanded={isExpanded2}>
+          <CardHeader onExpand={toggleExpanded2}>
             <CardTitle>Console</CardTitle>
           </CardHeader>
-          <CardBody>
-            <Console />
-          </CardBody>
+          <CardExpandableContent>
+            <CardBody>
+              <Console />
+            </CardBody>
+          </CardExpandableContent>
         </Card>
-      </FlexItem>
-    </Flex>
+      </GridItem>
+    </Grid>
   )
 }

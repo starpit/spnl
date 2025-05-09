@@ -39,12 +39,13 @@ export default function QueryEditor(props: Props) {
 
   return (
     <CodeEditor
+      isCopyEnabled
       isDarkTheme
       isLineNumbersVisible
       isMinimapVisible={false}
       code={initialQuery}
       customControls={customControls}
-      options={{ fontSize: 16, wordWrap: "on" }}
+      options={{ fontSize: 14, wordWrap: "on" }}
       onChange={setQuery}
       language="clojure"
       onEditorDidMount={(editor, _monaco) => {
