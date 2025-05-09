@@ -17,6 +17,7 @@ use crate::{Unit, run::extract};
 
 /// Pull models (in parallel) from the program in the given filepath.
 pub async fn pull_if_needed(program: &Unit) -> Result<(), Error> {
+    #[cfg(feature = "pull")]
     extract::extract_models(program)
         .into_par_iter()
         .try_for_each(|model| match model {

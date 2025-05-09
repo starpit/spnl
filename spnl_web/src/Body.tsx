@@ -12,8 +12,24 @@ import {
 import QueryEditor from "./QueryEditor"
 import Console from "./Console"
 
+import { compile_query } from "spnl_wasm"
+
+// Sigh, not sure how to get this automatically from Rust, yet. Vite seems to be getting in the way.
+type User = { user: [string] }
+type System = { system: [string] }
+type Print = { print: [string] }
+type Plus = { plus: Unit[] }
+type Cross = { cross: Unit[] }
+type Generate = { generate: [string, Unit, number, number] }
+type Unit = Print | User | System | Plus | Cross | Generate
+
 export default function Body() {
-  const onExecuteQuery = useCallback((query: string) => {}, [])
+  const onExecuteQuery = useCallback((query: string) => {
+    console.log("Compiling query", query)
+    const p = JSON.parse(compile_query(query)) as Unit
+    console.error("!!!!!", p)
+  }, [])
+
   const [isExpanded1, setIsExpanded1] = useState(true)
   const [isExpanded2, setIsExpanded2] = useState(true)
   const toggleExpanded1 = useCallback(

@@ -3,7 +3,7 @@ use indicatif::MultiProgress;
 
 use crate::{
     Unit,
-    run::{generate::generate, plan::plan, pull::pull_if_needed, result::SpnlResult},
+    run::{plan::plan, result::SpnlResult},
 };
 
 async fn cross(units: &Vec<Unit>, mm: Option<&MultiProgress>) -> SpnlResult {
@@ -21,9 +21,10 @@ async fn plus(units: &Vec<Unit>) -> SpnlResult {
 
 #[async_recursion]
 pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
-    let pull_future = pull_if_needed(unit);
+    #[cfg(feature = "pull")]
+    let _ = crate::run::pull::pull_if_needed(unit).await?;
+
     let p = plan(unit);
-    let _ = pull_future.await?;
 
     match p {
         Unit::Print((m,)) => {
@@ -35,9 +36,19 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
         Unit::Cross(u) => cross(&u, m).await,
         Unit::Plus(u) => plus(&u).await,
         Unit::Generate((model, input, max_tokens, temp)) => {
-            generate(model.as_str(), &run(&input, m).await?, max_tokens, temp, m).await
+            crate::run::generate::generate(
+                model.as_str(),
+                &run(&input, m).await?,
+                max_tokens,
+                temp,
+                m,
+            )
+            .await
         }
 
+        #[cfg(not(feature = "cli_support"))]
+        Unit::Ask((message,)) => todo!(),
+        #[cfg(feature = "cli_support")]
         Unit::Ask((message,)) => {
             use rustyline::error::ReadlineError;
             let mut rl = rustyline::DefaultEditor::new().unwrap();

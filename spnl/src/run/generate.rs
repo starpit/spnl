@@ -3,27 +3,29 @@ use indicatif::MultiProgress;
 use crate::Unit;
 use crate::run::result::SpnlResult;
 
-use crate::run::ollama::generate_ollama;
-use crate::run::openai::generate_openai;
-
 pub async fn generate(
     model: &str,
     input: &Unit,
     max_tokens: i32,
     temp: f32,
-    m: Option<&MultiProgress>,
+    mp: Option<&MultiProgress>,
 ) -> SpnlResult {
-    if model.starts_with("ollama/") || model.starts_with("ollama_chat/") {
-        let model = if model.starts_with("ollama/") {
-            &model[7..]
-        } else {
-            &model[12..]
-        };
+    match model {
+        #[cfg(feature = "ollama")]
+        m if m.starts_with("ollama/") => {
+            crate::run::ollama::generate_ollama(&m[7..], input, max_tokens, temp, mp).await
+        }
 
-        generate_ollama(model, input, max_tokens, temp, m).await
-    } else if model.starts_with("openai/") {
-        generate_openai(&model[7..], input, max_tokens, temp, m).await
-    } else {
-        todo!()
+        #[cfg(feature = "ollama")]
+        m if m.starts_with("ollama_chat/") => {
+            crate::run::ollama::generate_ollama(&m[12..], input, max_tokens, temp, mp).await
+        }
+
+        #[cfg(feature = "openai")]
+        m if m.starts_with("openai/") => {
+            crate::run::openai::generate_openai(&m[7..], input, max_tokens, temp, mp).await
+        }
+
+        _ => todo!(),
     }
 }

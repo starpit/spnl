@@ -97,7 +97,7 @@ macro_rules! spnl_arg {
     ($e:expr) => ($e);
 }
 
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Unit {
     /// User prompt
@@ -138,6 +138,7 @@ fn truncate(s: &str, max_chars: usize) -> String {
         Some((idx, _)) => format!("{}…", &s[..idx]),
     }
 }
+#[cfg(feature = "cli_support")]
 impl ptree::TreeItem for Unit {
     type Child = Self;
     fn write_self<W: ::std::io::Write>(

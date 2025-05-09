@@ -1963,6 +1963,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spnl_wasm"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "spnl",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
