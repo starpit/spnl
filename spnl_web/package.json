@@ -15,12 +15,15 @@
     "@mlc-ai/web-llm": "^0.2.79",
     "@patternfly/react-code-editor": "^6.2.2",
     "@patternfly/react-core": "^6.2.2",
+    "@types/react-tree-graph": "^8.0.0",
     "@xterm/addon-clipboard": "^0.1.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-tree-graph": "^8.0.3",
     "spnl_wasm": "file:../spnl_wasm/pkg",
+    "ts-pattern": "^5.7.0",
     "vite-plugin-wasm": "^3.4.1"
   },
   "devDependencies": {

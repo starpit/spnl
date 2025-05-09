@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { CodeEditor, CodeEditorControl } from "@patternfly/react-code-editor"
 
 import PlayIcon from "@patternfly/react-icons/dist/esm/icons/play-icon"
@@ -38,21 +38,22 @@ const initialQuery = `(g "ollama/granite3.2:2b"
 0 0.0)`
 
 type Props = {
-  onExecuteQuery(query: string): void
+  setQuery(query: string): void
+  onExecuteQuery(): void
 }
 
 export default function QueryEditor(props: Props) {
-  const [query, setQuery] = useState(initialQuery)
-
   const customControls = (
     <CodeEditorControl
       icon={<PlayIcon />}
       aria-label="Execute query"
       tooltipProps={{ content: "Execute query" }}
       onClick={props.onExecuteQuery}
-      isVisible={query !== ""}
+      isVisible
     />
   )
+
+  useEffect(() => props.setQuery(initialQuery), [])
 
   return (
     <CodeEditor
@@ -61,9 +62,10 @@ export default function QueryEditor(props: Props) {
       isLineNumbersVisible
       isMinimapVisible={false}
       code={initialQuery}
+      headerMainContent="Query Editor"
       customControls={customControls}
       options={{ fontSize: 14, wordWrap: "on" }}
-      onChange={setQuery}
+      onChange={props.setQuery}
       language="clojure"
       onEditorDidMount={(editor, _monaco) => {
         editor.layout()

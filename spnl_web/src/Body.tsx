@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   Grid,
   GridItem,
@@ -9,26 +9,27 @@ import {
   CardBody,
 } from "@patternfly/react-core"
 
-import QueryEditor from "./QueryEditor"
 import Console from "./Console"
+import Topology from "./Topology"
+import QueryEditor from "./QueryEditor"
 
 import { compile_query } from "spnl_wasm"
 
-// Sigh, not sure how to get this automatically from Rust, yet. Vite seems to be getting in the way.
-type User = { user: [string] }
-type System = { system: [string] }
-type Print = { print: [string] }
-type Plus = { plus: Unit[] }
-type Cross = { cross: Unit[] }
-type Generate = { generate: [string, Unit, number, number] }
-type Unit = Print | User | System | Plus | Cross | Generate
-
 export default function Body() {
-  const onExecuteQuery = useCallback((query: string) => {
-    console.log("Compiling query", query)
-    const p = JSON.parse(compile_query(query)) as Unit
-    console.error("!!!!!", p)
-  }, [])
+  const [unit, setUnit] = useState<null | Unit>(null)
+  const [query, setQuery] = useState<null | string>(null)
+
+  useEffect(() => {
+    if (query === null) {
+      setUnit(null)
+    } else {
+      setUnit(JSON.parse(compile_query(query)) as import("./Unit").Unit)
+    }
+  }, [query, setUnit])
+
+  const onExecuteQuery = useCallback(() => {
+    console.log("Execute query", query)
+  }, [query])
 
   const [isExpanded1, setIsExpanded1] = useState(true)
   const [isExpanded2, setIsExpanded2] = useState(true)
@@ -43,30 +44,16 @@ export default function Body() {
 
   return (
     <Grid hasGutter>
-      <GridItem span={6}>
-        <Card isLarge isExpanded={isExpanded1}>
-          <CardHeader onExpand={toggleExpanded1}>
-            <CardTitle>Query Editor</CardTitle>
-          </CardHeader>
-          <CardExpandableContent>
-            <CardBody>
-              <QueryEditor onExecuteQuery={onExecuteQuery} />
-            </CardBody>
-          </CardExpandableContent>
-        </Card>
+      <GridItem span={8}>
+        <QueryEditor setQuery={setQuery} onExecuteQuery={onExecuteQuery} />
       </GridItem>
 
-      <GridItem span={6}>
-        <Card isLarge isExpanded={isExpanded2}>
-          <CardHeader onExpand={toggleExpanded2}>
-            <CardTitle>Console</CardTitle>
-          </CardHeader>
-          <CardExpandableContent>
-            <CardBody>
-              <Console />
-            </CardBody>
-          </CardExpandableContent>
-        </Card>
+      <GridItem span={4}>
+        <Topology unit={unit} />
+      </GridItem>
+
+      <GridItem span={12}>
+        <Console />
       </GridItem>
     </Grid>
   )

@@ -57,14 +57,11 @@ export default function Console() {
                 <Button icon={<CopyIcon />} variant="plain" />
               </Tooltip>
             </div>
+            <div className="pf-v6-c-code-editor__header-main">Console</div>
           </div>
         </div>
 
-        <div className="pf-v6-c-code-editor__main">
-          <div className="pf-v6-c-code-editor__code">
-            <div ref={xtermRef} />
-          </div>
-        </div>
+        <div ref={xtermRef} />
       </div>
     </div>
   )
