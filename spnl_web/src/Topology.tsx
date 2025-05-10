@@ -8,17 +8,18 @@ type Props = {
   unit: null | import("./Unit").Unit
 }
 
-const NODE_SIZE = 24
-const LABEL_FONT_SIZE = 14
+const NODE_SIZE = 32
+const LABEL_FONT_SIZE = 16
 
 function node(id: string, label: string, children: Data[] = []): Data {
   return {
-    name: label,
-    keyProp: id + "." + label,
+    label,
+    name: id + "." + label,
+    labelProp: "label",
     children,
     nodeProps: { width: NODE_SIZE, height: NODE_SIZE },
     gProps: {
-      class: "node spnl-node spnl-node-" + (label === "+" ? "plus" : label),
+      className: "node spnl-node spnl-node-" + (label === "+" ? "plus" : label),
     },
   }
 }
@@ -67,12 +68,22 @@ export default function Topology(props: Props) {
       <Tree
         key={JSON.stringify(data)}
         data={data}
-        height={400}
+        margins={{ bottom: 0, left: NODE_SIZE, top: 0, right: NODE_SIZE }}
+        height={600}
         width={400}
         nodeShape="rect"
         textProps={{
           dx: -(NODE_SIZE / 2 - LABEL_FONT_SIZE / 2),
           dy: NODE_SIZE / 2 - LABEL_FONT_SIZE / 2,
+        }}
+        svgProps={{
+          transform: "rotate(90)", //rotates the tree to make it verticle
+          viewBox: "0 200 600 400",
+        }}
+        textProps={{
+          transform: "rotate(-90)", //rotates the text label
+          x: -NODE_SIZE * 0.75,
+          y: 2,
         }}
       />
     )

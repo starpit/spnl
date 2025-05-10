@@ -10,6 +10,8 @@ import {
   Title,
 } from "@patternfly/react-core"
 
+import ModelDownloader from "./ModelDownloader"
+
 export default function SPNLMasthead() {
   return (
     <Masthead>
@@ -18,7 +20,9 @@ export default function SPNLMasthead() {
           <MastheadLogo>Span Query Playground</MastheadLogo>
         </MastheadBrand>
       </MastheadMain>
-      <MastheadContent></MastheadContent>
+      <MastheadContent>
+        <ModelDownloader />
+      </MastheadContent>
     </Masthead>
   )
 }

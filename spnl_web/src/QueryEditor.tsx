@@ -59,10 +59,10 @@ export default function QueryEditor(props: Props) {
     <CodeEditor
       isCopyEnabled
       isDarkTheme
-      isLineNumbersVisible
+      isLineNumbersVisible={false}
       isMinimapVisible={false}
       code={initialQuery}
-      headerMainContent="Query Editor"
+      headerMainContent="SPNL Query Editor"
       customControls={customControls}
       options={{ fontSize: 14, wordWrap: "on" }}
       onChange={props.setQuery}
@@ -70,7 +70,7 @@ export default function QueryEditor(props: Props) {
       onEditorDidMount={(editor, _monaco) => {
         editor.layout()
       }}
-      height="500px"
+      height="800px"
     />
   )
 }
