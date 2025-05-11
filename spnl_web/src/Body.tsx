@@ -2,54 +2,45 @@ import { useCallback, useEffect, useState } from "react"
 import {
   Grid,
   GridItem,
-  Card,
-  CardExpandableContent,
-  CardHeader,
-  CardTitle,
-  CardBody,
   HelperText,
   HelperTextItem,
 } from "@patternfly/react-core"
 
 import Header from "./Header"
-import Console from "./Console"
+import Console, { type RunState } from "./Console"
 import Topology from "./Topology"
 import QueryEditor from "./QueryEditor"
-
-import run from "./run"
 
 import { compile_query } from "spnl_wasm"
 
 export default function Body() {
-  const [unit, setUnit] = useState<null | Unit>(null)
+  const [unit, setUnit] = useState<null | import("./Unit").Unit>(null)
   const [query, setQuery] = useState<null | string>(null)
   const [compilationError, setCompilationError] = useState<null | Error>(null)
+
+  const [runState, setRunState] = useState<RunState>("idle")
+  const onRunComplete = useCallback(
+    (success: boolean) => setRunState(success ? "success" : "error"),
+    [setRunState],
+  )
 
   useEffect(() => {
     if (!query) {
       setUnit(null)
     } else {
       try {
-        setUnit(JSON.parse(compile_query(query)) as import("./Unit").Unit)
         setCompilationError(null)
+        setUnit(JSON.parse(compile_query(query)) as import("./Unit").Unit)
       } catch (err) {
         console.error(err)
-        setCompilationError(err)
+        setCompilationError(err as Error)
       }
     }
   }, [query, setUnit])
 
-  const onExecuteQuery = useCallback(() => run(unit), [unit])
-
-  const [isExpanded1, setIsExpanded1] = useState(true)
-  const [isExpanded2, setIsExpanded2] = useState(true)
-  const toggleExpanded1 = useCallback(
-    () => setIsExpanded1((v) => !v),
-    [setIsExpanded1],
-  )
-  const toggleExpanded2 = useCallback(
-    () => setIsExpanded2((v) => !v),
-    [setIsExpanded2],
+  const onExecuteQuery = useCallback(
+    () => setRunState("running"),
+    [setRunState],
   )
 
   return (
@@ -74,7 +65,15 @@ export default function Body() {
         <GridItem span={4}>
           <div className="pf-v6-c-code-editor">
             <Header title="Console" />
-            <Console />
+            <div className="pf-v6-c-code-editor__main">
+              <div className="pf-v6-c-code-editor__code">
+                <Console
+                  runState={runState}
+                  query={unit}
+                  onComplete={onRunComplete}
+                />
+              </div>
+            </div>
           </div>
         </GridItem>
 

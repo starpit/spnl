@@ -3,10 +3,10 @@ use crate::Unit;
 fn expand_repeats(v: &Vec<Unit>) -> Vec<Unit> {
     v.iter()
         .flat_map(|u| match u {
-            Unit::Repeat((n, uu)) => ::std::iter::repeat(*uu.clone())
+            Unit::Repeat((n, uu)) => ::std::iter::repeat(plan(&*uu.clone()))
                 .take(*n)
                 .collect::<Vec<_>>(),
-            x => vec![x.clone()],
+            x => vec![plan(x)],
         })
         .collect()
 }
@@ -16,6 +16,7 @@ pub fn plan(ast: &Unit) -> Unit {
     match ast {
         Unit::Plus(v) => Unit::Plus(expand_repeats(v)),
         Unit::Cross(v) => Unit::Cross(expand_repeats(v)),
+        Unit::Generate((m,i,mt,t)) => Unit::Generate((m.clone(),Box::new(plan(i)),mt.clone(),t.clone())),
         x => x.clone(),
     }
 }

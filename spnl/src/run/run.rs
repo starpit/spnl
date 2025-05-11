@@ -3,7 +3,7 @@ use indicatif::MultiProgress;
 
 use crate::{
     Unit,
-    run::{plan::plan, result::SpnlResult},
+    run::result::SpnlResult,
 };
 
 async fn cross(units: &Vec<Unit>, mm: Option<&MultiProgress>) -> SpnlResult {
@@ -24,9 +24,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
     #[cfg(feature = "pull")]
     let _ = crate::run::pull::pull_if_needed(unit).await?;
 
-    let p = plan(unit);
-
-    match p {
+    match unit {
         Unit::Print((m,)) => {
             println!("{}", m);
             Ok(Unit::Print((m.clone(),)))
@@ -39,8 +37,8 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
             crate::run::generate::generate(
                 model.as_str(),
                 &run(&input, m).await?,
-                max_tokens,
-                temp,
+                *max_tokens,
+                *temp,
                 m,
             )
             .await

@@ -1,4 +1,83 @@
-import { createRef, useEffect, useState } from "react"
+import Markdown from "react-markdown"
+import { useCallback, useEffect, useState } from "react"
+import { Content, Stack } from "@patternfly/react-core"
+
+import run from "./run"
+import ProgressUI, { type InitProgress } from "./ProgressUI"
+
+export type RunState = "idle" | "running" | "success" | "error"
+
+type Props = {
+  runState: RunState
+  query: null | import("./Unit").Unit
+  onComplete(success: boolean): void
+}
+
+export default function Console({ runState, query, onComplete }: Props) {
+  const [progressInit, setProgressInit] = useState<null | InitProgress>(null)
+  const [progressDownload, setProgressDownload] = useState(-1)
+  const [progressDoPar, setProgressDoPar] = useState<null | InitProgress[]>(
+    null,
+  )
+
+  const [executionOutput, setExecutionOutput] = useState("")
+  const emit = useCallback(
+    (s: string) => {
+      setExecutionOutput((soFar) => soFar + s)
+      return s
+    },
+    [setExecutionOutput],
+  )
+
+  useEffect(() => {
+    const start = async (query: import("./Unit").Unit) => {
+      setProgressInit(null)
+      setProgressDownload(-1)
+      setProgressDoPar(null)
+      setExecutionOutput("")
+      try {
+        await run(query, {
+          emit,
+          setProgressInit,
+          setProgressDownload,
+          setProgressDoPar,
+        })
+        onComplete(true)
+      } catch (err) {
+        console.error(err)
+        onComplete(false)
+      }
+    }
+
+    if (runState === "running" && query !== null) {
+      start(query)
+    }
+  }, [
+    emit,
+    query,
+    runState,
+    setProgressInit,
+    setProgressDownload,
+    setProgressDoPar,
+    setExecutionOutput,
+    onComplete,
+  ])
+
+  return (
+    <Stack hasGutter>
+      <Content>
+        <Markdown>{executionOutput || "*Awaiting query execution*"}</Markdown>
+      </Content>
+      <ProgressUI
+        init={progressInit}
+        download={progressDownload}
+        dopar={progressDoPar}
+      />
+    </Stack>
+  )
+}
+
+/*import { createRef, useEffect, useState } from "react"
 import { Button, Tooltip } from "@patternfly/react-core"
 
 import { Terminal } from "@xterm/xterm"
@@ -47,3 +126,4 @@ export default function Console() {
 
   return <div ref={xtermRef} />
 }
+*/

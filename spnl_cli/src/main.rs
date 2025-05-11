@@ -4,7 +4,7 @@ use crate::args::Args;
 use crate::demos::*;
 use spnl::{
     from_str,
-    run::{result::SpnlError, run},
+    run::{plan::plan, result::SpnlError, run},
 };
 
 mod args;
@@ -15,7 +15,7 @@ async fn main() -> Result<(), SpnlError> {
     let args = Args::parse();
     let verbose = args.verbose;
 
-    let program = match args.demo {
+    let program = plan(&match args.demo {
         Some(Demo::Chat) => chat::demo(args),
         Some(Demo::Email) => email::demo(args),
         Some(Demo::Email2) => email2::demo(args),
@@ -32,7 +32,7 @@ async fn main() -> Result<(), SpnlError> {
             let rendered = tt.render("file", &args)?;
             from_str(rendered.as_str())?
         }
-    };
+    });
 
     if verbose {
         ptree::print_tree(&program)?;
