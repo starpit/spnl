@@ -24,6 +24,7 @@
     "react-tree-graph": "^8.0.3",
     "spnl_wasm": "file:../spnl_wasm/pkg",
     "ts-pattern": "^5.7.0",
+    "vite-plugin-top-level-await": "^1.5.0",
     "vite-plugin-wasm": "^3.4.1"
   },
   "devDependencies": {
