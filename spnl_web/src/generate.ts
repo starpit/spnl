@@ -101,6 +101,7 @@ async function initializeEngine(
 
 export default async function generate(
   input: Unit,
+  defaultModel: string,
   _maxTokens: number,
   temperature: number,
   emit: (msg: string) => void,
@@ -111,7 +112,7 @@ export default async function generate(
   const messages = messagify(input)
   console.log("gen messages", messages)
 
-  const selectedModel = "TinyLlama-1.1B-Chat-v0.4-q4f32_1-MLC-1k" // TODO
+  const selectedModel = defaultModel // TODO
   const key = `${selectedModel}.${temperature}`
   if (!(key in engines)) {
     console.log("Initializing engine", key)

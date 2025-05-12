@@ -1,5 +1,6 @@
 import Markdown from "react-markdown"
 import { useCallback, useEffect, useState } from "react"
+import useLocalStorageState from "use-local-storage-state"
 import { Content, Stack } from "@patternfly/react-core"
 
 import run from "./run"
@@ -14,6 +15,9 @@ type Props = {
 }
 
 export default function Console({ runState, query, onComplete }: Props) {
+  const [defaultModel] = useLocalStorageState<string>("spnl.model.default", {
+    defaultValue: "",
+  })
   const [progressInit, setProgressInit] = useState<null | InitProgress>(null)
   const [progressDownload, setProgressDownload] = useState(-1)
   const [progressDoPar, setProgressDoPar] = useState<null | InitProgress[]>(
@@ -37,6 +41,7 @@ export default function Console({ runState, query, onComplete }: Props) {
       setExecutionOutput("")
       try {
         await run(query, {
+          defaultModel,
           emit,
           setProgressInit,
           setProgressDownload,

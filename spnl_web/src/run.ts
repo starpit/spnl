@@ -6,6 +6,7 @@ import { type InitProgress } from "./ProgressUI"
 import generate from "./generate"
 
 type Props = {
+  defaultModel: string
   emit(s: string): string
   setProgressInit(p: InitProgress): void
   setProgressDownload(n: number): void
@@ -69,6 +70,7 @@ ${x.system[0]
 
         const res = await generate(
           evaluatedInput,
+          props.defaultModel,
           maxTokens,
           temperature,
           inPlusOrCross >= 0 ? noEmit : props.emit,
