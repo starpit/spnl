@@ -108,12 +108,13 @@ export default async function generate(
   setProgressInit: (p: InitProgress) => void,
   setProgressDownload: (n: number) => void,
   updateGenerationProgress: null | ((n: number) => void),
+  idx: number
 ): Promise<string> {
   const messages = messagify(input)
   console.log("gen messages", messages)
 
   const selectedModel = defaultModel // TODO
-  const key = `${selectedModel}.${temperature}`
+  const key = `${selectedModel}.${temperature}.${idx}`
   if (!(key in engines)) {
     console.log("Initializing engine", key)
     engines[key] = initializeEngine(

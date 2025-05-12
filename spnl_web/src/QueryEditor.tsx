@@ -31,7 +31,7 @@ const initialQuery = `(g "ollama/granite3.2:2b"
 
     (print "Generate 4 candidate emails in parallel")
     (plus
-     (repeat 1
+     (repeat 4
              (g "ollama/granite3.2:2b"
                 (user "write an introductory email for a job application, limited to at most 100 characters.")
                 100 0.3)))
