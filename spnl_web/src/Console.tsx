@@ -35,6 +35,12 @@ export default function Console({ runState, query, onComplete }: Props) {
 
   useEffect(() => {
     const start = async (query: import("./Unit").Unit) => {
+      if (!defaultModel) {
+        setExecutionOutput("**Error**: please select a model")
+        onComplete(false)
+        return
+      }
+
       setProgressInit(null)
       setProgressDownload(-1)
       setProgressDoPar(null)
