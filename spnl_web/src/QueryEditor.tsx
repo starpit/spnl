@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { useNavigate } from "@tanstack/react-router"
 import {
   CodeEditor,
   CodeEditorControl,
@@ -43,12 +44,15 @@ const initialQuery = `(g "ollama/granite3.2:2b"
 type Props = {
   setQuery(query: string): void
   onExecuteQuery(): void
-  toggleQueryViewer(): void
+  isDrawerOpen: boolean
 }
 
 export default function QueryEditor(props: Props) {
+  const navigate = useNavigate()
+
   const customControls = [
     <CodeEditorControl
+      key="play"
       icon={<PlayIcon />}
       aria-label="Execute query"
       tooltipProps={{ content: "Execute query" }}
@@ -56,10 +60,14 @@ export default function QueryEditor(props: Props) {
     />,
 
     <CodeEditorControl
+      key="topology"
       icon={<TopologyIcon />}
       aria-label="Toggle Query Viewer"
       tooltipProps={{ content: "Toggle Query Viewer" }}
-      onClick={props.toggleQueryViewer}
+      onClick={() => {
+        console.error("NNNN", props.isDrawerOpen)
+        return navigate({ to: "/", search: { qv: !props.isDrawerOpen } })
+      }}
     />,
   ]
 

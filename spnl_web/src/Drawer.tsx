@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { Link } from "@tanstack/react-router"
 import {
   Button,
   Card,
@@ -13,16 +14,19 @@ import Topology from "./Topology"
 import CloseIcon from "@patternfly/react-icons/dist/esm/icons/times-icon"
 
 type Props = {
-  close(): void
   unit: null | import("./Unit").Unit
 }
 
-export default function Drawer({ close, unit }: Props) {
+export default function Drawer({ unit }: Props) {
   const actions = useMemo(
     () => ({
-      actions: <Button variant="plain" onClick={close} icon={<CloseIcon />} />,
+      actions: (
+        <Link to="/" search={{ qv: false }}>
+          <Button variant="plain" icon={<CloseIcon />} />
+        </Link>
+      ),
     }),
-    [close],
+    [],
   )
 
   return (

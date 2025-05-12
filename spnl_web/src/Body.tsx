@@ -16,20 +16,17 @@ import Console, { type RunState } from "./Console"
 
 import { compile_query } from "spnl_wasm"
 
-export default function Body() {
+import "@patternfly/react-core/dist/styles/base.css"
+
+export type BodyProps = {
+  /** Show topology */
+  qv: boolean
+}
+
+export default function Body(props: BodyProps) {
   const [unit, setUnit] = useState<null | import("./Unit").Unit>(null)
   const [query, setQuery] = useState<null | string>(null)
   const [compilationError, setCompilationError] = useState<null | Error>(null)
-
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true)
-  const closeDrawer = useCallback(
-    () => setIsDrawerOpen(false),
-    [setIsDrawerOpen],
-  )
-  const toggleDrawer = useCallback(
-    () => setIsDrawerOpen((open) => !open),
-    [setIsDrawerOpen],
-  )
 
   const [runState, setRunState] = useState<RunState>("idle")
   const onRunComplete = useCallback(
@@ -59,8 +56,8 @@ export default function Body() {
   return (
     <Page
       masthead={<Masthead />}
-      isNotificationDrawerExpanded={!!unit && isDrawerOpen}
-      notificationDrawer={<Drawer unit={unit} close={closeDrawer} />}
+      isNotificationDrawerExpanded={!!unit && props.qv}
+      notificationDrawer={<Drawer unit={unit} />}
     >
       <PageSection>
         <HelperText component="ul" style={{ marginBottom: "1em" }}>
@@ -78,9 +75,9 @@ export default function Body() {
         <Grid hasGutter>
           <GridItem span={7}>
             <QueryEditor
+              isDrawerOpen={props.qv}
               setQuery={setQuery}
               onExecuteQuery={onExecuteQuery}
-              toggleQueryViewer={toggleDrawer}
             />
           </GridItem>
 
