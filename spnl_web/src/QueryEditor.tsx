@@ -21,9 +21,7 @@ type Props = {
 
 export default function QueryEditor(props: Props) {
   const navigate = useNavigate()
-  const [initialQuery] = useLocalStorageState("spnl.demo.select", {
-    defaultValue: "",
-  })
+  const [initialQuery] = useLocalStorageState<string>("spnl.demo.select")
 
   const customControls = [
     <CodeEditorControl
@@ -52,7 +50,9 @@ export default function QueryEditor(props: Props) {
   ]
 
   const { setQuery } = props
-  useEffect(() => setQuery(initialQuery), [setQuery, initialQuery])
+  useEffect(() => {
+    if (initialQuery) setQuery(initialQuery)
+  }, [setQuery, initialQuery])
 
   return (
     <CodeEditor
@@ -60,7 +60,7 @@ export default function QueryEditor(props: Props) {
       isDarkTheme
       isLineNumbersVisible={false}
       isMinimapVisible={false}
-      code={initialQuery}
+      code={initialQuery||""}
       headerMainContent="SPNL Query Editor"
       customControls={customControls}
       options={{ fontSize: 14, wordWrap: "on" }}
