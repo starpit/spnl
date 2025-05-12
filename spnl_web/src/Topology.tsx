@@ -8,7 +8,7 @@ type Props = {
   unit: null | import("./Unit").Unit
 }
 
-const NODE_SIZE = 24
+const NODE_SIZE = 18
 
 function node(id: string, label: string, children: Data[] = []) {
   return {
@@ -55,8 +55,8 @@ function graphify(unit: import("./Unit").Unit, id = "root"): Data[] {
 
 const nodeProps = { width: NODE_SIZE, height: NODE_SIZE }
 const textProps = {
-  dx: -NODE_SIZE / 4 + 0.5,
-  dy: NODE_SIZE / 4 + 0.5,
+  dx: -NODE_SIZE / 4 + 0.25,
+  dy: NODE_SIZE / 4 + 0.25,
 } as Data["textProps"] // hmm typing issues in @types/react-tree-graph
 
 export default function Topology(props: Props) {
