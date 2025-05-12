@@ -37,7 +37,7 @@ const initialSelectOptions = prebuiltAppConfig.model_list.map((m) => ({
   isDisabled: false,
   isAriaDisabled: false,
   description: `Context window: ${m.overrides?.context_window_size ?? "unknown"}. VRAM required: ${m.vram_required_MB}MB`,
-}))
+})).sort((a,b) => a.value.localeCompare(b.value))
 
 export default function ModelDownloader() {
   const [isOpen, setIsOpen] = useState(false)
