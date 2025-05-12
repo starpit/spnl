@@ -10,6 +10,5 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const props = Route.useSearch()
-  console.error("!!!!!", props)
   return <Body {...props} />
 }
