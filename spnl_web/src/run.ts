@@ -12,7 +12,7 @@ type Props = {
   setProgressDoPar(setter: (a: null | InitProgress[]) => InitProgress[]): void
 }
 
-function noEmit(_s: string) {}
+function noEmit() {}
 
 export default async function run(
   unit: Unit,
@@ -45,7 +45,7 @@ ${x.system[0]
     .with({ assistant: P._ }, (x) => x)
     .with(
       { g: P.array() },
-      async ({ g: [_, input, maxTokens, temperature] }) => {
+      async ({ g: [, input, maxTokens, temperature] }) => {
         const evaluatedInput = await run(input, props, inPlusOrCross)
 
         const updateGenerationProgress =
@@ -111,7 +111,7 @@ ${x.system[0]
     .with({ plus: P.array() }, async ({ plus }) => {
       const gens = plus.filter(isGenerate)
       if (gens.length > 0) {
-        props.setProgressDoPar((_) => [] as InitProgress[])
+        props.setProgressDoPar(() => [] as InitProgress[])
       }
       let genIdx = 0
       return {

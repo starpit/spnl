@@ -65,7 +65,8 @@ export default function QueryEditor(props: Props) {
     />,
   ]
 
-  useEffect(() => props.setQuery(initialQuery), [])
+  const { setQuery } = props
+  useEffect(() => setQuery(initialQuery), [setQuery])
 
   return (
     <CodeEditor
@@ -79,7 +80,7 @@ export default function QueryEditor(props: Props) {
       options={{ fontSize: 14, wordWrap: "on" }}
       onChange={props.setQuery}
       language={Language.clojure}
-      onEditorDidMount={(editor, _monaco) => {
+      onEditorDidMount={(editor) => {
         editor.layout()
       }}
       height="800px"
