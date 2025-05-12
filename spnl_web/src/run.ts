@@ -75,7 +75,6 @@ ${x.system[0]
           props.setProgressInit,
           props.setProgressDownload,
           updateGenerationProgress,
-          inPlusOrCross,
         )
         if (inPlusOrCross >= 0) {
           props.setProgressDoPar((A) => {
