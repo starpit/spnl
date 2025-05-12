@@ -6,6 +6,7 @@ import {
 } from "@patternfly/react-code-editor"
 
 import PlayIcon from "@patternfly/react-icons/dist/esm/icons/play-icon"
+import TopologyIcon from "@patternfly/react-icons/dist/esm/icons/project-diagram-icon"
 
 /*const initialQuery = `(g "{model}"
    (cross
@@ -42,18 +43,27 @@ const initialQuery = `(g "ollama/granite3.2:2b"
 type Props = {
   setQuery(query: string): void
   onExecuteQuery(): void
+  toggleQueryViewer(): void
 }
 
 export default function QueryEditor(props: Props) {
-  const customControls = (
+  const customControls = [
     <CodeEditorControl
       icon={<PlayIcon />}
       aria-label="Execute query"
       tooltipProps={{ content: "Execute query" }}
       onClick={props.onExecuteQuery}
       isVisible
-    />
-  )
+    />,
+
+    <CodeEditorControl
+      icon={<TopologyIcon />}
+      aria-label="Toggle Query Viewer"
+      tooltipProps={{ content: "Toggle Query Viewer" }}
+      onClick={props.toggleQueryViewer}
+      isVisible
+    />,
+  ]
 
   useEffect(() => props.setQuery(initialQuery), [])
 

@@ -50,7 +50,7 @@ export default function ModelDownloader() {
       const idx = m.model_id.indexOf("-")
       const group = m.model_id.slice(0, idx)
       const label = m.model_id.slice(idx + 1)
-      console.error("!!!!!", group, label, m.model_id)
+      // console.error("!!!!!", group, label, m.model_id)
       return {
         group,
         label,
@@ -71,7 +71,7 @@ export default function ModelDownloader() {
         { group: string; label: string; model: string; description: string }[]
       >,
     )
-  console.error("!!!!!!!", groups)
+  // console.error("!!!!!!!", groups)
 
   return (
     <Select

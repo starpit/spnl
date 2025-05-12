@@ -1,7 +1,7 @@
 @import "react-tree-graph/dist/style.css";
 
 .spnl-node > text {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
 }
 
