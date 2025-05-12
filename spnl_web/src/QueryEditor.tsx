@@ -52,7 +52,7 @@ export default function QueryEditor(props: Props) {
   ]
 
   const { setQuery } = props
-  useEffect(() => setQuery(initialQuery), [setQuery])
+  useEffect(() => setQuery(initialQuery), [setQuery, initialQuery])
 
   return (
     <CodeEditor
