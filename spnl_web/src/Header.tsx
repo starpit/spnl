@@ -1,5 +1,7 @@
 import { Button } from "@patternfly/react-core"
 
+import ModelSelect from "./ModelSelect"
+
 import ConsoleIcon from "@patternfly/react-icons/dist/esm/icons/terminal-icon"
 
 type Props = {
@@ -14,6 +16,7 @@ export default function Header(props: Props) {
           <Button icon={<ConsoleIcon />} variant="plain" />
         </div>
         <div className="pf-v6-c-code-editor__header-main">{props.title}</div>
+        <ModelSelect />
       </div>
     </div>
   )

@@ -108,7 +108,7 @@ export default async function generate(
   setProgressInit: (p: InitProgress) => void,
   setProgressDownload: (n: number) => void,
   updateGenerationProgress: null | ((n: number) => void),
-  idx: number
+  idx: number,
 ): Promise<string> {
   const messages = messagify(input)
   console.log("gen messages", messages)

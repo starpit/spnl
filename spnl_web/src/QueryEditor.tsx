@@ -53,7 +53,6 @@ export default function QueryEditor(props: Props) {
       aria-label="Execute query"
       tooltipProps={{ content: "Execute query" }}
       onClick={props.onExecuteQuery}
-      isVisible
     />,
 
     <CodeEditorControl
@@ -61,7 +60,6 @@ export default function QueryEditor(props: Props) {
       aria-label="Toggle Query Viewer"
       tooltipProps={{ content: "Toggle Query Viewer" }}
       onClick={props.toggleQueryViewer}
-      isVisible
     />,
   ]
 

@@ -25,7 +25,7 @@ import { prebuiltAppConfig } from "@mlc-ai/web-llm"
 
 import TimesIcon from "@patternfly/react-icons/dist/esm/icons/times-icon"
 
-const width = { width: "30em" }
+const width = { width: "25em" }
 const NO_RESULTS = "no results"
 
 const createItemId = (value: string) =>
