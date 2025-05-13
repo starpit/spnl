@@ -8,8 +8,6 @@ import {
   Language,
 } from "@patternfly/react-code-editor"
 
-import DemoSelect from "./DemoSelect"
-
 import PlayIcon from "@patternfly/react-icons/dist/esm/icons/play-icon"
 import TopologyIcon from "@patternfly/react-icons/dist/esm/icons/project-diagram-icon"
 
@@ -40,13 +38,13 @@ export default function QueryEditor(props: Props) {
       onClick={() => navigate({ to: "/", search: { qv: !props.isDrawerOpen } })}
     />,
 
-    <CodeEditorControl
+    /*<CodeEditorControl
       key="demo"
       icon={<DemoSelect />}
       aria-label="Demo Select"
       tooltipProps={{ content: "Select a demo" }}
       onClick={() => {}}
-    />,
+    />,*/
   ]
 
   const { setQuery } = props
@@ -60,7 +58,7 @@ export default function QueryEditor(props: Props) {
       isDarkTheme
       isLineNumbersVisible={false}
       isMinimapVisible={false}
-      code={initialQuery||""}
+      code={initialQuery || ""}
       headerMainContent="SPNL Query Editor"
       customControls={customControls}
       options={{ fontSize: 14, wordWrap: "on" }}

@@ -6,6 +6,9 @@ import {
   MastheadContent,
 } from "@patternfly/react-core"
 
+import DemoSelect from "./DemoSelect"
+import ModelSelect from "./ModelSelect"
+
 export default function SPNLMasthead() {
   return (
     <Masthead>
@@ -14,7 +17,10 @@ export default function SPNLMasthead() {
           <MastheadLogo>Span Query Playground</MastheadLogo>
         </MastheadBrand>
       </MastheadMain>
-      <MastheadContent></MastheadContent>
+      <MastheadContent>
+        <DemoSelect />
+        <ModelSelect />
+      </MastheadContent>
     </Masthead>
   )
 }

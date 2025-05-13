@@ -12,7 +12,8 @@ import {
 const demos = [
   {
     label: "Email Judge/Generator",
-    description: "This demo is the simplest query, but does not generate great output",
+    description:
+      "This demo is the simplest query, but does not generate great output",
     value: `(g "ollama/granite3.2:2b"
    (cross
     (system "You compute an evaluation score from 0 to 100 that ranks given candidate introductory emails. Better emails are ones that mention specifics, such as names of people and companies. You present a list of the top 3 ordered by their rank showing the score and full content of each.")
@@ -31,7 +32,8 @@ const demos = [
 
   {
     label: "Improved Email Judge/Generator",
-    description: "This demo generates better output, at the expense of a more complicated query",
+    description:
+      "This demo generates better output, at the expense of a more complicated query",
     value: `(g "ollama/granite3.2:2b"
    (cross
     (system "You compute an evaluation score from 0 to 100 that ranks given candidate introductory emails. Better emails are ones that mention specifics, such as names of people and companies. You present a list of the top 3 ordered by their rank showing the score and full content of each.")
@@ -80,14 +82,10 @@ export default function DemoSelect() {
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
+      size="sm"
       ref={toggleRef}
       onClick={onToggleClick}
       isExpanded={isOpen}
-      style={
-        {
-          width: "300px",
-        } as React.CSSProperties
-      }
     >
       {
         (demos.find((d) => d.value === selected) || { value: "internal error" })
@@ -98,7 +96,6 @@ export default function DemoSelect() {
 
   return (
     <Select
-      id="single-select"
       isOpen={isOpen}
       selected={selected}
       onSelect={onSelect}

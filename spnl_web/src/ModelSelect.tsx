@@ -1,4 +1,96 @@
+import { useState } from "react"
+import { prebuiltAppConfig } from "@mlc-ai/web-llm"
 import useLocalStorageState from "use-local-storage-state"
+
+import {
+  Select,
+  SelectOption,
+  SelectList,
+  MenuToggle,
+  type MenuToggleElement,
+} from "@patternfly/react-core"
+
+const modelFilter =
+  /(1k|f32|hermes-2|llama-2|llama-3-|llama-3.1-|phi-1|phi-2|phi-3-|70b|qwen2|v0.4|q0f16|vision|gemma)/i
+const models = prebuiltAppConfig.model_list
+  .filter((m) => !modelFilter.test(m.model_id))
+  .map((m) => ({
+    label: m.model_id
+      .replace(/(_1)?-MLC/, "")
+      .replace(/Distill-/, "")
+      .replace(/-q4f16/, ""),
+    value: m.model_id,
+    children: m.model_id,
+    isDisabled: false,
+    isAriaDisabled: false,
+    description: `Context: ${m.overrides?.context_window_size ?? "unknown"}. VRAM: ${m.vram_required_MB}MB`,
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label))
+
+export default function ModelSelect() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [selected, setSelected] = useLocalStorageState("spnl.model.select", {
+    defaultValue: models[0].value,
+  })
+
+  const onToggleClick = () => {
+    setIsOpen(!isOpen)
+  }
+
+  const onSelect = (
+    _event: React.MouseEvent<Element, MouseEvent> | undefined,
+    value: string | number | undefined,
+  ) => {
+    // eslint-disable-next-line no-console
+    console.log("selected", value)
+
+    setSelected(value as string)
+    setIsOpen(false)
+  }
+
+  const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle
+      size="sm"
+      ref={toggleRef}
+      onClick={onToggleClick}
+      isExpanded={isOpen}
+    >
+      {
+        (
+          models.find((d) => d.value === selected) || {
+            value: "internal error",
+          }
+        ).label
+      }
+    </MenuToggle>
+  )
+
+  return (
+    <Select
+      isScrollable
+      isOpen={isOpen}
+      selected={selected}
+      onSelect={onSelect}
+      onOpenChange={(isOpen) => setIsOpen(isOpen)}
+      toggle={toggle}
+      shouldFocusToggleOnSelect
+    >
+      <SelectList>
+        {models.map((model) => (
+          <SelectOption
+            key={model.value}
+            value={model.value}
+            description={model.description}
+          >
+            {model.label}
+          </SelectOption>
+        ))}
+      </SelectList>
+    </Select>
+  )
+}
+
+/*import useLocalStorageState from "use-local-storage-state"
 import {
   useCallback,
   useEffect,
@@ -25,21 +117,23 @@ import { prebuiltAppConfig } from "@mlc-ai/web-llm"
 
 import TimesIcon from "@patternfly/react-icons/dist/esm/icons/times-icon"
 
-const width = { width: "25em" }
 const NO_RESULTS = "no results"
 
 const createItemId = (value: string) =>
   `select-typeahead-${value.replace(" ", "-")}`
 
+const modelFilter = /(1k|f32|hermes-2|llama-2|llama-3-|llama-3.1-|phi-1|phi-2|phi-3-|70b|qwen2|v0.4|q0f16|vision|gemma)/i
 const initialSelectOptions = prebuiltAppConfig.model_list
-  .map((m) => ({
+      .filter((m) => !modelFilter.test(m.model_id))
+      .map((m) => ({
+        label: m.model_id.replace(/(_1)?-MLC/,"").replace(/Distill-/,"").replace(/-q4f16/,""),
     value: m.model_id,
     children: m.model_id,
     isDisabled: false,
     isAriaDisabled: false,
-    description: `Context window: ${m.overrides?.context_window_size ?? "unknown"}. VRAM required: ${m.vram_required_MB}MB`,
+    description: `Context: ${m.overrides?.context_window_size ?? "unknown"}. VRAM: ${m.vram_required_MB}MB`,
   }))
-  .sort((a, b) => a.value.localeCompare(b.value))
+  .sort((a, b) => a.label.localeCompare(b.label))
 
 export default function ModelDownloader() {
   const [isOpen, setIsOpen] = useState(false)
@@ -267,11 +361,11 @@ export default function ModelDownloader() {
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
+      size="sm"
       ref={toggleRef}
       onClick={onToggleClick}
       isExpanded={isOpen}
       variant="typeahead"
-      style={width}
     >
       <TextInputGroup isPlain>
         <TextInputGroupMain
@@ -279,7 +373,6 @@ export default function ModelDownloader() {
           onClick={onInputClick}
           onChange={onTextInputChange}
           onKeyDown={onInputKeyDown}
-          id="typeahead-select-input"
           autoComplete="off"
           innerRef={textInputRef}
           placeholder="Select a model"
@@ -322,10 +415,11 @@ export default function ModelDownloader() {
             isFocused={focusedItemIndex === idx}
             id={createItemId(option.value)}
           >
-            {option.value}
+            {option.label}
           </SelectOption>
         ))}
       </SelectList>
     </Select>
   )
 }
+*/
