@@ -4,6 +4,7 @@ import {
   CreateWebWorkerMLCEngine,
   type InitProgressReport,
   type ChatCompletionMessageParam,
+  type ChatCompletionRequestStreaming,
 } from "@mlc-ai/web-llm"
 
 import { type Unit } from "./Unit"
@@ -34,8 +35,8 @@ function updateEngineInitProgressCallback(
   setProgressDownload: (n: number) => void,
 ) {
   return (report: InitProgressReport) => {
-    // console.log("initialize", report)
-    const match = report.text.match(/Loading model from cache\[(\d+)\/(\d+)\]/)
+    console.log("initialize", report)
+    const match = report.text.match(/cache\[(\d+)\/(\d+)\]/)
     if (match) {
       setProgressInit({
         min: 0,
@@ -52,12 +53,19 @@ async function streamingGenerating(
   messages: Message[],
   onUpdate: (msg: string) => void,
   updateGenerationProgress: null | ((n: number) => void),
+  maxTokens: number,
+  temperature: number,
 ): Promise<string> {
   try {
-    const completion = await engine.chat.completions.create({
+    const req: ChatCompletionRequestStreaming = {
       stream: true,
       messages,
-    })
+      temperature,
+    }
+    if (maxTokens > 0) {
+      req.max_tokens = maxTokens
+    }
+    const completion = await engine.chat.completions.create(req)
     for await (const chunk of completion) {
       const curDelta = chunk.choices[0].delta.content
       if (curDelta) {
@@ -79,7 +87,6 @@ async function streamingGenerating(
  */
 async function initializeEngine(
   selectedModel: string,
-  temperature: number,
   setProgressInit: (p: InitProgress) => void,
   setProgressDownload: (n: number) => void,
 ) {
@@ -94,7 +101,6 @@ async function initializeEngine(
         setProgressDownload,
       ),
     },
-    { temperature },
   )
   return engine
 }
@@ -102,7 +108,7 @@ async function initializeEngine(
 export default async function generate(
   input: Unit,
   defaultModel: string,
-  _maxTokens: number,
+  maxTokens: number,
   temperature: number,
   emit: (msg: string) => void,
   setProgressInit: (p: InitProgress) => void,
@@ -114,17 +120,26 @@ export default async function generate(
   console.log("gen messages", messages)
 
   const selectedModel = defaultModel // TODO
-  const key = `${selectedModel}.${temperature}.${idx}`
+
+  // We may need multiple engines, so that we can run concurrent
+  // generations across Plus... idx is the index in the Plus
+  const key = `${selectedModel}.${idx}`
   if (!(key in engines)) {
     console.log("Initializing engine", key)
     engines[key] = initializeEngine(
       selectedModel,
-      temperature,
       setProgressInit,
       setProgressDownload,
     )
   }
 
   const engine = await engines[key]
-  return streamingGenerating(engine, messages, emit, updateGenerationProgress)
+  return streamingGenerating(
+    engine,
+    messages,
+    emit,
+    updateGenerationProgress,
+    maxTokens,
+    temperature,
+  )
 }
