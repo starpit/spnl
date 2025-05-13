@@ -9,7 +9,13 @@ use crate::{
 async fn cross(units: &Vec<Unit>, mm: Option<&MultiProgress>) -> SpnlResult {
     let mym = MultiProgress::new();
     let m = if let Some(m) = mm { m } else { &mym };
-    let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(m)))).await?;
+
+    let mut iter = units.iter();
+    let mut evaluated = vec![];
+    while let Some(u) = iter.next() {
+        evaluated.push(run(u, Some(m)).await?);
+    }
+
     Ok(Unit::Plus(evaluated))
 }
 
