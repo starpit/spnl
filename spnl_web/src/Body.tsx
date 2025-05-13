@@ -58,6 +58,7 @@ export default function Body(props: BodyProps) {
       masthead={<Masthead />}
       isNotificationDrawerExpanded={!!unit && props.qv}
       notificationDrawer={<Drawer unit={unit} />}
+      drawerMinSize="600px"
     >
       <PageSection>
         <HelperText component="ul" style={{ marginBottom: "1em" }}>
