@@ -15,7 +15,7 @@ type Props = {
 }
 
 export default function Console({ runState, query, onComplete }: Props) {
-  const [defaultModel] = useLocalStorageState<string>("spnl.model.default", {
+  const [defaultModel] = useLocalStorageState<string>("spnl.model.select", {
     defaultValue: "",
   })
   const [progressInit, setProgressInit] = useState<null | InitProgress>(null)
