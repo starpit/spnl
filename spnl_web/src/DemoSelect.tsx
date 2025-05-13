@@ -11,6 +11,7 @@ import {
 
 import email from "../../spnl_cli/src/demos/email.lisp?raw"
 import email2 from "../../spnl_cli/src/demos/email2.lisp?raw"
+import email3 from "../../spnl_cli/src/demos/email3.lisp?raw"
 
 const demos = [
   {
@@ -19,9 +20,9 @@ const demos = [
       "This demo is the simplest query, but does not generate great output",
     value: email
       .replace(/\{n\}/g, "4")
-      .replace(/{model}/g, "model")
-      .replace(/{temperature}/g, "0.2")
-      .replace(/{max_tokens}/g, "100"),
+      .replace(/\{model\}/g, "model")
+      .replace(/\{temperature\}/g, "0.2")
+      .replace(/\{max_tokens\}/g, "100"),
   },
 
   {
@@ -30,9 +31,19 @@ const demos = [
       "This demo generates better output, at the expense of a more complicated query",
     value: email2
       .replace(/\{n\}/g, "4")
-      .replace(/{model}/g, "model")
-      .replace(/{temperature}/g, "0.2")
-      .replace(/{max_tokens}/g, "100"),
+      .replace(/\{model\}/g, "model")
+      .replace(/\{temperature\}/g, "0.2")
+      .replace(/\{max_tokens\}/g, "100"),
+  },
+
+  {
+    label: "Policy-driven Email Generation",
+    description: "This demonstrates using policies to guide email generation",
+    value: email3
+      .replace(/\{n\}/g, "4")
+      .replace(/\{model\}/g, "model")
+      .replace(/\{temperature\}/g, "0.2")
+      .replace(/\{max_tokens\}/g, "100"),
   },
 ]
 
