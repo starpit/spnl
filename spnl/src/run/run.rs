@@ -1,10 +1,7 @@
 use async_recursion::async_recursion;
 use indicatif::MultiProgress;
 
-use crate::{
-    Unit,
-    run::result::SpnlResult,
-};
+use crate::{Unit, run::result::SpnlResult};
 
 async fn cross(units: &Vec<Unit>, mm: Option<&MultiProgress>) -> SpnlResult {
     let mym = MultiProgress::new();
@@ -70,6 +67,8 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
             rl.append_history("history.txt").unwrap();
             Ok(Unit::User((prompt,)))
         }
+
+        // should not happen
         Unit::Repeat(_) => todo!(),
 
         Unit::Loop(l) => loop {

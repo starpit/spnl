@@ -60,9 +60,14 @@ macro_rules! spnl {
     (% $x:tt $y:tt) => ($crate::spnl_arg!($x) % $crate::spnl_arg!($y));*/
 
     (file $f:tt) => (include_str!($crate::spnl_arg!($f)));
+    (filed $f:tt) => {{
+        let filename = ::std::path::Path::new(file!()).parent().expect("macro to have parent directory").join($crate::spnl_arg!($f));
+        ::std::fs::read_to_string(filename).expect("file to be read")
+    }};
+
     (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
+    (plus $e:tt) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
     (plus $( $e:tt )+) => ( $crate::Unit::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
-    (plusl $e:tt) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
     (plusn $n:tt $e:tt) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         for i in 0..$crate::spnl_arg!($n) {
@@ -70,7 +75,18 @@ macro_rules! spnl {
         }
         $crate::Unit::Plus(args)
     }};
-    (repeat $n:tt $e:tt) => ($crate::Unit::Repeat(($crate::spnl_arg!($n), $crate::spnl_arg!($e))));
+    (repeat $n:tt $e:tt) => (spnl!(repeat i $n $e));
+    (repeat $i:ident $n:tt $e:tt) => (spnl!(repeat $i 0 $n $e));
+    (repeat $i:ident $start:tt $n:tt $e:tt) => {{
+        let mut args: Vec<$crate::Unit> = vec![];
+        let start = $crate::spnl_arg!($start);
+        let end = $crate::spnl_arg!($n) + start;
+        for $i in start..end {
+            args.push($crate::spnl_arg!($e).clone());
+        }
+        args
+    }};
+    //(repeat $n:tt $e:tt) => ($crate::Unit::Repeat(($crate::spnl_arg!($n.try_into().expect("repeat n must be 32-bit int")), Box::new($crate::spnl_arg!($e)))));
 
     (g $model:tt $input:tt) => ($crate::spnl!(g $model $input 0.0 0));
     (g $model:tt $input:tt $temp:tt) => ($crate::spnl!(g $model $input $temp 0));
@@ -82,7 +98,7 @@ macro_rules! spnl {
         ))
     );
 
-    (user $e:tt) => ($crate::Unit::User(($e.clone().into(),)));
+    (user $e:tt) => ($crate::Unit::User(($crate::spnl_arg!($e).clone().into(),)));
     (system $e:tt) => ($crate::Unit::System(($crate::spnl_arg!($e).into(),)));
 
     // execute rust
@@ -178,8 +194,14 @@ impl ptree::TreeItem for Unit {
 impl ::std::fmt::Display for Unit {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {
-            Unit::Cross(v) => write!(f, "Cross {:?}", v),
-            Unit::Plus(v) => write!(f, "Plus {:?}", v),
+            Unit::Cross(v) | Unit::Plus(v) => write!(
+                f,
+                "{}",
+                v.iter()
+                    .map(|u| format!("{}", u))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ),
             Unit::System((s,)) | Unit::User((s,)) => write!(f, "{}", s),
             _ => Ok(()),
         }
