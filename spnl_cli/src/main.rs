@@ -3,7 +3,7 @@ use clap::Parser;
 use crate::args::Args;
 use crate::demos::*;
 use spnl::{
-    from_str,
+    from_str, pretty_print,
     run::{plan::plan, result::SpnlError, run},
 };
 
@@ -14,6 +14,7 @@ mod demos;
 async fn main() -> Result<(), SpnlError> {
     let args = Args::parse();
     let verbose = args.verbose;
+    let show_only = args.show_query;
 
     let program = plan(&match args.demo {
         Some(Demo::Chat) => chat::demo(args),
@@ -35,7 +36,10 @@ async fn main() -> Result<(), SpnlError> {
         }
     });
 
-    if verbose {
+    if show_only {
+        let _ = pretty_print(&program)?;
+        return Ok(());
+    } else if verbose {
         ptree::print_tree(&program)?;
     }
 

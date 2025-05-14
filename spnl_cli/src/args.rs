@@ -28,6 +28,10 @@ pub struct Args {
     #[arg(short, long, default_value_t = 5)]
     pub n: u32,
 
+    /// Re-emit the compiled query
+    #[arg(short, long, default_value_t = false)]
+    pub show_query: bool,
+
     /// Verbose output
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,

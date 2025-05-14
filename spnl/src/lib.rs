@@ -224,6 +224,12 @@ impl From<&String> for Unit {
     }
 }
 
+/// Pretty print a query
+pub fn pretty_print(u: &Unit) -> serde_lexpr::Result<()> {
+    println!("{}", serde_lexpr::to_string(u)?);
+    Ok(())
+}
+
 /// Deserialize a SPNL query from a string
 pub fn from_str(s: &str) -> serde_lexpr::error::Result<Unit> {
     serde_lexpr::from_str(s)
