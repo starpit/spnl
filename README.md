@@ -1,15 +1,16 @@
 # SPNL: A Declarative Query Language for LLMs
 
-The goal of SPNL is to provide a declarative query foundation for
-writing scalable interactions with large language models (LLMs).  A
-**SPNL query** is a declarative program that allows *messages* to be
-arranged into a map/reduce-style tree of generation calls. 
+:rocket: [SPNL Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false)
 
-> [!TIP]
-> Try out the [SPNL Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false)
+SPNL provides a declarative query foundation for writing scalable
+interactions with large language models (LLMs).  A **SPNL query**
+allows messages to be arranged into a map/reduce-style tree of
+generation calls. When LLM calls are arranged in this way, they can be
+*planned* so as to a) improve the quality of generated output; b)
+increase cache locality on the model server.
 
 A SPNL query can be considered as an abstract syntax tree (AST) where
-each leaf node is a *message* and each interior nodes is one of three
+each leaf node is a "message" and each interior nodes is one of three
 core operators `g`, `cross`, and `plus`:
 
 - Each `g` sends messages to a model for generation.
