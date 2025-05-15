@@ -22,7 +22,39 @@ of this as a data-parallel reduce, where models must have the given
 tokens attend to eachother. As with a data-parallel reduce, `cross`
 has two sub-variants depending on whether or not the reduce is
 *commutative*.
+- Leaf nodes are either system or user messages. Below we may shorten
+  these to `s` and `u`.
 
+```mermaid
+---
+config:
+      theme: redux
+      flowchart:
+            padding: 0
+            curve: step
+---
+flowchart TD
+        g1@{label: g} --> x1@{label: cross}
+        x1 --> s1@{label: s}
+        x1 --> p1@{label: plus}
+        x1 --> u1@{label: u}
+        p1 --> g2@{label: g}
+        g2 --> u2@{label: u}
+        g2 --> u3@{label: u}
+        g2 --> u4@{label: u}
+        g2 --> u5@{label: u}
+
+        classDef g fill:#e4f6ff
+        classDef x fill:#ff8389
+        classDef p fill:#ffd8d9
+        classDef s fill:#d4a104
+        classDef u fill:#fddc68
+        class g1,g2 g
+        class x1 x
+        class p1 p
+        class s1 s
+        class u1,u2,u3,u4,u5 u
+```
 
 ## Quick Overview of this Repository
 
