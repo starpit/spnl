@@ -40,17 +40,20 @@ flowchart TD
         x1 --> p1@{label: plus}
         x1 --> u1@{label: u}
         p1 --> g2@{label: g}
+        p1 --> g3@{label: g}
+        p1 --> g4@{label: g}
+        p1 --> g5@{label: g}
         g2 --> u2@{label: u}
-        g2 --> u3@{label: u}
-        g2 --> u4@{label: u}
-        g2 --> u5@{label: u}
+        g3 --> u3@{label: u}
+        g4 --> u4@{label: u}
+        g5 --> u5@{label: u}
 
         classDef g fill:#e4f6ff
         classDef x fill:#ff8389
         classDef p fill:#ffd8d9
         classDef s fill:#d4a104
         classDef u fill:#fddc68
-        class g1,g2 g
+        class g1,g2,g3,g4,g5 g
         class x1 x
         class p1 p
         class s1 s
