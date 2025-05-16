@@ -1,15 +1,15 @@
-# SPNL: A Declarative Query Language for LLMs
+# Span Queries: A Declarative Approach to Interacting with LLMs
 
 :rocket: [SPNL Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false)
 
-SPNL provides a declarative query foundation for writing scalable
-interactions with large language models (LLMs).  A **SPNL query**
-allows messages to be arranged into a map/reduce-style tree of
-generation calls. When LLM calls are arranged in this way, they can be
-*planned* so as to a) improve the quality of generated output; b)
-increase cache locality on the model server.
+Span Queries is an attempt to provide a declarative query foundation
+for writing scalable interactions with large language models (LLMs).
+A span query allows messages to be arranged into a map/reduce-style
+tree of generation calls. When LLM calls are arranged in this way,
+they can be *planned* so as to a) improve the quality of generated
+output; b) increase cache locality on the model server.
 
-A SPNL query can be considered as an abstract syntax tree (AST) where
+A span query can be considered as an abstract syntax tree (AST) where
 each leaf node is a "message" and each interior node is one of three
 core operators `g`, `cross`, and `plus`.
 
@@ -59,14 +59,14 @@ flowchart TD
 ## Quick Overview of this Repository
 
 This repository consists of Rust workspaces that implement
-- **spnl**: The core Span Language support, including a `spnl!` Rust macro that produces a runnable query, and `run::run` which can then be used to execute the query.
+- **spnl**: The core Span Query support, including a `spnl!` Rust macro that produces a runnable query, and `run::run` which can then be used to execute the query.
 - **spnl_cli**: A demonstration CLI that includes a handful of demo queries.
 - **spnl_wasm**: Wraps `spnl` into a WASM build.
 - **spnl_web**: A simple web UI that runs queries directly in a browser via [WebLLM](https://github.com/mlc-ai/web-llm).
 
-## Prototype DSL for SPNL
+## Prototype DSL for Span Queries
 
-To explore this space, we use a simple LISP-like DSL:
+To explore this space, we use a simple LISP-like DSL to allow directly injecting the internal representation into the SPNL logic:
 
 - `(g model input)`: Used to ask a model to generate new output.
 - `(plus d1 d2 ...)`: Used to signify that the given items `d1`, `d2`,
