@@ -10,8 +10,8 @@ generation calls. When LLM calls are arranged in this way, they can be
 increase cache locality on the model server.
 
 A SPNL query can be considered as an abstract syntax tree (AST) where
-each leaf node is a "message" and each interior nodes is one of three
-core operators `g`, `cross`, and `plus`:
+each leaf node is a "message" and each interior node is one of three
+core operators `g`, `cross`, and `plus`.
 
 - Each `g` sends messages to a model for generation.
 - Each `plus` indicates that the given arguments are independent; think of this as a
