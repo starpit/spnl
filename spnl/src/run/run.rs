@@ -13,13 +13,18 @@ async fn cross(units: &Vec<Unit>, mm: Option<&MultiProgress>) -> SpnlResult {
         evaluated.push(run(u, Some(m)).await?);
     }
 
-    Ok(Unit::Plus(evaluated))
+    Ok(Unit::Cross(evaluated))
 }
 
 async fn plus(units: &Vec<Unit>) -> SpnlResult {
     let m = MultiProgress::new();
     let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(&m)))).await?;
-    Ok(Unit::Plus(evaluated))
+
+    if evaluated.len() == 1 {
+        Ok(evaluated[0].clone())
+    } else {
+        Ok(Unit::Plus(evaluated))
+    }
 }
 
 #[async_recursion]
