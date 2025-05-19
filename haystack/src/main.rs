@@ -26,11 +26,11 @@ pub struct Args {
     pub temperature: f32,
 
     /// Approximate length of each inner document
-    #[arg(short = 'l', long, default_value_t = 100)]
+    #[arg(short, long, default_value_t = 100)]
     pub length: usize,
 
     /// Approximate length of each inner document
-    #[arg(short = 'n', long, default_value_t = 4)]
+    #[arg(short, long, default_value_t = 4)]
     pub num_documents: usize,
 
     /// Introduce chained dependences
@@ -42,15 +42,19 @@ pub struct Args {
     pub chunk: usize,
 
     /// Only emit score
-    #[arg(short = 'q', long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false)]
     pub quiet: bool,
+
+    /// Only emit the plan
+    #[arg(short, long, default_value_t = false)]
+    pub dry_run: bool,
 }
 
 fn ratio(n: usize, d: usize) -> f64 {
     (n as f64) / (d as f64)
 }
 
-fn score(expected: Vec<String>, actual: Vec<String>) -> (f64, f64) {
+fn score(expected: &Vec<String>, actual: &Vec<String>) -> (f64, f64) {
     let true_positives = actual.iter().filter(|s| expected.contains(s)).count();
     let false_positives = actual.iter().filter(|s| !expected.contains(s)).count();
     let false_negatives = expected.iter().filter(|s| !actual.contains(s)).count();
@@ -59,7 +63,7 @@ fn score(expected: Vec<String>, actual: Vec<String>) -> (f64, f64) {
     (if precision.is_nan() { 0.0 } else { precision }, recall)
 }
 
-fn score_chain(expected: Vec<String>, actual: Vec<String>) -> (f64, f64) {
+fn score_chain(expected: &Vec<String>, actual: &Vec<String>) -> (f64, f64) {
     let do_not_want = &expected[0];
     let n = expected.len() - 1;
     (
@@ -84,6 +88,7 @@ async fn main() -> Result<(), SpnlError> {
         length,
         num_documents,
         quiet,
+        dry_run,
     } = Args::parse();
 
     let name_generator = petname::Petnames::default();
@@ -95,7 +100,7 @@ async fn main() -> Result<(), SpnlError> {
     // let max_tokens: i32 = names.iter().map(|n| n.len() as i32).sum::<i32>();
 
     let reduce =
-        "Tell me the names of the cats mentioned, as plain JSON array of the names, no markdown";
+        "Tell me the names of the cats mentioned, as plain JSON array of the names, no markdown or html or any other text";
 
     let mut rng = rand::thread_rng();
     let docs: Vec<Unit> = if chain {
@@ -130,7 +135,7 @@ async fn main() -> Result<(), SpnlError> {
             .collect()
     };
 
-    let mut expected_names = if chain {
+    let expected_names = if chain {
         let mut v = ::std::iter::repeat("".to_string())
             .take(num_documents)
             .collect::<Vec<_>>();
@@ -144,14 +149,14 @@ async fn main() -> Result<(), SpnlError> {
         let chunks: Vec<Unit> = docs
             .chunks(chunk)
             .map(|chunk| chunk.to_vec())
-            .map(|chunk| spnl!(g model (cross (plusl chunk) (user reduce)) temperature))
+            .map(|chunk| spnl!(g model (cross (plus chunk) (user reduce)) temperature))
             .collect();
 
         spnl!(
             g model
                 (cross
-                 (plusl chunks)
-                 (user "Combine these arrays into one array, responding as a plain JSON array, no markdown or extra text")
+                 (plus chunks)
+                 (user "Combine these arrays into one array, responding as a plain JSON array, no markdown or html or any other extra text")
                 )
                 temperature
         )
@@ -159,7 +164,7 @@ async fn main() -> Result<(), SpnlError> {
         spnl!(
             g model
                 (cross
-                 (plusl docs)
+                 (plus docs)
                  (user reduce)
                 )
                 temperature
@@ -171,15 +176,22 @@ async fn main() -> Result<(), SpnlError> {
         ptree::write_tree(&program, &mut stderr)?;
     }
 
+    if dry_run {
+        return Ok(())
+    }
+
     match run(&program, Some(&indicatif::MultiProgress::new())).await? {
         Unit::User((ss,)) => {
+            // oof, be gracious here. sometimes the model wraps the
+            // requested json array with markdown even though we asked
+            // it not to
             let s = if let Some(idx) = ss.find("```json") {
                 ss[idx + 7..ss.len() - 3].trim()
             } else {
                 ss.trim()
             };
 
-            let mut generated_names: GeneratedNames = serde_json::from_str::<GeneratedNames>(&s)
+            let generated_names: GeneratedNames = serde_json::from_str::<GeneratedNames>(&s)
                 .unwrap_or_else(|_| {
                     let n2: GeneratedNames2 = serde_json::from_str(&s).unwrap_or_else(|_| vec![]);
                     n2.into_iter().map(|n| n.name).collect()
@@ -188,7 +200,7 @@ async fn main() -> Result<(), SpnlError> {
                 .map(|s| s.to_lowercase())
                 .collect();
 
-            if generated_names.len() < expected_names.len() {
+            /*if generated_names.len() < expected_names.len() {
                 for _ in 0..expected_names.len() - generated_names.len() {
                     generated_names.push("".to_string());
                 }
@@ -196,20 +208,24 @@ async fn main() -> Result<(), SpnlError> {
                 for _ in 0..generated_names.len() - expected_names.len() {
                     expected_names.push("".to_string());
                 }
+            }*/
+
+            let (precision, recall) = if chain {
+                score_chain(&expected_names, &generated_names)
+            } else {
+                score(&expected_names, &generated_names)
+            };
+
+            if !quiet || precision < 1.0 || recall < 1.0 {
+                eprintln!("I messed up!");
+                eprintln!("\tPrecision: {precision}");
+                eprintln!("\tRecall: {recall}");
+                eprintln!("\tExpected names: {:?}", expected_names);
+                eprintln!("\tActual names raw: {:?}", s);
+                eprintln!("\tActual names: {:?}", generated_names);
             }
 
-            eprintln!("Expected names: {:?}", expected_names);
-            // eprintln!("Actual names raw: {:?}", s);
-            eprintln!("Actual names: {:?}", generated_names);
-
-            let (precision, _) = if chain {
-                score_chain(expected_names, generated_names)
-            } else {
-                score(expected_names, generated_names)
-            };
-            eprintln!("Precision: {}", precision);
-
-            // println!("{model} {temperature} {num_documents} {length} {precision} {recall}");
+            println!("{model} {temperature} {num_documents} {length} {precision} {recall}");
             Ok(())
         }
         x => Err(Box::from(format!("Unexpected non-string response {:?}", x))),
