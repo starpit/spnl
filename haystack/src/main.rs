@@ -1,5 +1,4 @@
 use clap::Parser;
-use lipsum::lipsum_words_with_rng;
 use petname::Generator; // Trait needs to be in scope for `iter`.
 use spnl::{
     Unit,
@@ -59,7 +58,7 @@ fn score(expected: &Vec<String>, actual: &Vec<String>) -> (f64, f64) {
     let false_positives = actual.iter().filter(|s| !expected.contains(s)).count();
     let false_negatives = expected.iter().filter(|s| !actual.contains(s)).count();
     let precision = ratio(true_positives, true_positives + false_positives);
-    let recall = ratio(true_positives, true_positives + false_negatives);
+    let recall = ratio(true_positives, true_positives + false_negatives); // a.k.a. true positive rate
     (if precision.is_nan() { 0.0 } else { precision }, recall)
 }
 
@@ -99,9 +98,6 @@ async fn main() -> Result<(), SpnlError> {
 
     // let max_tokens: i32 = names.iter().map(|n| n.len() as i32).sum::<i32>();
 
-    let reduce =
-        "Tell me the names of the cats mentioned, as plain JSON array of the names, no markdown or html or any other text";
-
     let mut rng = rand::thread_rng();
     let docs: Vec<Unit> = if chain {
         names
@@ -111,12 +107,12 @@ async fn main() -> Result<(), SpnlError> {
                 if idx == 0 {
                     format!(
                         "I am a cat, and my name is {name}. {}",
-                        lipsum_words_with_rng(&mut rng, length)
+                        lipsum::lipsum_words_with_rng(&mut rng, length)
                     )
                 } else {
                     format!(
                         "I am also a cat, and I have the same name as the previous cat! {}",
-                        lipsum_words_with_rng(&mut rng, length)
+                        lipsum::lipsum_words_with_rng(&mut rng, length)
                     )
                 }
             })
@@ -128,7 +124,7 @@ async fn main() -> Result<(), SpnlError> {
             .map(|name| {
                 format!(
                     "I am a cat, and my name is {name}. {}",
-                    lipsum_words_with_rng(&mut rng, length)
+                    lipsum::lipsum_words_with_rng(&mut rng, length)
                 )
             })
             .map(|text| spnl!(user text))
@@ -145,27 +141,39 @@ async fn main() -> Result<(), SpnlError> {
         names
     };
 
+    let system_prompt = r#"Your are an AI that responds to questions with a plain JSON array of strings such as ["a","b","c"] or ["x","y","z","w"] or ["hello","world"], no markdown or html or any other extra text"#;
+    let user_prompt = "Tell me the names of the cats mentioned";
+
     let program: Unit = if chunk > 0 {
         let chunks: Vec<Unit> = docs
             .chunks(chunk)
             .map(|chunk| chunk.to_vec())
-            .map(|chunk| spnl!(g model (cross (plus chunk) (user reduce)) temperature))
+            .map(|chunk| spnl!(
+                g model
+                    (cross (system system_prompt) (plus chunk) (user user_prompt))
+                    temperature))
             .collect();
 
-        spnl!(
-            g model
-                (cross
-                 (plus chunks)
-                 (user "Combine these arrays into one array, responding as a plain JSON array, no markdown or html or any other extra text")
-                )
-                temperature
-        )
+        if chunks.len() == 1 {
+            chunks[0].clone()
+        } else {
+            spnl!(
+                g model
+                    (cross
+                     (system system_prompt)
+                     (plus chunks)
+                     (user "Combine these arrays into one array")
+                    )
+                    temperature
+            )
+        }
     } else {
         spnl!(
             g model
                 (cross
+                 (system system_prompt)
                  (plus docs)
-                 (user reduce)
+                 (user user_prompt)
                 )
                 temperature
         )
@@ -177,7 +185,7 @@ async fn main() -> Result<(), SpnlError> {
     }
 
     if dry_run {
-        return Ok(())
+        return Ok(());
     }
 
     match run(&program, Some(&indicatif::MultiProgress::new())).await? {
@@ -216,8 +224,11 @@ async fn main() -> Result<(), SpnlError> {
                 score(&expected_names, &generated_names)
             };
 
-            if !quiet || precision < 1.0 || recall < 1.0 {
+            let messed_up = precision < 1.0 || recall < 1.0;
+            if messed_up {
                 eprintln!("I messed up!");
+            }
+            if !quiet || messed_up {
                 eprintln!("\tPrecision: {precision}");
                 eprintln!("\tRecall: {recall}");
                 eprintln!("\tExpected names: {:?}", expected_names);
