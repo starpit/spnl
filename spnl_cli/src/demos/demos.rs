@@ -6,4 +6,5 @@ pub enum Demo {
     Email2,
     Email3,
     SWEAgent,
+    GSM8k,
 }

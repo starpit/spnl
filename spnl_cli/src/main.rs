@@ -22,6 +22,7 @@ async fn main() -> Result<(), SpnlError> {
         Some(Demo::Email2) => email2::demo(args),
         Some(Demo::Email3) => email3::demo(args),
         Some(Demo::SWEAgent) => sweagent::demo(args),
+        Some(Demo::GSM8k) => gsm8k::demo(args),
         None => {
             use std::io::prelude::*;
             let file = ::std::fs::File::open(args.file.clone().unwrap())?;
