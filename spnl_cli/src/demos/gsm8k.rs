@@ -15,24 +15,18 @@ pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
         ..
     } = args;
 
-    let problems = serde_json::Deserializer::from_str(include_str!("./gsm8k.jsonl"))
-        .into_iter::<Problem>()
-        .take(n as usize)
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .enumerate()
-        .map(|(idx, p)| (1 + (idx % chunk_size), p))
-        .map(|(idx, Problem { question, .. })| spnl!(user (format "Question {idx}: {question}")))
-        .collect::<Vec<_>>();
-
-    let chunks = problems
-        .chunks(chunk_size)
-        .map(|chunk| chunk.to_vec())
-        .map(|chunk| spnl!(
-            extract model chunk_size
-                (g model (cross (system "Your are an AI that reasons about math word problems") (plus chunk)))
-        ))
+    let chunks = spnl!(chunk n chunk_size "Question " "./gsm8k-questions.json")
+        .map(|chunk| {
+            spnl!(
+                extract model chunk_size
+                    (g model
+                     (cross
+                      (system "You are an AI that reasons about math word problems")
+                      (plus chunk)
+                     ))
+            )
+        })
         .collect();
 
-    Ok(spnl!(combine model chunks))
+    Ok(spnl!(combine model (plus chunks)))
 }

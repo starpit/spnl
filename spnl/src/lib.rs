@@ -65,6 +65,20 @@ macro_rules! spnl {
         ::std::fs::read_to_string(filename).expect("file to be read")
     }};
 
+    (chunk $n:tt $chunk_size:tt $prefix:tt $f:tt) => (
+        serde_json::from_str::<Vec<String>>(include_str!($crate::spnl_arg!($f)))?
+            .into_iter()
+            .take($crate::spnl_arg!($n).try_into().expect("usize"))
+            .collect::<Vec<_>>()
+            .into_iter()
+            .enumerate()
+            .map(|(idx, p)| (1 + (idx % $crate::spnl_arg!($chunk_size)), p))
+            .map(|(idx, p)| spnl!(user (format "{}{idx}: {:?}" $prefix p)))
+            .collect::<Vec<_>>()
+            .chunks($crate::spnl_arg!($chunk_size))
+            .map(|chunk| chunk.to_vec())
+    );
+
     (extract $model:tt $n:tt $body:tt) => (
         $crate::spnl!(
             g $model (cross
@@ -76,7 +90,7 @@ macro_rules! spnl {
         $crate::spnl!(
             g $model (cross
                       (system "Your are an AI that combines prior outputs from other AIs, preferring no markdown or other exposition.")
-                      (plus $body)
+                      $body
                       (user "Combine and flatten these into one JSON array, preserving order")))
     );
 
