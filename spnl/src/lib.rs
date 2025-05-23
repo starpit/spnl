@@ -60,7 +60,7 @@ macro_rules! spnl {
     (% $x:tt $y:tt) => ($crate::spnl_arg!($x) % $crate::spnl_arg!($y));*/
 
     (file $f:tt) => (include_str!($crate::spnl_arg!($f)));
-    (filed $f:tt) => {{
+    (fetch $f:tt) => {{
         let filename = ::std::path::Path::new(file!()).parent().expect("macro to have parent directory").join($crate::spnl_arg!($f));
         ::std::fs::read_to_string(filename).expect("file to be read")
     }};

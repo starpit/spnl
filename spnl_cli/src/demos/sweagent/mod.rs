@@ -25,7 +25,7 @@ pub fn demo(args: Args) -> Unit {
                         (user (file "fewshots/2.txt"))
                         (user (file "fewshots/3.txt"))
                         (user (file "fewshots/4.txt"))
-                        (user (filed (format "inputs/{i}.txt")))))
+                        (user (fetch (format "inputs/{i}.txt")))))
 
               temperature max_tokens)))
 
