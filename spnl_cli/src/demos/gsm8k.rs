@@ -15,7 +15,7 @@ pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
         ..
     } = args;
 
-    let chunks = spnl!(chunk n chunk_size "Question " "./gsm8k-questions.json")
+    let chunks = spnl!(chunk chunk_size "Question " (take n (file "./gsm8k-questions.json")))
         .map(|chunk| {
             spnl!(
                 extract model chunk_size

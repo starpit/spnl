@@ -65,11 +65,15 @@ macro_rules! spnl {
         ::std::fs::read_to_string(filename).expect("file to be read")
     }};
 
-    (chunk $n:tt $chunk_size:tt $prefix:tt $f:tt) => (
-        serde_json::from_str::<Vec<String>>(include_str!($crate::spnl_arg!($f)))?
+    (take $n:tt $s:tt) => (
+        serde_json::from_str::<Vec<String>>($crate::spnl_arg!($s))?
             .into_iter()
             .take($crate::spnl_arg!($n).try_into().expect("usize"))
             .collect::<Vec<_>>()
+    );
+
+    (chunk $chunk_size:tt $prefix:tt $arr:tt) => (
+        $crate::spnl_arg!($arr)
             .into_iter()
             .enumerate()
             .map(|(idx, p)| (1 + (idx % $crate::spnl_arg!($chunk_size)), p))
