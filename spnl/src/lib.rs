@@ -72,13 +72,17 @@ macro_rules! spnl {
             .collect::<Vec<_>>()
     );
 
-    (chunk $chunk_size:tt $prefix:tt $arr:tt) => (
+    (prefix $p:tt $arr:tt) => (
         $crate::spnl_arg!($arr)
             .into_iter()
             .enumerate()
-            .map(|(idx, p)| (1 + (idx % $crate::spnl_arg!($chunk_size)), p))
-            .map(|(idx, p)| spnl!(user (format "{}{idx}: {:?}" $prefix p)))
+            .map(|(idx, s)| ((1 + idx), s)) // (idx % $crate::spnl_arg!($chunk_size)), s))
+            .map(|(idx, s)| $crate::spnl!(user (format "{}{idx}: {:?}" $p s)))
             .collect::<Vec<_>>()
+    );
+
+    (chunk $chunk_size:tt $arr:tt) => (
+        $crate::spnl_arg!($arr)
             .chunks($crate::spnl_arg!($chunk_size))
             .map(|chunk| chunk.to_vec())
     );

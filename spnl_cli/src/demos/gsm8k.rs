@@ -15,18 +15,19 @@ pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
         ..
     } = args;
 
-    let chunks = spnl!(chunk chunk_size "Question " (take n (file "./gsm8k-questions.json")))
-        .map(|chunk| {
-            spnl!(
-                extract model chunk_size
-                    (g model
-                     (cross
-                      (system "You are an AI that reasons about math word problems")
-                      (plus chunk)
-                     ))
-            )
-        })
-        .collect();
+    let chunks =
+        spnl!(chunk chunk_size (prefix "Question " (take n (file "./gsm8k-questions.json"))))
+            .map(|chunk| {
+                spnl!(
+                    extract model chunk_size
+                        (g model
+                         (cross
+                          (system "You are an AI that reasons about math word problems")
+                          (plus chunk)
+                         ))
+                )
+            })
+            .collect();
 
     Ok(spnl!(combine model (plus chunks)))
 }
