@@ -24,9 +24,13 @@ pub struct Args {
     #[arg(short = 'l', long, default_value_t = 100)]
     pub max_tokens: i32,
 
-    /// Number of candidate emails to consider
+    /// Number of candidates to consider
     #[arg(short, long, default_value_t = 5)]
     pub n: u32,
+
+    /// Chunk size
+    #[arg(short = 'k', long, default_value_t = 1)]
+    pub chunk_size: usize,
 
     /// Re-emit the compiled query
     #[arg(short, long, default_value_t = false)]

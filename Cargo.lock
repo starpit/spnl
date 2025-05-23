@@ -1957,6 +1957,7 @@ dependencies = [
  "ptree",
  "rustyline",
  "serde",
+ "serde_json",
  "spnl",
  "tinytemplate",
  "tokio",

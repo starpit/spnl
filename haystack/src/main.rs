@@ -148,10 +148,12 @@ async fn main() -> Result<(), SpnlError> {
         let chunks: Vec<Unit> = docs
             .chunks(chunk)
             .map(|chunk| chunk.to_vec())
-            .map(|chunk| spnl!(
+            .map(|chunk| {
+                spnl!(
                 g model
                     (cross (system system_prompt) (plus chunk) (user user_prompt))
-                    temperature))
+                    temperature)
+            })
             .collect();
 
         if chunks.len() == 1 {
