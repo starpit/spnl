@@ -15,9 +15,6 @@ pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
         ..
     } = args;
 
-    let combine_system_prompt = r#"Your are an AI that combines prior outputs from other AIs."#;
-    let solve_system_prompt = r#"Your are an AI that reasons about math word problems."#;
-
     let problems = serde_json::Deserializer::from_str(include_str!("./gsm8k.jsonl"))
         .into_iter::<Problem>()
         .take(n as usize)
@@ -31,27 +28,11 @@ pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
     let chunks = problems
         .chunks(chunk_size)
         .map(|chunk| chunk.to_vec())
-        .map(|chunk| {
-            spnl!(
-            g model
-                (cross
-                 (system combine_system_prompt)
-                 (g model (cross (system solve_system_prompt) (plus chunk)))
-                 (user (format "Extract and simplify the {chunk_size} final answers"))))
-        })
+        .map(|chunk| spnl!(
+            extract model chunk_size
+                (g model (cross (system "Your are an AI that reasons about math word problems") (plus chunk)))
+        ))
         .collect();
 
-    Ok(spnl!(g model
-          (cross
-           (system combine_system_prompt)
-           (plus chunks)
-           (user "Combine and flatten these into one JSON array, preserving order")
-          )
-    ))
+    Ok(spnl!(combine model chunks))
 }
-
-//  by responding with a plain JSON array of strings or numbers such as ["a","b","c"] or [5,"y","9m"] or ["hello","world"], no markdown or html or any other extra text
-//(user (format "Extract the {chunk_size} final answers into a JSON array with just the answers")))))
-//(user (format r#"Extract the {n} final answers into a JSON array with JSON entries "{{"question": 3, "answer": "simplified numerical answer"}}""#)))))
-//(user (format "Extract each of the {n} final answers ainto a JSON array with just the answers, preserving order")))))
-//(user (format "Extract these into one JSON array")))))

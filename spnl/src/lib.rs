@@ -65,6 +65,21 @@ macro_rules! spnl {
         ::std::fs::read_to_string(filename).expect("file to be read")
     }};
 
+    (extract $model:tt $n:tt $body:tt) => (
+        $crate::spnl!(
+            g $model (cross
+                      (system "Your are an AI that combines prior outputs from other AIs, preferring no markdown or other exposition.")
+                      $body
+                      (user (format "Extract and simplify these {} final answers" $n))))
+    );
+    (combine $model:tt $body:tt) => (
+        $crate::spnl!(
+            g $model (cross
+                      (system "Your are an AI that combines prior outputs from other AIs, preferring no markdown or other exposition.")
+                      (plus $body)
+                      (user "Combine and flatten these into one JSON array, preserving order")))
+    );
+
     (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
     (plus $e:tt) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
     (plus $( $e:tt )+) => ( $crate::Unit::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
