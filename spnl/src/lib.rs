@@ -81,10 +81,16 @@ macro_rules! spnl {
             .collect::<Vec<_>>()
     );
 
-    (chunk $chunk_size:tt $arr:tt) => (
+    (lambda ( $( $name:ident )* )
+     $( ( $($e:tt)* ))*
+    ) => (| $($name: Vec<Unit>),* |{ $( $crate::spnl!( $($e)* ) );* });
+
+    (chunk $chunk_size:tt $arr:tt $f:tt) => (
         $crate::spnl_arg!($arr)
             .chunks($crate::spnl_arg!($chunk_size))
             .map(|chunk| chunk.to_vec())
+            .map($crate::spnl_arg!($f))
+            .collect::<Vec<_>>()
     );
 
     (extract $model:tt $n:tt $body:tt) => (
