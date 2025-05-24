@@ -19,7 +19,7 @@ pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
              (plus (chunk chunk_size
                     (prefix "Question " (take n (file "./gsm8k-questions.json")))
                     (lambda (parts)
-                     (extract model chunk_size
+                     (extract model (length parts)
                       (g model
                        (cross
                         (system "You are an AI that reasons about math word problems")

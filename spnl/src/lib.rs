@@ -50,7 +50,7 @@ macro_rules! spnl {
 
     /*(print $( $e:tt )+) => ( print!( $($e),+ ) );
     (println $( $e:tt )+) => ( println!( $($e),+ ) );*/
-    (format $( $e:tt )+) => ( &format!( $($e),+ ) );
+    (format $fmt:tt $( $e:tt )*) => ( &format!($fmt, $($crate::spnl_arg!($e)),* ) );
 
     // math
     /*(+ $x:tt $y:tt) => ($crate::spnl_arg!($x) + $crate::spnl_arg!($y));*/
@@ -85,6 +85,8 @@ macro_rules! spnl {
      $( ( $($e:tt)* ))*
     ) => (| $($name: Vec<Unit>),* |{ $( $crate::spnl!( $($e)* ) );* });
 
+    (length $list:tt) => ($crate::spnl_arg!($list).len());
+
     (chunk $chunk_size:tt $arr:tt $f:tt) => (
         $crate::spnl_arg!($arr)
             .chunks($crate::spnl_arg!($chunk_size))
@@ -93,13 +95,15 @@ macro_rules! spnl {
             .collect::<Vec<_>>()
     );
 
-    (extract $model:tt $n:tt $body:tt) => (
+    (extract $model:tt $n:tt $body:tt) => {{
+        let n = $crate::spnl_arg!($n);
         $crate::spnl!(
             g $model (cross
                       (system "Your are an AI that combines prior outputs from other AIs, preferring no markdown or other exposition.")
                       $body
-                      (user (format "Extract and simplify these {} final answers" $n))))
-    );
+                      (user (format "Extract and simplify these {} final answers" n))))
+    }};
+
     (combine $model:tt $body:tt) => (
         $crate::spnl!(
             g $model (cross
