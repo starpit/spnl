@@ -28,12 +28,14 @@ pub fn demo(args: Args) -> Unit {
     rl.append_history("history.txt").unwrap();
 
     let candidate_emails = spnl!(
-        plusn n
-         (g model (cross
-                   (system (file "email3-generate-system-prompt.txt"))
-                   (user prompt))
+        plus
+            (repeat n
+             (g model (cross
+                       (system (file "email3-generate-system-prompt.txt"))
+                       (user prompt))
 
-          temperature max_tokens)
+              temperature max_tokens)
+            )
     );
 
     spnl!(g model (cross

@@ -115,13 +115,7 @@ macro_rules! spnl {
     (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
     (plus $e:tt) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
     (plus $( $e:tt )+) => ( $crate::Unit::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
-    (plusn $n:tt $e:tt) => {{
-        let mut args: Vec<$crate::Unit> = vec![];
-        for i in 0..$crate::spnl_arg!($n) {
-            args.push($crate::spnl_arg!($e).clone());
-        }
-        $crate::Unit::Plus(args)
-    }};
+
     (repeat $n:tt $e:tt) => (spnl!(repeat i $n $e));
     (repeat $i:ident $n:tt $e:tt) => (spnl!(repeat $i 0 $n $e));
     (repeat $i:ident $start:tt $n:tt $e:tt) => {{
@@ -133,7 +127,6 @@ macro_rules! spnl {
         }
         args
     }};
-    //(repeat $n:tt $e:tt) => ($crate::Unit::Repeat(($crate::spnl_arg!($n.try_into().expect("repeat n must be 32-bit int")), Box::new($crate::spnl_arg!($e)))));
 
     (g $model:tt $input:tt) => ($crate::spnl!(g $model $input 0.0 0));
     (g $model:tt $input:tt $temp:tt) => ($crate::spnl!(g $model $input $temp 0));
