@@ -3,68 +3,47 @@ pub mod run;
 // Inspiration: https://github.com/JunSuzukiJapan/macro-lisp
 #[macro_export]
 macro_rules! spnl {
-    // bool
-    //(false) => ($crate::Unit::Bool(false));
-    //(true) => ($crate::Unit::Bool(true));
-    //(self $(. $e:tt)* ) => (self $(. $e)* );
+    // Core: Generate text given $input using $model
+    (g $model:tt $input:tt) => ($crate::spnl!(g $model $input 0.0 0));
 
-    // let
-    /* (let ( $( ($var:ident $e:tt) )* )
-        $( ( $($e2:tt)* ) )*
-    ) => ({
-        $(let mut $var = $crate::spnl_arg!($e);)*
-        $( $crate::spnl!( $($e2)* ) );*
-    }); */
+    // Core: Generate text given $input using $model with temperature $temp
+    (g $model:tt $input:tt $temp:tt) => ($crate::spnl!(g $model $input $temp 0));
 
-    // read as string from stdin
-    (ask $message:tt) => ( $crate::Unit::Ask(($crate::spnl_arg!($message).into(),)) );
+    // Core: Generate text given $input using $model with temperature $temp and $max_tokens
+    (g $model:tt $input:tt $temp:tt $max_tokens:tt) => (
+        $crate::Unit::Generate((
+            $crate::spnl_arg!($model).to_string(),
+            Box::new($crate::spnl_arg!($input).into()),
+            $crate::spnl_arg!($max_tokens), $crate::spnl_arg!($temp)
+        ))
+    );
 
-    // print a helpful message to the console
-    (print $message:tt) => ( $crate::Unit::Print(($crate::spnl_arg!($message).into(),)) );
+    // Core: Dependent/needs-attention
+    (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
 
-    // loop
-    // (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spnl!( $($e)* ) );* } );
-    (loop $( ( $($e:tt)* ) )* ) => ( $crate::Unit::Loop(vec![$( $crate::spnl!( $($e)* ) ),*]) );
+    // Core: Independent/no-attention with one or more inputs provided directly as a vector
+    (plus $e:tt) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
 
-    // dotimes
-    /*(dotimes ($var:ident $count:tt) $( ( $($e:tt)* ) )* ) => (
-        for $var in 0..$crate::spnl_arg!($count) {
-            $( $crate::spnl!( $($e)* ) );*
-        }
-    );*/
+    // Core: Independent/no-attention with multiple inputs provided inline
+    (plus $( $e:tt )+) => ( $crate::Unit::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
 
-    // if
-    /*(if ( $($cond:tt)* ) $e1:tt $e2:tt) => (if $crate::spnl!($($cond)*) { $crate::spnl!($e1) }else{ $crate::spnl!($e2) });
-    (if ( $($cond:tt)* ) $e:tt) => (if $crate::spnl!($($cond)*) { $crate::spnl!($e) });
-    (if $cond:tt $e1:tt $e2:tt) => (if $cond { $crate::spnl!($e1) }else{ $crate::spnl!($e2) });
-    (if $cond:tt $e:tt) => (if $cond { $crate::spnl!($e) });*/
+    // Core: A user message
+    (user $e:tt) => ($crate::Unit::User(($crate::spnl_arg!($e).clone().into(),)));
 
-    // compare
-    /*(eq $x:tt $y:tt) => ($crate::spnl_arg!($x) == $crate::spnl_arg!($y));
-    (== $x:tt $y:tt) => ($crate::spnl_arg!($x) == $crate::spnl_arg!($y));
-    (!= $x:tt $y:tt) => ($crate::spnl_arg!($x) != $crate::spnl_arg!($y));
-    (< $x:tt $y:tt) => ($crate::spnl_arg!($x) < $crate::spnl_arg!($y));
-    (> $x:tt $y:tt) => ($crate::spnl_arg!($x) > $crate::spnl_arg!($y));
-    (<= $x:tt $y:tt) => ($crate::spnl_arg!($x) <= $crate::spnl_arg!($y));
-    (>= $x:tt $y:tt) => ($crate::spnl_arg!($x) >= $crate::spnl_arg!($y));*/
+    // Core: A system message
+    (system $e:tt) => ($crate::Unit::System(($crate::spnl_arg!($e).into(),)));
 
-    /*(print $( $e:tt )+) => ( print!( $($e),+ ) );
-    (println $( $e:tt )+) => ( println!( $($e),+ ) );*/
-    (format $fmt:tt $( $e:tt )*) => ( &format!($fmt, $($crate::spnl_arg!($e)),* ) );
-
-    // math
-    /*(+ $x:tt $y:tt) => ($crate::spnl_arg!($x) + $crate::spnl_arg!($y));*/
-    (- $x:tt $y:tt) => ($crate::spnl_arg!($x) - $crate::spnl_arg!($y));
-    /*(* $x:tt $y:tt) => ($crate::spnl_arg!($x) * $crate::spnl_arg!($y));
-    (/ $x:tt $y:tt) => ($crate::spnl_arg!($x) / $crate::spnl_arg!($y));
-    (% $x:tt $y:tt) => ($crate::spnl_arg!($x) % $crate::spnl_arg!($y));*/
-
+    // Data: incorporate a file at compile time
     (file $f:tt) => (include_str!($crate::spnl_arg!($f)));
+
+    // Data: incorporate a file at run time
     (fetch $f:tt) => {{
         let filename = ::std::path::Path::new(file!()).parent().expect("macro to have parent directory").join($crate::spnl_arg!($f));
         ::std::fs::read_to_string(filename).expect("file to be read")
     }};
 
+    // Data: peel off the first $n elements of the given serialized
+    // json vector of strings (TODO: split this into multiple macros)
     (take $n:tt $s:tt) => (
         serde_json::from_str::<Vec<String>>($crate::spnl_arg!($s))?
             .into_iter()
@@ -72,6 +51,7 @@ macro_rules! spnl {
             .collect::<Vec<_>>()
     );
 
+    // Data: prefix every string in $arr with $p
     (prefix $p:tt $arr:tt) => (
         $crate::spnl_arg!($arr)
             .into_iter()
@@ -81,12 +61,9 @@ macro_rules! spnl {
             .collect::<Vec<_>>()
     );
 
-    (lambda ( $( $name:ident )* )
-     $( ( $($e:tt)* ))*
-    ) => (| $($name: Vec<Unit>),* |{ $( $crate::spnl!( $($e)* ) );* });
-
-    (length $list:tt) => ($crate::spnl_arg!($list).len());
-
+    // Data: break up the array $arr into chunks of maximum size
+    // $chunk_size characters and send each chunk to the given
+    // (lambda) $f.
     (chunk $chunk_size:tt $arr:tt $f:tt) => (
         $crate::spnl_arg!($arr)
             .chunks($crate::spnl_arg!($chunk_size))
@@ -95,6 +72,10 @@ macro_rules! spnl {
             .collect::<Vec<_>>()
     );
 
+    // Sugar: this unfolds to a `(g $model (cross $body))` but with
+    // special user and system messages geared at extracting,
+    // simplifying, and summarizing the thought process of the output
+    // of prior (g) calls.
     (extract $model:tt $n:tt $body:tt) => {{
         let n = $crate::spnl_arg!($n);
         $crate::spnl!(
@@ -104,6 +85,9 @@ macro_rules! spnl {
                       (user (format "Extract and simplify these {} final answers" n))))
     }};
 
+    // Sugar: this unfolds to a `(g $model (cross $body))` but with
+    // special user and system messages geared at combining the
+    // output of prior (g) calls.
     (combine $model:tt $body:tt) => (
         $crate::spnl!(
             g $model (cross
@@ -112,12 +96,17 @@ macro_rules! spnl {
                       (user "Combine and flatten these into one JSON array, preserving order")))
     );
 
-    (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
-    (plus $e:tt) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
-    (plus $( $e:tt )+) => ( $crate::Unit::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
-
+    // Sugar: this unfolds to repeating the given expression $e $n times.
     (repeat $n:tt $e:tt) => (spnl!(repeat i $n $e));
+
+    // Sugar: this unfolds to repeating the given expression $e $n
+    // times and makes available an index variable $i ranging from 0
+    // to $n-1.
     (repeat $i:ident $n:tt $e:tt) => (spnl!(repeat $i 0 $n $e));
+
+    // Sugar: this unfolds to repeating the given expression $e $n
+    // times and makes available an index variable $i ranging from
+    // $start to $n-$start-1.
     (repeat $i:ident $start:tt $n:tt $e:tt) => {{
         let mut args: Vec<$crate::Unit> = vec![];
         let start = $crate::spnl_arg!($start);
@@ -128,18 +117,26 @@ macro_rules! spnl {
         args
     }};
 
-    (g $model:tt $input:tt) => ($crate::spnl!(g $model $input 0.0 0));
-    (g $model:tt $input:tt $temp:tt) => ($crate::spnl!(g $model $input $temp 0));
-    (g $model:tt $input:tt $temp:tt $max_tokens:tt) => (
-        $crate::Unit::Generate((
-            $crate::spnl_arg!($model).to_string(),
-            Box::new($crate::spnl_arg!($input).into()),
-            $crate::spnl_arg!($max_tokens), $crate::spnl_arg!($temp)
-        ))
-    );
+    // Utility: Defines an n-ary function that accepts the given $name'd arguments
+    (lambda ( $( $name:ident )* )
+     $( ( $($e:tt)* ))*
+    ) => (| $($name: Vec<Unit>),* |{ $( $crate::spnl!( $($e)* ) );* });
 
-    (user $e:tt) => ($crate::Unit::User(($crate::spnl_arg!($e).clone().into(),)));
-    (system $e:tt) => ($crate::Unit::System(($crate::spnl_arg!($e).into(),)));
+    // Utility: the length of $list
+    (length $list:tt) => ($crate::spnl_arg!($list).len());
+
+    // Utility: read as string from stdin
+    (ask $message:tt) => ( $crate::Unit::Ask(($crate::spnl_arg!($message).into(),)) );
+
+    // Utility: print a helpful message to the console
+    (print $message:tt) => ( $crate::Unit::Print(($crate::spnl_arg!($message).into(),)) );
+
+    // Utility: loop
+    // (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spnl!( $($e)* ) );* } );
+    (loop $( ( $($e:tt)* ) )* ) => ( $crate::Unit::Loop(vec![$( $crate::spnl!( $($e)* ) ),*]) );
+
+    // Utility:
+    (format $fmt:tt $( $e:tt )*) => ( &format!($fmt, $($crate::spnl_arg!($e)),* ) );
 
     // execute rust
     //(rust $( $st:stmt )* ) => ( $($st);* );
@@ -428,3 +425,45 @@ mod tests {
         Ok(())
     }
 }
+
+// math
+/*(+ $x:tt $y:tt) => ($crate::spnl_arg!($x) + $crate::spnl_arg!($y));*/
+//(- $x:tt $y:tt) => ($crate::spnl_arg!($x) - $crate::spnl_arg!($y));
+/*(* $x:tt $y:tt) => ($crate::spnl_arg!($x) * $crate::spnl_arg!($y));
+(/ $x:tt $y:tt) => ($crate::spnl_arg!($x) / $crate::spnl_arg!($y));
+(% $x:tt $y:tt) => ($crate::spnl_arg!($x) % $crate::spnl_arg!($y));*/
+
+// bool
+//(false) => ($crate::Unit::Bool(false));
+//(true) => ($crate::Unit::Bool(true));
+//(self $(. $e:tt)* ) => (self $(. $e)* );
+
+// let
+/* (let ( $( ($var:ident $e:tt) )* )
+    $( ( $($e2:tt)* ) )*
+) => ({
+    $(let mut $var = $crate::spnl_arg!($e);)*
+    $( $crate::spnl!( $($e2)* ) );*
+}); */
+
+// dotimes
+/*(dotimes ($var:ident $count:tt) $( ( $($e:tt)* ) )* ) => (
+    for $var in 0..$crate::spnl_arg!($count) {
+        $( $crate::spnl!( $($e)* ) );*
+    }
+);*/
+
+// if
+/*(if ( $($cond:tt)* ) $e1:tt $e2:tt) => (if $crate::spnl!($($cond)*) { $crate::spnl!($e1) }else{ $crate::spnl!($e2) });
+(if ( $($cond:tt)* ) $e:tt) => (if $crate::spnl!($($cond)*) { $crate::spnl!($e) });
+(if $cond:tt $e1:tt $e2:tt) => (if $cond { $crate::spnl!($e1) }else{ $crate::spnl!($e2) });
+(if $cond:tt $e:tt) => (if $cond { $crate::spnl!($e) });*/
+
+// compare
+/*(eq $x:tt $y:tt) => ($crate::spnl_arg!($x) == $crate::spnl_arg!($y));
+(== $x:tt $y:tt) => ($crate::spnl_arg!($x) == $crate::spnl_arg!($y));
+(!= $x:tt $y:tt) => ($crate::spnl_arg!($x) != $crate::spnl_arg!($y));
+(< $x:tt $y:tt) => ($crate::spnl_arg!($x) < $crate::spnl_arg!($y));
+(> $x:tt $y:tt) => ($crate::spnl_arg!($x) > $crate::spnl_arg!($y));
+(<= $x:tt $y:tt) => ($crate::spnl_arg!($x) <= $crate::spnl_arg!($y));
+(>= $x:tt $y:tt) => ($crate::spnl_arg!($x) >= $crate::spnl_arg!($y));*/
