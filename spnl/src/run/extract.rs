@@ -20,7 +20,7 @@ fn extract_values(program: &Unit, field: &str) -> Vec<String> {
 /// Produce a vector of the string-valued entries of the given field
 fn extract_values_iter(program: &Unit, field: &str, values: &mut Vec<String>) {
     match program {
-        Unit::Generate((model, _, _, _)) => {
+        Unit::Retrieve((model, _, _)) | Unit::Generate((model, _, _, _)) => {
             values.push(model.clone());
         }
         Unit::Plus(v) | Unit::Cross(v) => {

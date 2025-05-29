@@ -72,6 +72,25 @@ macro_rules! spnl {
             .collect::<Vec<_>>()
     );
 
+    // Data: incorporate one or more documents
+    (with $embedding_model:tt $input:tt $( $doc:tt )+) => (
+        $crate::spnl!(
+            cross
+                (user "Here are some relevant documents that may help answer the following question. Relevant documents:")
+                (plus (__spnl_retrieve $embedding_model $input $( $doc )+))
+                (user "And here is the question:")
+                $input
+        )
+    );
+
+    // Internal
+    (__spnl_retrieve $embedding_model:tt $input:tt $( $doc:tt )+) => (
+        vec![$crate::Unit::Retrieve(
+            ($crate::spnl_arg!($embedding_model),
+             Box::new($crate::spnl_arg!($input)),
+             vec![$( $crate::spnl_arg!( $doc ).into() ),+]) )]
+    );
+
     // Sugar: this unfolds to a `(g $model (cross $body))` but with
     // special user and system messages geared at extracting,
     // simplifying, and summarizing the thought process of the output
@@ -180,6 +199,10 @@ pub enum Unit {
 
     /// Ask with a given message
     Ask((String,)),
+
+    /// (embedding_model, question, docs): Incorporate information relevant to the
+    /// question gathered from the given docs
+    Retrieve((String, Box<Unit>, Vec<String>)),
 }
 fn truncate(s: &str, max_chars: usize) -> String {
     if s.len() < max_chars {
@@ -215,6 +238,7 @@ impl ptree::TreeItem for Unit {
                 Unit::Loop(_) => style.paint("Loop".to_string()),
                 Unit::Ask((m,)) => style.paint(format!("Ask {m}")),
                 Unit::Print((m,)) => style.paint(format!("Print {}", truncate(m, 700))),
+                Unit::Retrieve((_, _, _)) => style.paint("Retrieve".to_string()),
             }
         )
     }
@@ -225,6 +249,7 @@ impl ptree::TreeItem for Unit {
             Unit::Loop(v) => v.clone(),
             Unit::Repeat((_, v)) => vec![*v.clone()],
             Unit::Generate((_, i, _, _)) => vec![*i.clone()],
+            Unit::Retrieve((_, body, _)) => vec![*body.clone()],
         })
     }
 }

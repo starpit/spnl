@@ -2,7 +2,10 @@ use indicatif::{MultiProgress, ProgressBar};
 use tokio::io::{AsyncWriteExt, stdout};
 use tokio_stream::StreamExt;
 
-use crate::{Unit, run::result::SpnlResult};
+use crate::{
+    Unit,
+    run::result::{SpnlError, SpnlResult},
+};
 
 use ollama_rs::{
     Ollama,
@@ -102,4 +105,13 @@ fn messagify(input: &Unit) -> Vec<ChatMessage> {
         Unit::System((s,)) => vec![ChatMessage::system(s.clone())],
         o => vec![ChatMessage::user(o.to_string())],
     }
+}
+
+pub async fn embed(embedding_model: &str, docs: &Vec<String>) -> Result<Vec<Vec<f32>>, SpnlError> {
+    use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
+
+    let request = GenerateEmbeddingsRequest::new(embedding_model.to_string(), docs.clone().into());
+
+    let ollama = Ollama::default();
+    Ok(ollama.generate_embeddings(request).await?.embeddings)
 }

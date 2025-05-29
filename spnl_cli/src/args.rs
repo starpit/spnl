@@ -12,9 +12,13 @@ pub struct Args {
     #[arg(value_enum, short, long)]
     pub demo: Option<Demo>,
 
-    /// Model
+    /// Generative Model
     #[arg(short, long, default_value = "ollama/granite3.2:2b")]
     pub model: String,
+
+    /// Embedding Model
+    #[arg(short, long, default_value = "ollama/mxbai-embed-large:335m")]
+    pub embedding_model: String,
 
     /// Temperature
     #[arg(short, long, default_value_t = 0.5)]

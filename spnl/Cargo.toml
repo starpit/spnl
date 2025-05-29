@@ -4,12 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["cli_support", "run", "ollama", "openai", "pull"]
+default = ["cli_support", "run", "ollama", "openai", "pull", "rag"]
 cli_support = ["dep:ptree","dep:rustyline"]
 run = ["dep:futures","dep:indicatif","dep:async-recursion"]
 ollama = ["run","dep:ollama-rs","dep:tokio","dep:tokio-stream"]
 openai = ["run","dep:async-openai","dep:tokio","dep:tokio-stream"]
 pull = ["dep:duct","dep:fs4","dep:rayon"]
+rag = []
 
 [dependencies]
 ptree = { version = "0.5.2", default-features = false, features = ["ansi"], optional = true }
