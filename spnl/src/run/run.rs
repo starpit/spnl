@@ -27,26 +27,6 @@ async fn plus(units: &Vec<Unit>) -> SpnlResult {
     }
 }
 
-/*fn retrieve(docs: &Vec<Vec<f32>>) -> faiss_next::Result<()> {
-
-    let mut index = index_factory(64, "Flat", FaissMetricType::METRIC_L2)?;
-    docs.into_iter().try_for_each(|v| index.add(v.as_slice()))?;
-    Ok(())
-}*/
-
-#[cfg(feature = "rag")]
-async fn embed_and_retrieve(
-    embedding_model: &String,
-    body: &Unit,
-    docs: &Vec<String>,
-) -> SpnlResult {
-    //let uri = "data/sample-lancedb";
-    // let db = lancedb::connect(uri).execute().await?;
-    let e = crate::run::generate::embed(embedding_model, docs).await?;
-
-    Ok("test".into())
-}
-
 #[async_recursion]
 pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
     #[cfg(feature = "pull")]
@@ -62,7 +42,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
 
         #[cfg(feature = "rag")]
         Unit::Retrieve((embedding_model, body, docs)) => {
-            embed_and_retrieve(embedding_model, body, docs).await
+            crate::run::with::embed_and_retrieve(embedding_model, body, docs).await
         }
         #[cfg(not(feature = "rag"))]
         Unit::Retrieve((embedding_model, body, docs)) => Err(Box::from("rag feature not enabled")),
