@@ -32,14 +32,14 @@ pub async fn generate(
 
 pub async fn embed(
     embedding_model: &String,
-    docs: &Vec<String>,
+    data: &crate::run::embed::EmbedData,
 ) -> Result<Vec<Vec<f32>>, SpnlError> {
     match embedding_model {
         #[cfg(feature = "ollama")]
-        m if m.starts_with("ollama/") => crate::run::ollama::embed(&m[7..], docs).await,
+        m if m.starts_with("ollama/") => crate::run::ollama::embed(&m[7..], data).await,
 
         #[cfg(feature = "ollama")]
-        m if m.starts_with("ollama_chat/") => crate::run::ollama::embed(&m[12..], docs).await,
+        m if m.starts_with("ollama_chat/") => crate::run::ollama::embed(&m[12..], data).await,
 
         #[cfg(feature = "openai")]
         m if m.starts_with("openai/") => {

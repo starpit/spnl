@@ -107,8 +107,19 @@ fn messagify(input: &Unit) -> Vec<ChatMessage> {
     }
 }
 
-pub async fn embed(embedding_model: &str, docs: &Vec<String>) -> Result<Vec<Vec<f32>>, SpnlError> {
+pub async fn embed(
+    embedding_model: &str,
+    data: &crate::run::embed::EmbedData,
+) -> Result<Vec<Vec<f32>>, SpnlError> {
     use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
+
+    let docs = match data {
+        crate::run::embed::EmbedData::Vec(v) => v,
+        crate::run::embed::EmbedData::Unit(u) => &messagify(u)
+            .into_iter()
+            .map(|m| m.content)
+            .collect::<Vec<_>>(),
+    };
 
     let request = GenerateEmbeddingsRequest::new(embedding_model.to_string(), docs.clone().into());
 

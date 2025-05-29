@@ -24,3 +24,6 @@ pub use run::run;
 
 #[cfg(feature = "rag")]
 mod with;
+
+#[cfg(feature = "rag")]
+mod embed;

@@ -36,6 +36,9 @@ macro_rules! spnl {
     // Data: incorporate a file at compile time
     (file $f:tt) => (include_str!($crate::spnl_arg!($f)));
 
+    // Data: incorporate a file at compile time, preserving file name
+    (filen $f:tt) => (($crate::spnl_arg!($f).to_string(), include_str!($crate::spnl_arg!($f)).to_string()));
+
     // Data: incorporate a file at run time
     (fetch $f:tt) => {{
         let filename = ::std::path::Path::new(file!()).parent().expect("macro to have parent directory").join($crate::spnl_arg!($f));
@@ -77,7 +80,7 @@ macro_rules! spnl {
         $crate::spnl!(
             cross
                 (user "Here are some relevant documents that may help answer the following question. Relevant documents:")
-                (plus (__spnl_retrieve $embedding_model $input $( $doc )+))
+                (plus $( (__spnl_retrieve $embedding_model $input $doc) )+)
                 (user "And here is the question:")
                 $input
         )
@@ -202,7 +205,7 @@ pub enum Unit {
 
     /// (embedding_model, question, docs): Incorporate information relevant to the
     /// question gathered from the given docs
-    Retrieve((String, Box<Unit>, Vec<String>)),
+    Retrieve((String, Box<Unit>, Vec<(String, String)>)),
 }
 fn truncate(s: &str, max_chars: usize) -> String {
     if s.len() < max_chars {
@@ -249,7 +252,14 @@ impl ptree::TreeItem for Unit {
             Unit::Loop(v) => v.clone(),
             Unit::Repeat((_, v)) => vec![*v.clone()],
             Unit::Generate((_, i, _, _)) => vec![*i.clone()],
-            Unit::Retrieve((_, body, _)) => vec![*body.clone()],
+            Unit::Retrieve((_, body, docs)) => vec![*body.clone()]
+                .into_iter()
+                .chain(
+                    docs.iter()
+                        .cloned()
+                        .map(|(filename, _)| Unit::User((filename,))),
+                )
+                .collect(),
         })
     }
 }
