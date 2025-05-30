@@ -75,7 +75,7 @@ impl VecDB {
 
     pub async fn add_vector(
         &self,
-        filenames: &[&str],
+        filenames: &[String],
         vectors: Vec<Vec<f32>>,
         vec_dim: i32,
     ) -> anyhow::Result<()> {

@@ -40,9 +40,18 @@ macro_rules! spnl {
     (filen $f:tt) => (($crate::spnl_arg!($f).to_string(), include_str!($crate::spnl_arg!($f)).to_string()));
 
     // Data: incorporate a file at run time
-    (fetch $f:tt) => {{
+    (fetch $f:tt) => ($crate::spnl!(fetchn $f).1);
+
+    // Data: incorporate a file at run time, preserving file name
+    (fetchn $f:tt) => {{
         let filename = ::std::path::Path::new(file!()).parent().expect("macro to have parent directory").join($crate::spnl_arg!($f));
-        ::std::fs::read_to_string(filename).expect("file to be read")
+        (filename.clone().into_os_string().into_string().expect("filename"), ::std::fs::read_to_string(filename).expect("file to be read"))
+    }};
+
+    // Data: incorporate a binary file at run time, preserving file name
+    (fetchb $f:tt) => {{
+        let filename = ::std::path::Path::new(file!()).parent().expect("macro to have parent directory").join($crate::spnl_arg!($f));
+        (filename.clone().into_os_string().into_string().expect("filename"), $crate::Document::Binary(::std::fs::read(filename).expect("file to be read")))
     }};
 
     // Data: peel off the first $n elements of the given serialized
@@ -173,6 +182,12 @@ macro_rules! spnl_arg {
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
+pub enum Document {
+    Text(String),
+    Binary(Vec<u8>),
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Unit {
     /// User prompt
@@ -205,7 +220,7 @@ pub enum Unit {
 
     /// (embedding_model, question, docs): Incorporate information relevant to the
     /// question gathered from the given docs
-    Retrieve((String, Box<Unit>, Vec<(String, String)>)),
+    Retrieve((String, Box<Unit>, Vec<(String, Document)>)),
 }
 fn truncate(s: &str, max_chars: usize) -> String {
     if s.len() < max_chars {

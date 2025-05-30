@@ -17,5 +17,5 @@ pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
     Ok(spnl!(g model
              (with embedding_model
               (user "Does PDL have a contribute keyword?")
-              (filen "./rag-doc1.json"))))
+              (fetchb "./rag-doc1.pdf"))))
 }
