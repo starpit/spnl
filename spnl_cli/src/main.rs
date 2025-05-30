@@ -24,7 +24,6 @@ async fn main() -> Result<(), SpnlError> {
             .map(|d| format!("demo.{:?}", d))
             .unwrap_or(args.file.clone().unwrap_or("default".to_string())),
     };
-    println!("!!!!!!! {}", rp.vecdb_table);
 
     let program = plan(&match args.demo {
         Some(Demo::Chat) => chat::demo(args),
