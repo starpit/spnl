@@ -5,6 +5,7 @@ use crate::{Unit, run::result::SpnlResult};
 
 pub struct RunParameters {
     pub vecdb_uri: String,
+    pub vecdb_table: String,
 }
 
 async fn cross(units: &Vec<Unit>, rp: &RunParameters, mm: Option<&MultiProgress>) -> SpnlResult {
@@ -47,8 +48,14 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
 
         #[cfg(feature = "rag")]
         Unit::Retrieve((embedding_model, body, docs)) => {
-            crate::run::with::embed_and_retrieve(embedding_model, body, docs, rp.vecdb_uri.as_str())
-                .await
+            crate::run::with::embed_and_retrieve(
+                embedding_model,
+                body,
+                docs,
+                rp.vecdb_uri.as_str(),
+                rp.vecdb_table.as_str(),
+            )
+            .await
         }
         #[cfg(not(feature = "rag"))]
         Unit::Retrieve((embedding_model, body, docs)) => Err(Box::from("rag feature not enabled")),
