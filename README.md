@@ -1,13 +1,14 @@
-# Span Queries: A Declarative Approach to Interacting with LLMs
+# Span Queries: the SQL for GenAI
 
 :rocket: [SPNL Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false)
 
-Span Queries is an attempt to provide a declarative query foundation
-for writing scalable interactions with large language models (LLMs).
-A span query allows messages to be arranged into a map/reduce-style
-tree of generation calls. When LLM calls are arranged in this way,
-they can be *planned* so as to a) improve the quality of generated
-output; b) increase cache locality on the model server.
+What if we had a **SQL for GenAI**? Span Queries is an attempt to
+provide a declarative query foundation for writing scale-up and
+scale-out interactions with large language models (LLMs).  A span
+query allows messages to be arranged into a map/reduce-style tree of
+generation calls. When LLM calls are arranged in this way, they can be
+*planned* so as to a) improve the quality of generated output; b)
+increase cache locality on the model server.
 
 A span query can be considered as an abstract syntax tree (AST) where
 each leaf node is a "message" and each interior node is one of three
