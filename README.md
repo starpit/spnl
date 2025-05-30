@@ -10,47 +10,48 @@ generation calls. When LLM calls are arranged in this way, they can be
 *planned* so as to a) improve the quality of generated output; b)
 increase cache locality on the model server.
 
+## Concretely Speaking, What is a Span Query?
+
 A span query can be considered as an abstract syntax tree (AST) where
-each leaf node is a "message" and each interior node is one of three
-core operators `g`, `cross`, and `plus`.
+each leaf node is a message (i.e. some kind of content to be sent to
+the model) and each interior node is either a `g` (indicating that new
+content should be generated) or a *data dependence* operator (`x` or
+`+`) that describe how the messages depend on eachother.
 
 - Each `g` sends messages to a model for generation.
-- Each `plus` indicates that the given arguments are independent; think of this as a
-data-parallel map, with the additional property that models can
-interpret the arguments in such a way as not to have the given tokens
-co-attend. 
-- Each `cross` indicates that the given arguments are dependent; think
-of this as a data-parallel reduce, where models must have the given
-tokens attend to eachother. As with a data-parallel reduce, `cross`
-has two sub-variants depending on whether or not the reduce is
+- Each `+` ("plus") indicates that the given arguments are
+independent; think of this as a data-parallel map, with the additional
+property that models can interpret the arguments in such a way as not
+to have the given tokens co-attend.
+- Each `x` ("cross") indicates that the given arguments are dependent;
+think of this as a data-parallel reduce, where models must have the
+given tokens attend to eachother. As with a data-parallel reduce,
+`cross` has two sub-variants depending on whether or not the reduce is
 *commutative*.
 - Leaf nodes are either system or user messages. Below we may shorten
   these to `s` and `u`.
 
 ```mermaid
----
-config:
-      theme: redux
-      flowchart:
-            padding: 0
----
 flowchart TD
-        g1["g"] --> x1{"cross"}
-        x1 --> s1(("system"))
-        x1 --> p1[/"plus"\]
-        x1 --> u1((("user")))
-        p1 --> g2["g"]
-        g2 --> u2((("user")))
-        g2 --> u3((("user")))
-        g2 --> u4((("user")))
-        g2 --> u5((("user")))
+        g1((g)) --> x1((x))
+        x1 --> s1((s))
+        x1 --> p1((＋))
+        x1 --> u1((u))
+        p1 --> g2((g))
+        p1 --> g3((g))
+        p1 --> g4((g))
+        p1 --> g5((g))
+        g2 --> u2((u))
+        g3 --> u3((u))
+        g4 --> u4((u))
+        g5 --> u5((u))
 
         classDef g fill:#e4f6ff
         classDef x fill:#ff8389
         classDef p fill:#ffd8d9
         classDef s fill:#d4a104
         classDef u fill:#fddc68
-        class g1,g2 g
+        class g1,g2,g3,g4,g5 g
         class x1 x
         class p1 p
         class s1 s
