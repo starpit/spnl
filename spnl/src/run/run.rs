@@ -47,11 +47,11 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
         Unit::System(s) => Ok(Unit::System(s.clone())),
 
         #[cfg(feature = "rag")]
-        Unit::Retrieve((embedding_model, body, docs)) => {
+        Unit::Retrieve((embedding_model, body, doc)) => {
             crate::run::with::embed_and_retrieve(
                 embedding_model,
                 body,
-                docs,
+                doc,
                 rp.vecdb_uri.as_str(),
                 rp.vecdb_table.as_str(),
             )

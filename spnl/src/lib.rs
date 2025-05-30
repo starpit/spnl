@@ -96,11 +96,11 @@ macro_rules! spnl {
     );
 
     // Internal
-    (__spnl_retrieve $embedding_model:tt $input:tt $( $doc:tt )+) => (
+    (__spnl_retrieve $embedding_model:tt $input:tt $doc:tt) => (
         vec![$crate::Unit::Retrieve(
             ($crate::spnl_arg!($embedding_model),
              Box::new($crate::spnl_arg!($input)),
-             vec![$( $crate::spnl_arg!( $doc ).into() ),+]) )]
+             $crate::spnl_arg!( $doc ).into()) )]
     );
 
     // Sugar: this unfolds to a `(g $model (cross $body))` but with
@@ -220,7 +220,7 @@ pub enum Unit {
 
     /// (embedding_model, question, docs): Incorporate information relevant to the
     /// question gathered from the given docs
-    Retrieve((String, Box<Unit>, Vec<(String, Document)>)),
+    Retrieve((String, Box<Unit>, (String, Document))),
 }
 fn truncate(s: &str, max_chars: usize) -> String {
     if s.len() < max_chars {
@@ -256,7 +256,7 @@ impl ptree::TreeItem for Unit {
                 Unit::Loop(_) => style.paint("Loop".to_string()),
                 Unit::Ask((m,)) => style.paint(format!("Ask {m}")),
                 Unit::Print((m,)) => style.paint(format!("Print {}", truncate(m, 700))),
-                Unit::Retrieve((_, _, _)) => style.paint("Retrieve".to_string()),
+                Unit::Retrieve((_, _, _)) => style.paint("\x1b[34;1mAugment\x1b[0m".to_string()),
             }
         )
     }
@@ -267,14 +267,10 @@ impl ptree::TreeItem for Unit {
             Unit::Loop(v) => v.clone(),
             Unit::Repeat((_, v)) => vec![*v.clone()],
             Unit::Generate((_, i, _, _)) => vec![*i.clone()],
-            Unit::Retrieve((_, body, docs)) => vec![*body.clone()]
-                .into_iter()
-                .chain(
-                    docs.iter()
-                        .cloned()
-                        .map(|(filename, _)| Unit::User((filename,))),
-                )
-                .collect(),
+            Unit::Retrieve((_, body, (filename, _))) => vec![
+                *body.clone(),
+                Unit::User((format!("<augmentation document: {filename}>"),)),
+            ],
         })
     }
 }

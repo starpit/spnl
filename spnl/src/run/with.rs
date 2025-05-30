@@ -25,38 +25,33 @@ fn windowed_pdf(bytes: &Vec<u8>, window_width: usize) -> Result<Vec<String>, Spn
 pub async fn embed_and_retrieve(
     embedding_model: &String,
     body: &Unit,
-    docs: &Vec<(String, Document)>,
+    (filename, content): &(String, Document),
     db_uri: &str,
-    table_name: &str,
+    table_name_base: &str,
 ) -> SpnlResult {
     let max_matches = 100; // TODO allow to be specified in query
-    let db_async = storage::VecDB::connect(db_uri, table_name);
+    let table_name =
+        storage::VecDB::sanitize_table_name(format!("{table_name_base}.{filename}").as_str());
+    let db_async = storage::VecDB::connect(db_uri, table_name.as_str());
 
-    let docs_content = docs
-        .into_iter()
-        .map(|(filename, content)| {
-            match (
-                content,
-                ::std::path::Path::new(filename)
-                    .extension()
-                    .and_then(std::ffi::OsStr::to_str),
-            ) {
-                (Document::Text(content), _) => Ok(vec![content.clone()]),
-                (Document::Binary(content), Some("pdf")) => windowed_pdf(&content, 4),
-                _ => Err(Box::from(format!(
-                    "Unsupported `with` binary document {filename}"
-                ))),
-            }
-        })
-        .collect::<Result<Vec<Vec<String>>, SpnlError>>()?
-        .into_iter()
-        .flatten()
-        .collect::<Vec<String>>();
+    let doc_content = match (
+        content,
+        ::std::path::Path::new(filename)
+            .extension()
+            .and_then(std::ffi::OsStr::to_str),
+    ) {
+        (Document::Text(content), _) => Ok(vec![content.clone()]),
+        (Document::Binary(content), Some("pdf")) => windowed_pdf(&content, 4),
+        _ => Err(Box::from(format!(
+            "Unsupported `with` binary document {filename}"
+        ))),
+    }?;
+
     let docs_vectors =
-        crate::run::generate::embed(embedding_model, &EmbedData::Vec(docs_content.clone())).await?;
+        crate::run::generate::embed(embedding_model, &EmbedData::Vec(doc_content.clone())).await?;
     let db = db_async.await?;
     // TODO create-if-needed
-    db.add_vector(docs_content.as_slice(), docs_vectors, 1024)
+    db.add_vector(doc_content.as_slice(), docs_vectors, 1024)
         .await?;
 
     let body_vectors =

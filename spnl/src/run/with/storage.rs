@@ -101,4 +101,8 @@ impl VecDB {
         self.default_table.add(boxed_batches).execute().await?;
         Ok(())
     }
+
+    pub fn sanitize_table_name(name: &str) -> String {
+        name.replace("/", "_").replace(":", "_")
+    }
 }
