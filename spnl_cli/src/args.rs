@@ -36,6 +36,10 @@ pub struct Args {
     #[arg(short = 'k', long, default_value_t = 1)]
     pub chunk_size: usize,
 
+    /// Vector DB Url
+    #[arg(long, default_value = "data/spnl")]
+    pub vecdb_uri: String,
+
     /// Re-emit the compiled query
     #[arg(short, long, default_value_t = false)]
     pub show_query: bool,

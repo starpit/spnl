@@ -22,6 +22,9 @@ mod run;
 #[cfg(feature = "run")]
 pub use run::run;
 
+#[cfg(feature = "run")]
+pub use run::RunParameters;
+
 #[cfg(feature = "rag")]
 mod with;
 

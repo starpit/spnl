@@ -26,8 +26,8 @@ pub async fn embed_and_retrieve(
     embedding_model: &String,
     body: &Unit,
     docs: &Vec<(String, Document)>,
+    db_uri: &str,
 ) -> SpnlResult {
-    let db_uri = "data/spnl"; // TODO
     let table_name = "spnl_vectors"; // TODO
     let max_matches = 100; // TODO allow to be specified in query
     let db_async = storage::VecDB::connect(db_uri, table_name);

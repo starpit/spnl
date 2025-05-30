@@ -4,7 +4,7 @@ use crate::args::Args;
 use crate::demos::*;
 use spnl::{
     from_str, pretty_print,
-    run::{plan::plan, result::SpnlError, run},
+    run::{RunParameters, plan::plan, result::SpnlError, run},
 };
 
 mod args;
@@ -15,6 +15,10 @@ async fn main() -> Result<(), SpnlError> {
     let args = Args::parse();
     let verbose = args.verbose;
     let show_only = args.show_query;
+
+    let rp = RunParameters {
+        vecdb_uri: args.vecdb_uri.clone(),
+    };
 
     let program = plan(&match args.demo {
         Some(Demo::Chat) => chat::demo(args),
@@ -45,7 +49,7 @@ async fn main() -> Result<(), SpnlError> {
         ptree::print_tree(&program)?;
     }
 
-    run(&program, None).await.map(|res| {
+    run(&program, &rp, None).await.map(|res| {
         if res.to_string().len() > 0 {
             println!("{}", res);
         }

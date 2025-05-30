@@ -3,22 +3,27 @@ use indicatif::MultiProgress;
 
 use crate::{Unit, run::result::SpnlResult};
 
-async fn cross(units: &Vec<Unit>, mm: Option<&MultiProgress>) -> SpnlResult {
+pub struct RunParameters {
+    pub vecdb_uri: String,
+}
+
+async fn cross(units: &Vec<Unit>, rp: &RunParameters, mm: Option<&MultiProgress>) -> SpnlResult {
     let mym = MultiProgress::new();
     let m = if let Some(m) = mm { m } else { &mym };
 
     let mut iter = units.iter();
     let mut evaluated = vec![];
     while let Some(u) = iter.next() {
-        evaluated.push(run(u, Some(m)).await?);
+        evaluated.push(run(u, rp, Some(m)).await?);
     }
 
     Ok(Unit::Cross(evaluated))
 }
 
-async fn plus(units: &Vec<Unit>) -> SpnlResult {
+async fn plus(units: &Vec<Unit>, rp: &RunParameters) -> SpnlResult {
     let m = MultiProgress::new();
-    let evaluated = futures::future::try_join_all(units.iter().map(|u| run(u, Some(&m)))).await?;
+    let evaluated =
+        futures::future::try_join_all(units.iter().map(|u| run(u, rp, Some(&m)))).await?;
 
     if evaluated.len() == 1 {
         Ok(evaluated[0].clone())
@@ -28,7 +33,7 @@ async fn plus(units: &Vec<Unit>) -> SpnlResult {
 }
 
 #[async_recursion]
-pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
+pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> SpnlResult {
     #[cfg(feature = "pull")]
     let _ = crate::run::pull::pull_if_needed(unit).await?;
 
@@ -42,17 +47,18 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
 
         #[cfg(feature = "rag")]
         Unit::Retrieve((embedding_model, body, docs)) => {
-            crate::run::with::embed_and_retrieve(embedding_model, body, docs).await
+            crate::run::with::embed_and_retrieve(embedding_model, body, docs, rp.vecdb_uri.as_str())
+                .await
         }
         #[cfg(not(feature = "rag"))]
         Unit::Retrieve((embedding_model, body, docs)) => Err(Box::from("rag feature not enabled")),
 
-        Unit::Cross(u) => cross(&u, m).await,
-        Unit::Plus(u) => plus(&u).await,
+        Unit::Cross(u) => cross(&u, rp, m).await,
+        Unit::Plus(u) => plus(&u, rp).await,
         Unit::Generate((model, input, max_tokens, temp)) => {
             crate::run::generate::generate(
                 model.as_str(),
-                &run(&input, m).await?,
+                &run(&input, rp, m).await?,
                 *max_tokens,
                 *temp,
                 m,
@@ -87,7 +93,7 @@ pub async fn run(unit: &Unit, m: Option<&MultiProgress>) -> SpnlResult {
         Unit::Loop(l) => loop {
             let mut iter = l.iter();
             while let Some(e) = iter.next() {
-                run(e, m).await?;
+                run(e, rp, m).await?;
             }
         },
     }
@@ -100,7 +106,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() -> Result<(), SpnlError> {
-        let result = run(&"hello".into(), None).await?;
+        let result = run(&"hello".into(), RunParameters { vecdb_uri: "" }, None).await?;
         assert_eq!(result, Unit::User(("hello".to_string(),)));
         Ok(())
     }
