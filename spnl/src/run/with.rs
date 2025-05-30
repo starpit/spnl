@@ -4,7 +4,7 @@ use itertools::Itertools;
 use crate::{
     Document, Unit,
     run::{
-        embed::EmbedData,
+        embed::{EmbedData, embed},
         result::{SpnlError, SpnlResult},
     },
 };
@@ -47,15 +47,13 @@ pub async fn embed_and_retrieve(
         ))),
     }?;
 
-    let docs_vectors =
-        crate::run::generate::embed(embedding_model, &EmbedData::Vec(doc_content.clone())).await?;
+    let docs_vectors = embed(embedding_model, &EmbedData::Vec(doc_content.clone())).await?;
     let db = db_async.await?;
     // TODO create-if-needed
     db.add_vector(doc_content.as_slice(), docs_vectors, 1024)
         .await?;
 
-    let body_vectors =
-        crate::run::generate::embed(embedding_model, &EmbedData::Unit(body.clone())).await?;
+    let body_vectors = embed(embedding_model, &EmbedData::Unit(body.clone())).await?;
 
     let matching_docs = try_join_all(
         body_vectors
