@@ -2,13 +2,16 @@
 
 :rocket: [Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false) **|** [Poster](./docs/poster-20250529.pdf)
 
-What if we had a **SQL for GenAI**? Span Queries is an attempt to
-provide a declarative query foundation for writing scale-up and
-scale-out interactions with large language models (LLMs).  A span
-query allows messages to be arranged into a map/reduce-style tree of
-generation calls. When LLM calls are arranged in this way, they can be
-*planned* so as to a) improve the quality of generated output; b)
-increase cache locality on the model server.
+What if we had a **SQL for GenAI**? Span Queries provide a declarative
+query foundation for writing scale-up and scale-out interactions with
+large language models (LLMs).  A span query allows messages to be
+arranged into a map/reduce tree of generation calls. When LLM calls
+are arranged in this way into bulk (multi-generation) queries, they
+can be *planned* so as to:
+
+- improve the quality of generated output, because map/reduce is an inference scaling technique
+- increase the efficacy of attention mechanisms and KV cache locality, because the query expresses data dependencies
+- allow for lightweight clients, because the queries express data access in a declarative way that can be managed server-side
 
 ## Concretely Speaking, What is a Span Query?
 
@@ -58,17 +61,11 @@ flowchart TD
         class u1,u2,u3,u4,u5 u
 ```
 
-## Quick Overview of this Repository
+## A Prototype DSL for Span Queries
 
-This repository consists of Rust workspaces that implement
-- **spnl**: The core Span Query support, including a `spnl!` Rust macro that produces a runnable query, and `run::run` which can then be used to execute the query.
-- **spnl_cli**: A demonstration CLI that includes a handful of demo queries.
-- **spnl_wasm**: Wraps `spnl` into a WASM build.
-- **spnl_web**: A simple web UI that runs queries directly in a browser via [WebLLM](https://github.com/mlc-ai/web-llm).
-
-## Prototype DSL for Span Queries
-
-To explore this space, we use a simple LISP-like DSL to allow directly injecting the internal representation into the SPNL logic:
+To explore this space, we use a simple LISP-like DSL to allow directly
+injecting the internal representation into the span query planner and
+runner:
 
 - `(g model input)`: Used to ask a model to generate new output.
 - `(plus d1 d2 ...)`: Used to signify that the given items `d1`, `d2`,
@@ -111,3 +108,12 @@ max tokens of 1000 and a temperature of 0.3:
                 (g "ollama/granite3.2:2b" "Generate a fun email" 1000 0.3)
                 (g "ollama/granite3.2:2b" "Generate a fun email" 1000 0.3))))
 ```
+
+## For Developers: A Quick Overview of this Repository
+
+This repository consists of Rust workspaces that implement
+- **spnl**: The core Span Query support, including a `spnl!` Rust macro that produces a runnable query, and `run::run` which can then be used to execute the query.
+- **spnl_cli**: A demonstration CLI that includes a handful of demo queries.
+- **spnl_wasm**: Wraps `spnl` into a WASM build.
+- **spnl_web**: A simple web UI that runs queries directly in a browser via [WebLLM](https://github.com/mlc-ai/web-llm).
+
