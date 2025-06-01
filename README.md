@@ -5,13 +5,13 @@
 What if we had a **SQL for GenAI**? Span Queries provide a declarative
 query foundation for writing scale-up and scale-out interactions with
 large language models (LLMs).  A span query allows messages to be
-arranged into a map/reduce tree of generation calls. When LLM calls
-are arranged in this way into bulk (multi-generation) queries, they
-can be *planned* so as to:
+arranged into a [map/reduce](https://en.wikipedia.org/wiki/MapReduce)
+tree of generation calls. When LLM calls are arranged in this way into
+bulk (multi-generation) queries, they can be *planned* so as to:
 
 - improve the quality of generated output, because map/reduce is an inference scaling technique
 - increase the efficacy of attention mechanisms and KV cache locality, because the query expresses data dependencies
-- allow for lightweight clients, because the queries express data access in a declarative way that can be managed server-side
+- allow for lightweight clients with server-managed data, because the queries express data access in a declarative way that can be managed server-side
 
 [Learn more](./docs/about.md) about span queries.
 
@@ -20,9 +20,11 @@ can be *planned* so as to:
 The span query system is written in
 [Rust](https://www.rust-lang.org/). Thus, step 1 is to [configure your
 environment](./https://www.rust-lang.org/tools/install) for Rust, if
-you haven't already. We have a quick and dirty CLI on top of the core
-capabilities to help with tire kicking. Using it, you can run a quick
-demo with:
+you haven't already. Step 2 is to clone this repository. 
+
+Using these pre-requisities, we have a quick and dirty CLI on top of
+the core capabilities to help with tire kicking. Using it, you can run
+a quick demo with:
 
 ```shell
 cargo run
