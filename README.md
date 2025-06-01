@@ -1,6 +1,6 @@
 # Span Queries: the SQL for GenAI
 
-:rocket: [Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false) **|** [Poster](./docs/poster-20250529.pdf)
+:rocket: [Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false) **|** [Poster](./docs/poster-20250529.pdf) **|** [About Span Queries](./docs/about.md) **|** [Contribute](./docs/dev.md)
 
 What if we had a **SQL for GenAI**? Span Queries provide a declarative
 query foundation for writing scale-up and scale-out interactions with
@@ -13,107 +13,53 @@ can be *planned* so as to:
 - increase the efficacy of attention mechanisms and KV cache locality, because the query expresses data dependencies
 - allow for lightweight clients, because the queries express data access in a declarative way that can be managed server-side
 
-## Concretely Speaking, What is a Span Query?
+[Learn more](./docs/about.md) about span queries.
 
-A span query can be considered as an abstract syntax tree (AST) where
-each leaf node is a message (i.e. some kind of content to be sent to
-the model) and each interior node is either a `g` (indicating that new
-content should be generated) or a *data dependence* operator (`x` or
-`+`) that describe how the messages depend on eachother.
+## Getting Started
 
-- Each `g` sends messages to a model for generation.
-- Each `+` ("plus") indicates that the given arguments are
-independent; think of this as a data-parallel map, with the additional
-property that models can interpret the arguments in such a way as not
-to have the given tokens co-attend.
-- Each `x` ("cross") indicates that the given arguments are dependent;
-think of this as a data-parallel reduce, where models must have the
-given tokens attend to eachother. As with a data-parallel reduce,
-`cross` has two sub-variants depending on whether or not the reduce is
-*commutative*.
-- Leaf nodes are either system or user messages. Below we may shorten
-  these to `s` and `u`.
+The span query system is written in
+[Rust](https://www.rust-lang.org/). Thus, step 1 is to [configure your
+environment](./https://www.rust-lang.org/tools/install) for Rust, if
+you haven't already. We have a quick and dirty CLI on top of the core
+capabilities to help with tire kicking. Using it, you can run a quick
+demo with:
 
-```mermaid
-flowchart TD
-        g1((g)) --> x1((x))
-        x1 --> s1((s))
-        x1 --> p1((＋))
-        x1 --> u1((u))
-        p1 --> g2((g))
-        p1 --> g3((g))
-        p1 --> g4((g))
-        p1 --> g5((g))
-        g2 --> u2((u))
-        g3 --> u3((u))
-        g4 --> u4((u))
-        g5 --> u5((u))
-
-        classDef g fill:#e4f6ff
-        classDef x fill:#ff8389
-        classDef p fill:#ffd8d9
-        classDef s fill:#d4a104
-        classDef u fill:#fddc68
-        class g1,g2,g3,g4,g5 g
-        class x1 x
-        class p1 p
-        class s1 s
-        class u1,u2,u3,u4,u5 u
+```shell
+cargo run
 ```
 
-## A Prototype DSL for Span Queries
+The full usage is provided via `cargo run -- --help`, which also
+specifies the available demos.
 
-To explore this space, we use a simple LISP-like DSL to allow directly
-injecting the internal representation into the span query planner and
-runner:
-
-- `(g model input)`: Used to ask a model to generate new output.
-- `(plus d1 d2 ...)`: Used to signify that the given items `d1`, `d2`,
-  ... are to be considered independent of eachother.
-- `(cross d1 d2 ...)`: Ibid, except now the items are to be considered
-  as having a linear dependence on eachother.
-
-### Helpers: ask, file, repeat, format
-In addition to these three core operators, the DSL offers some helpful
-syntactic sugarings. These include `(ask message)` which prompts the
-user for a message, `(file filepath)` which reads in a string from the
-given local file path, and `(repeat n <subquery>)` which expands the
-given subquery `n` times.
-
-### Examples:
-
-This will generate (`g`) some output, using the given "model server/model", provided with the given input "Hello world":
-```lisp
-(g "ollama/granite3.2:2b" "Hello world")
 ```
+Usage: spnl [OPTIONS] [FILE]
 
-Same, except ask the user (or read from a file) which prompt should be send to the generation.
-```lisp
-(g "ollama/granite3.2:2b" (read "What should I ask the model?"))
-(g "ollama/granite3.2:2b" (file "./prompt.txt"))
+Arguments:
+  [FILE]  File to process
+
+Options:
+  -d, --demo <DEMO>
+          Demo to run [possible values: chat, email, email2, email3, sweagent, gsm8k, rag]
+  -m, --model <MODEL>
+          Generative Model [default: ollama/granite3.2:2b]
+  -e, --embedding-model <EMBEDDING_MODEL>
+          Embedding Model [default: ollama/mxbai-embed-large:335m]
+  -t, --temperature <TEMPERATURE>
+          Temperature [default: 0.5]
+  -l, --max-tokens <MAX_TOKENS>
+          Max Completion/Generated Tokens [default: 100]
+  -n, --n <N>
+          Number of candidates to consider [default: 5]
+  -k, --chunk-size <CHUNK_SIZE>
+          Chunk size [default: 1]
+      --vecdb-uri <VECDB_URI>
+          Vector DB Url [default: data/spnl]
+  -s, --show-query
+          Re-emit the compiled query
+  -v, --verbose
+          Verbose output
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 ```
-
-Send a sequence of prompts to the model:
-```lisp
-(g "ollama/granite3.2:2b" (cross (read "What should I ask the model?")  (file "./prompt.txt")))
-```
-
-The `g` operator also accepts optional max tokens and temperature
-options. Here analyze three independent inputs, each generated with
-max tokens of 1000 and a temperature of 0.3:
-```lisp
-(g "ollama/granite3.2:2b"
-   (cross "Pick the best one"
-          (plus (g "ollama/granite3.2:2b" "Generate a fun email" 1000 0.3)
-                (g "ollama/granite3.2:2b" "Generate a fun email" 1000 0.3)
-                (g "ollama/granite3.2:2b" "Generate a fun email" 1000 0.3))))
-```
-
-## For Developers: A Quick Overview of this Repository
-
-This repository consists of Rust workspaces that implement
-- **spnl**: The core Span Query support, including a `spnl!` Rust macro that produces a runnable query, and `run::run` which can then be used to execute the query.
-- **spnl_cli**: A demonstration CLI that includes a handful of demo queries.
-- **spnl_wasm**: Wraps `spnl` into a WASM build.
-- **spnl_web**: A simple web UI that runs queries directly in a browser via [WebLLM](https://github.com/mlc-ai/web-llm).
-
