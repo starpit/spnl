@@ -63,7 +63,7 @@ export default function Body(props: BodyProps) {
       <PageSection>
         <HelperText component="ul" style={{ marginBottom: "1em" }}>
           <HelperTextItem>
-            Welcome to the SPNL Playground. Edit your query on the left, then
+            Welcome to the Span Query Playground. Edit your query on the left, then
             click Run to execute it.
           </HelperTextItem>
           {compilationError && (

@@ -59,7 +59,7 @@ export default function QueryEditor(props: Props) {
       isLineNumbersVisible={false}
       isMinimapVisible={false}
       code={initialQuery || ""}
-      headerMainContent="SPNL Query Editor"
+      headerMainContent="Query Editor"
       customControls={customControls}
       options={{ fontSize: 14, wordWrap: "on" }}
       onChange={props.setQuery}
