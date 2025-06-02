@@ -16,8 +16,8 @@ pub fn plan(ast: &Unit) -> Unit {
     match ast {
         Unit::Plus(v) => Unit::Plus(expand_repeats(v)),
         Unit::Cross(v) => Unit::Cross(expand_repeats(v)),
-        Unit::Generate((m, i, mt, t)) => {
-            Unit::Generate((m.clone(), Box::new(plan(i)), mt.clone(), t.clone()))
+        Unit::Generate((m, i, mt, t, accumulate)) => {
+            Unit::Generate((m.clone(), Box::new(plan(i)), *mt, *t, *accumulate))
         }
         x => x.clone(),
     }

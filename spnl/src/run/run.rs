@@ -62,34 +62,35 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
 
         Unit::Cross(u) => cross(&u, rp, m).await,
         Unit::Plus(u) => plus(&u, rp).await,
-        Unit::Generate((model, input, max_tokens, temp)) => {
-            crate::run::generate::generate(
-                model.as_str(),
-                &run(&input, rp, m).await?,
-                *max_tokens,
-                *temp,
-                m,
-            )
-            .await
-        }
-
-        // This is Generate, but one that accumulates the output
-        Unit::Accumulate((model, input, max_tokens, temp)) => {
-            let mut accum = match &**input {
-                Unit::Cross(v) => v.clone(),
-                _ => vec![*input.clone()],
-            };
-            loop {
-                let program = Unit::Generate((
-                    model.clone(),
-                    Box::new(Unit::Cross(accum.clone())),
+        Unit::Generate((model, input, max_tokens, temp, accumulate)) => match accumulate {
+            false => {
+                crate::run::generate::generate(
+                    model.as_str(),
+                    &run(&input, rp, m).await?,
                     *max_tokens,
                     *temp,
-                ));
-                let out = run(&program, rp, m).await?;
-                accum.push(out.clone());
+                    m,
+                )
+                .await
             }
-        }
+            true => {
+                let mut accum = match &**input {
+                    Unit::Cross(v) => v.clone(),
+                    _ => vec![*input.clone()],
+                };
+                loop {
+                    let program = Unit::Generate((
+                        model.clone(),
+                        Box::new(Unit::Cross(accum.clone())),
+                        *max_tokens,
+                        *temp,
+                        false,
+                    ));
+                    let out = run(&program, rp, m).await?;
+                    accum.push(out.clone());
+                }
+            }
+        },
 
         #[cfg(not(feature = "cli_support"))]
         Unit::Ask((message,)) => todo!("ask"),

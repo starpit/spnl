@@ -10,28 +10,24 @@ macro_rules! spnl {
     (g $model:tt $input:tt $temp:tt) => ($crate::spnl!(g $model $input $temp 0));
 
     // Core: Generate text given $input using $model with temperature $temp and $max_tokens
-    (g $model:tt $input:tt $temp:tt $max_tokens:tt) => (
+    (g $model:tt $input:tt $temp:tt $max_tokens:tt) => ($crate::spnl!(g $model $input $temp $max_tokens false));
+
+    (g $model:tt $input:tt $temp:tt $max_tokens:tt $accumulate:tt) => (
         $crate::Unit::Generate((
             $crate::spnl_arg!($model).to_string(),
             Box::new($crate::spnl_arg!($input).into()),
-            $crate::spnl_arg!($max_tokens), $crate::spnl_arg!($temp)
+            $crate::spnl_arg!($max_tokens), $crate::spnl_arg!($temp), $crate::spnl_arg!($accumulate),
         ))
     );
 
     // Core: Generate with accumulation
-    (gx $model:tt $input:tt) => ($crate::spnl!(gx $model $input 0.0 0));
+    (gx $model:tt $input:tt) => ($crate::spnl!(g $model $input 0.0 0 true));
 
     // Core: Generate with accumulation with temperature $temp
-    (gx $model:tt $input:tt $temp:tt) => ($crate::spnl!(gx $model $input $temp 0));
+    (gx $model:tt $input:tt $temp:tt) => ($crate::spnl!(g $model $input $temp 0 true));
 
     // Core: Generate with accumulation with temperature $temp and $max_tokens
-    (gx $model:tt $input:tt $temp:tt $max_tokens:tt) => (
-        $crate::Unit::Accumulate((
-            $crate::spnl_arg!($model).to_string(),
-            Box::new($crate::spnl_arg!($input).into()),
-            $crate::spnl_arg!($max_tokens), $crate::spnl_arg!($temp)
-        ))
-    );
+    (gx $model:tt $input:tt $temp:tt $max_tokens:tt) => ($create::spnl!(g $model $input $temp $max_tokens true));
 
     // Core: Dependent/needs-attention
     (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
@@ -219,12 +215,9 @@ pub enum Unit {
     /// Helpful for repeating an operation n times in a Plus
     Repeat((usize, Box<Unit>)),
 
-    /// (model, input, max_tokens, temperature)
+    /// (model, input, max_tokens, temperature, accumulate?)
     #[serde(rename = "g")]
-    Generate((String, Box<Unit>, i32, f32)),
-
-    /// Accumulate (model, input, max_tokens, temperature)
-    Accumulate((String, Box<Unit>, i32, f32)),
+    Generate((String, Box<Unit>, i32, f32, bool)),
 
     /// Ask with a given message
     Ask((String,)),
@@ -261,10 +254,9 @@ impl ptree::TreeItem for Unit {
                     style.paint(format!("\x1b[34mSystem\x1b[0m {}", truncate(s, 700))),
                 Unit::Plus(_) => style.paint("\x1b[31;1mPlus\x1b[0m".to_string()),
                 Unit::Cross(_) => style.paint("\x1b[31;1mCross\x1b[0m".to_string()),
-                Unit::Generate((m, _, _, _)) =>
-                    style.paint(format!("\x1b[31;1mGenerate\x1b[0m \x1b[2m{m}\x1b[0m")),
-                Unit::Accumulate((m, _, _, _)) =>
-                    style.paint(format!("\x1b[31;Accumulate\x1b[0m \x1b[2m{m}\x1b[0m")),
+                Unit::Generate((m, _, _, _, accumulate)) => style.paint(format!(
+                    "\x1b[31;1mGenerate\x1b[0m \x1b[2m{m}\x1b[0m accumulate?={accumulate}"
+                )),
                 Unit::Repeat((n, _)) => style.paint(format!("Repeat {n}")),
                 Unit::Ask((m,)) => style.paint(format!("Ask {m}")),
                 Unit::Print((m,)) => style.paint(format!("Print {}", truncate(m, 700))),
@@ -277,7 +269,7 @@ impl ptree::TreeItem for Unit {
             Unit::Ask(_) | Unit::User(_) | Unit::System(_) | Unit::Print(_) => vec![],
             Unit::Plus(v) | Unit::Cross(v) => v.clone(),
             Unit::Repeat((_, v)) => vec![*v.clone()],
-            Unit::Accumulate((_, i, _, _)) | Unit::Generate((_, i, _, _)) => vec![*i.clone()],
+            Unit::Generate((_, i, _, _, _)) => vec![*i.clone()],
             Unit::Retrieve((_, body, (filename, _))) => vec![
                 *body.clone(),
                 Unit::User((format!("<augmentation document: {filename}>"),)),
@@ -403,7 +395,8 @@ mod tests {
                 "ollama/granite3.2:2b".to_string(),
                 Box::new(Unit::User(("hello".to_string(),))),
                 0,
-                0.0
+                0.0,
+                false
             ))
         );
     }
@@ -476,7 +469,8 @@ mod tests {
                 "ollama/granite3.2:2b".to_string(),
                 Box::new(Unit::User(("hello".to_string(),))),
                 0,
-                0.0
+                0.0,
+                false
             ))
         );
         Ok(())
