@@ -16,7 +16,7 @@ type Props = {
 }
 
 export default function DemoSelect(props: Props) {
-  const selected = props.demo
+  const selected = props.demo ?? demos[0].value
 
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)

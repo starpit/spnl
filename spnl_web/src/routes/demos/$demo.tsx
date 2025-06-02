@@ -6,7 +6,8 @@ export const Route = createFileRoute("/demos/$demo")({
   validateSearch: (
     search: Record<string, unknown>,
   ): Omit<BodyProps, "demo"> => ({
-    qv: search.qv === true || search.qv === "true",
+    qv: !search.qv ? undefined : search.qv === true || search.qv === "true",
+    model: search.model,
   }),
 })
 

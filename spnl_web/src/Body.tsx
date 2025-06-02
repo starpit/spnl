@@ -15,6 +15,8 @@ import QueryEditor from "./QueryEditor"
 import Console, { type RunState } from "./Console"
 
 import demos from "./demos"
+import models from "./models"
+
 import { compile_query } from "spnl_wasm"
 
 import "@patternfly/react-core/dist/styles/base.css"
@@ -25,10 +27,15 @@ export type BodyProps = {
 
   /** Demo to show */
   demo: string
+
+  /** Model to use */
+  model: string
 }
 
 export default function Body(props: BodyProps) {
-  const initialQuery = demos.find((d) => d.value === props.demo).query
+  const demo = demos.find((d) => d.value === props.demo)
+  const initialQuery = (demo ?? demos[0]).query
+  const model = props.model || models[0].value
 
   const [unit, setUnit] = useState<null | import("./Unit").Unit>(null)
   const [query, setQuery] = useState<string>(initialQuery)
@@ -58,7 +65,7 @@ export default function Body(props: BodyProps) {
 
   return (
     <Page
-      masthead={<Masthead demo={props.demo} />}
+      masthead={<Masthead demo={props.demo} model={model} />}
       isNotificationDrawerExpanded={!!unit && props.qv}
       notificationDrawer={<Drawer unit={unit} />}
       drawerMinSize="600px"
@@ -92,6 +99,7 @@ export default function Body(props: BodyProps) {
               <div className="pf-v6-c-code-editor__main">
                 <div className="pf-v6-c-code-editor__code">
                   <Console
+                    model={model}
                     runState={runState}
                     query={unit}
                     onComplete={onRunComplete}

@@ -1,6 +1,5 @@
 import Markdown from "react-markdown"
 import { useCallback, useEffect, useState } from "react"
-import useLocalStorageState from "use-local-storage-state"
 import { Content, Stack } from "@patternfly/react-core"
 
 import run from "./run"
@@ -9,15 +8,18 @@ import ProgressUI, { type InitProgress } from "./ProgressUI"
 export type RunState = "idle" | "running" | "success" | "error"
 
 type Props = {
+  model: string
   runState: RunState
   query: null | import("./Unit").Unit
   onComplete(success: boolean): void
 }
 
-export default function Console({ runState, query, onComplete }: Props) {
-  const [defaultModel] = useLocalStorageState<string>("spnl.model.select", {
-    defaultValue: "",
-  })
+export default function Console({
+  model: defaultModel,
+  runState,
+  query,
+  onComplete,
+}: Props) {
   const [progressInit, setProgressInit] = useState<null | InitProgress>(null)
   const [progressDownload, setProgressDownload] = useState(-1)
   const [progressDoPar, setProgressDoPar] = useState<null | InitProgress[]>(

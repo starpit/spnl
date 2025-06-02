@@ -4,7 +4,7 @@ import Body, { type BodyProps } from "../Body.tsx"
 export const Route = createFileRoute("/")({
   component: Index,
   validateSearch: (search: Record<string, unknown>): BodyProps => ({
-    qv: search.qv === true || search.qv === "true",
+    qv: !search.qv ? undefined : search.qv === true || search.qv === "true",
   }),
 })
 
