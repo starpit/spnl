@@ -24,7 +24,7 @@ export default function SPNLMasthead(props: Props) {
       </MastheadMain>
       <MastheadContent>
         <DemoSelect demo={props.demo} />
-        <ModelSelect model={props.model} />
+        <ModelSelect demo={props.demo} model={props.model} />
       </MastheadContent>
     </Masthead>
   )

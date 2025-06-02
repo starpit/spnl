@@ -12,11 +12,11 @@ import {
 import models from "./models"
 
 type Props = {
+  demo: string
   model: string
 }
 
 export default function ModelSelect(props: Props) {
-  console.error("!!!", props.model)
   const selected = props.model
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
@@ -34,6 +34,8 @@ export default function ModelSelect(props: Props) {
 
     setIsOpen(false)
     navigate({
+      to: "/demos/$demo",
+      params: { demo: props.demo },
       search: { model: value === models[0].value ? undefined : String(value) },
     })
   }

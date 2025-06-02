@@ -74,8 +74,8 @@ Email should start with a Subject: ....
 
 Just give me the email text. Add a new line between each of these segments. Don't include any other words, text, or comments.")
                  (user "I am Shiloh, and am applying to IBM research for a data scientist position."))
-                {max_tokens} {temperature})
+                {max_tokens} {temperature} #f)
              )
      ))
-   0 0.0
+   0 0.0 #f
    )

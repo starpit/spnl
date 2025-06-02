@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { useNavigate } from "@tanstack/react-router"
 
 import {
@@ -11,6 +10,7 @@ import PlayIcon from "@patternfly/react-icons/dist/esm/icons/play-icon"
 import TopologyIcon from "@patternfly/react-icons/dist/esm/icons/project-diagram-icon"
 
 type Props = {
+  demo: string
   setQuery(query: string): void
   onExecuteQuery(): void
   isDrawerOpen: boolean
@@ -34,7 +34,13 @@ export default function QueryEditor(props: Props) {
       icon={<TopologyIcon />}
       aria-label="Toggle Query Viewer"
       tooltipProps={{ content: "Toggle Query Viewer" }}
-      onClick={() => navigate({ search: { qv: !props.isDrawerOpen } })}
+      onClick={() =>
+        navigate({
+          to: "/demos/$demo",
+          params: { demo: props.demo },
+          search: { qv: !props.isDrawerOpen },
+        })
+      }
     />,
 
     /*<CodeEditorControl

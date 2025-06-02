@@ -7,9 +7,9 @@
      (repeat {n}
              (g "{model}"
                 (user "write an introductory email for a job application, limited to at most {max_tokens} characters.")
-                {max_tokens} {temperature})))
+                {max_tokens} {temperature} #f)))
 
     (print "Ask the model to select the best option from the candidates")
 
     (user "My name is Shiloh. I am a data scientist with 10 years of experience and need an introductory email to apply for a position at IBM in their research department"))
-   0 0.0)
+   0 0.0 #f)

@@ -23,18 +23,18 @@ import "@patternfly/react-core/dist/styles/base.css"
 
 export type BodyProps = {
   /** Show topology */
-  qv: boolean
+  qv?: boolean
 
   /** Demo to show */
-  demo: string
+  demo?: string
 
   /** Model to use */
-  model: string
+  model?: string
 }
 
 export default function Body(props: BodyProps) {
-  const demo = demos.find((d) => d.value === props.demo)
-  const initialQuery = (demo ?? demos[0]).query
+  const demo = demos.find((d) => d.value === props.demo) ?? demos[0]
+  const initialQuery = demo.query
   const model = props.model || models[0].value
 
   const [unit, setUnit] = useState<null | import("./Unit").Unit>(null)
@@ -65,7 +65,7 @@ export default function Body(props: BodyProps) {
 
   return (
     <Page
-      masthead={<Masthead demo={props.demo} model={model} />}
+      masthead={<Masthead demo={demo.value} model={model} />}
       isNotificationDrawerExpanded={!!unit && props.qv}
       notificationDrawer={<Drawer unit={unit} />}
       drawerMinSize="600px"
@@ -86,7 +86,8 @@ export default function Body(props: BodyProps) {
         <Grid hasGutter>
           <GridItem span={7}>
             <QueryEditor
-              isDrawerOpen={props.qv}
+              demo={demo.value}
+              isDrawerOpen={props.qv ?? false}
               setQuery={setQuery}
               initialQuery={initialQuery}
               onExecuteQuery={onExecuteQuery}

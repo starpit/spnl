@@ -1,14 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router"
-import Body, { type BodyProps } from "../../Body.tsx"
+
+import Body from "../../Body.tsx"
+import validateSearch from "../../validateSearch.ts"
 
 export const Route = createFileRoute("/demos/$demo")({
   component: Demo,
-  validateSearch: (
-    search: Record<string, unknown>,
-  ): Omit<BodyProps, "demo"> => ({
-    qv: !search.qv ? undefined : search.qv === true || search.qv === "true",
-    model: search.model,
-  }),
+  validateSearch,
 })
 
 function Demo() {
