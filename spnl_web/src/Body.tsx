@@ -40,6 +40,7 @@ export default function Body(props: BodyProps) {
     [setRunState],
   )
 
+  useEffect(() => setQuery(initialQuery), [initialQuery, setQuery])
   useEffect(() => {
     try {
       setCompilationError(null)

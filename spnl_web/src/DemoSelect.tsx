@@ -33,7 +33,7 @@ export default function DemoSelect(props: Props) {
     // console.log("selected", value)
 
     setIsOpen(false)
-    navigate({ to: `/demos/${value}` })
+    navigate({ to: `/demos/${value}`, search: true })
   }
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (

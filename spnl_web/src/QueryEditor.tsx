@@ -34,7 +34,7 @@ export default function QueryEditor(props: Props) {
       icon={<TopologyIcon />}
       aria-label="Toggle Query Viewer"
       tooltipProps={{ content: "Toggle Query Viewer" }}
-      onClick={() => navigate({ to: "/", search: { qv: !props.isDrawerOpen } })}
+      onClick={() => navigate({ search: { qv: !props.isDrawerOpen } })}
     />,
 
     /*<CodeEditorControl
