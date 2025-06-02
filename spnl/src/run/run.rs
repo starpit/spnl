@@ -73,8 +73,26 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
             .await
         }
 
+        // This is Generate, but one that accumulates the output
+        Unit::Accumulate((model, input, max_tokens, temp)) => {
+            let mut accum = match &**input {
+                Unit::Cross(v) => v.clone(),
+                _ => vec![*input.clone()],
+            };
+            loop {
+                let program = Unit::Generate((
+                    model.clone(),
+                    Box::new(Unit::Cross(accum.clone())),
+                    *max_tokens,
+                    *temp,
+                ));
+                let out = run(&program, rp, m).await?;
+                accum.push(out.clone());
+            }
+        }
+
         #[cfg(not(feature = "cli_support"))]
-        Unit::Ask((message,)) => todo!(),
+        Unit::Ask((message,)) => todo!("ask"),
         #[cfg(feature = "cli_support")]
         Unit::Ask((message,)) => {
             use rustyline::error::ReadlineError;
@@ -86,23 +104,16 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
                     line
                 }
                 Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
-                    ::std::process::exit(0)
+                    ::std::process::exit(0) // TODO this only works in a CLI
                 }
-                Err(err) => panic!("{}", err),
+                Err(err) => panic!("{}", err), // TODO this only works in a CLI
             };
             rl.append_history("history.txt").unwrap();
             Ok(Unit::User((prompt,)))
         }
 
         // should not happen
-        Unit::Repeat(_) => todo!(),
-
-        Unit::Loop(l) => loop {
-            let mut iter = l.iter();
-            while let Some(e) = iter.next() {
-                run(e, rp, m).await?;
-            }
-        },
+        Unit::Repeat(_) => todo!("repeat"),
     }
 }
 

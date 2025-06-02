@@ -25,6 +25,6 @@ pub async fn generate(
             crate::run::openai::generate_openai(&m[7..], input, max_tokens, temp, mp).await
         }
 
-        _ => todo!(),
+        _ => todo!("Unknown model {model}"),
     }
 }

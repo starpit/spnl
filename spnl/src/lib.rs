@@ -18,6 +18,21 @@ macro_rules! spnl {
         ))
     );
 
+    // Core: Generate with accumulation
+    (gx $model:tt $input:tt) => ($crate::spnl!(gx $model $input 0.0 0));
+
+    // Core: Generate with accumulation with temperature $temp
+    (gx $model:tt $input:tt $temp:tt) => ($crate::spnl!(gx $model $input $temp 0));
+
+    // Core: Generate with accumulation with temperature $temp and $max_tokens
+    (gx $model:tt $input:tt $temp:tt $max_tokens:tt) => (
+        $crate::Unit::Accumulate((
+            $crate::spnl_arg!($model).to_string(),
+            Box::new($crate::spnl_arg!($input).into()),
+            $crate::spnl_arg!($max_tokens), $crate::spnl_arg!($temp)
+        ))
+    );
+
     // Core: Dependent/needs-attention
     (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
 
@@ -162,10 +177,6 @@ macro_rules! spnl {
     // Utility: print a helpful message to the console
     (print $message:tt) => ( $crate::Unit::Print(($crate::spnl_arg!($message).into(),)) );
 
-    // Utility: loop
-    // (loop $( ( $($e:tt)* ) )* ) => ( loop { $( $crate::spnl!( $($e)* ) );* } );
-    (loop $( ( $($e:tt)* ) )* ) => ( $crate::Unit::Loop(vec![$( $crate::spnl!( $($e)* ) ),*]) );
-
     // Utility:
     (format $fmt:tt $( $e:tt )*) => ( &format!($fmt, $($crate::spnl_arg!($e)),* ) );
 
@@ -208,12 +219,12 @@ pub enum Unit {
     /// Helpful for repeating an operation n times in a Plus
     Repeat((usize, Box<Unit>)),
 
-    /// (model, input, max_tokens)
+    /// (model, input, max_tokens, temperature)
     #[serde(rename = "g")]
     Generate((String, Box<Unit>, i32, f32)),
 
-    /// Loop
-    Loop(Vec<Unit>),
+    /// Accumulate (model, input, max_tokens, temperature)
+    Accumulate((String, Box<Unit>, i32, f32)),
 
     /// Ask with a given message
     Ask((String,)),
@@ -252,8 +263,9 @@ impl ptree::TreeItem for Unit {
                 Unit::Cross(_) => style.paint("\x1b[31;1mCross\x1b[0m".to_string()),
                 Unit::Generate((m, _, _, _)) =>
                     style.paint(format!("\x1b[31;1mGenerate\x1b[0m \x1b[2m{m}\x1b[0m")),
+                Unit::Accumulate((m, _, _, _)) =>
+                    style.paint(format!("\x1b[31;Accumulate\x1b[0m \x1b[2m{m}\x1b[0m")),
                 Unit::Repeat((n, _)) => style.paint(format!("Repeat {n}")),
-                Unit::Loop(_) => style.paint("Loop".to_string()),
                 Unit::Ask((m,)) => style.paint(format!("Ask {m}")),
                 Unit::Print((m,)) => style.paint(format!("Print {}", truncate(m, 700))),
                 Unit::Retrieve((_, _, _)) => style.paint("\x1b[34;1mAugment\x1b[0m".to_string()),
@@ -264,9 +276,8 @@ impl ptree::TreeItem for Unit {
         ::std::borrow::Cow::from(match self {
             Unit::Ask(_) | Unit::User(_) | Unit::System(_) | Unit::Print(_) => vec![],
             Unit::Plus(v) | Unit::Cross(v) => v.clone(),
-            Unit::Loop(v) => v.clone(),
             Unit::Repeat((_, v)) => vec![*v.clone()],
-            Unit::Generate((_, i, _, _)) => vec![*i.clone()],
+            Unit::Accumulate((_, i, _, _)) | Unit::Generate((_, i, _, _)) => vec![*i.clone()],
             Unit::Retrieve((_, body, (filename, _))) => vec![
                 *body.clone(),
                 Unit::User((format!("<augmentation document: {filename}>"),)),

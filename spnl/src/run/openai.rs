@@ -86,16 +86,7 @@ pub async fn generate_openai(
         stdout.write_all(b"\n").await?;
     }
 
-    if let Some(_) = m {
-        Ok(Unit::User((response_string,)))
-    } else {
-        Ok(Unit::Generate((
-            model.to_string(),
-            Box::new(Unit::User((response_string,))),
-            max_tokens,
-            temp,
-        )))
-    }
+    Ok(Unit::User((response_string,)))
 }
 
 fn messagify(input: &Unit) -> Vec<ChatCompletionRequestMessage> {
