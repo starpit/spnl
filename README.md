@@ -15,6 +15,8 @@ bulk (multi-generation) queries, they can be *planned* so as to:
 
 [Learn more](./docs/about.md) about span queries.
 
+**Examples** [Judge/generator](https://pages.github.ibm.com/cloud-computer/spnl/?demo=email&qv=true) **|** [Judge/generator (optimized)](https://pages.github.ibm.com/cloud-computer/spnl/?demo=email2&qv=true) **|** [Policy-driven email generation](https://pages.github.ibm.com/cloud-computer/spnl/?demo=email3&qv=true)
+
 ## Getting Started
 
 The span query system is written in
