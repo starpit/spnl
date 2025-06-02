@@ -14,6 +14,7 @@ import Masthead from "./Masthead"
 import QueryEditor from "./QueryEditor"
 import Console, { type RunState } from "./Console"
 
+import demos from "./demos"
 import { compile_query } from "spnl_wasm"
 
 import "@patternfly/react-core/dist/styles/base.css"
@@ -21,11 +22,16 @@ import "@patternfly/react-core/dist/styles/base.css"
 export type BodyProps = {
   /** Show topology */
   qv: boolean
+
+  /** Demo to show */
+  demo: string
 }
 
 export default function Body(props: BodyProps) {
+  const initialQuery = demos.find((d) => d.value === props.demo).query
+
   const [unit, setUnit] = useState<null | import("./Unit").Unit>(null)
-  const [query, setQuery] = useState<null | string>(null)
+  const [query, setQuery] = useState<string>(initialQuery)
   const [compilationError, setCompilationError] = useState<null | Error>(null)
 
   const [runState, setRunState] = useState<RunState>("idle")
@@ -35,16 +41,12 @@ export default function Body(props: BodyProps) {
   )
 
   useEffect(() => {
-    if (!query) {
-      setUnit(null)
-    } else {
-      try {
-        setCompilationError(null)
-        setUnit(JSON.parse(compile_query(query)) as import("./Unit").Unit)
-      } catch (err) {
-        console.error(err)
-        setCompilationError(err as Error)
-      }
+    try {
+      setCompilationError(null)
+      setUnit(JSON.parse(compile_query(query)) as import("./Unit").Unit)
+    } catch (err) {
+      console.error(err)
+      setCompilationError(err as Error)
     }
   }, [query, setUnit])
 
@@ -55,7 +57,7 @@ export default function Body(props: BodyProps) {
 
   return (
     <Page
-      masthead={<Masthead />}
+      masthead={<Masthead demo={props.demo} />}
       isNotificationDrawerExpanded={!!unit && props.qv}
       notificationDrawer={<Drawer unit={unit} />}
       drawerMinSize="600px"
@@ -63,8 +65,8 @@ export default function Body(props: BodyProps) {
       <PageSection>
         <HelperText component="ul" style={{ marginBottom: "1em" }}>
           <HelperTextItem>
-            Welcome to the Span Query Playground. Edit your query on the left, then
-            click Run to execute it.
+            Welcome to the Span Query Playground. Edit your query on the left,
+            then click Run to execute it.
           </HelperTextItem>
           {compilationError && (
             <HelperTextItem component="li" variant="error">
@@ -78,6 +80,7 @@ export default function Body(props: BodyProps) {
             <QueryEditor
               isDrawerOpen={props.qv}
               setQuery={setQuery}
+              initialQuery={initialQuery}
               onExecuteQuery={onExecuteQuery}
             />
           </GridItem>

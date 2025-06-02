@@ -1,6 +1,5 @@
 import { useEffect } from "react"
 import { useNavigate } from "@tanstack/react-router"
-import useLocalStorageState from "use-local-storage-state"
 
 import {
   CodeEditor,
@@ -15,11 +14,11 @@ type Props = {
   setQuery(query: string): void
   onExecuteQuery(): void
   isDrawerOpen: boolean
+  initialQuery: string
 }
 
 export default function QueryEditor(props: Props) {
   const navigate = useNavigate()
-  const [initialQuery] = useLocalStorageState<string>("spnl.demo.select")
 
   const customControls = [
     <CodeEditorControl
@@ -47,18 +46,13 @@ export default function QueryEditor(props: Props) {
     />,*/
   ]
 
-  const { setQuery } = props
-  useEffect(() => {
-    if (initialQuery) setQuery(initialQuery)
-  }, [setQuery, initialQuery])
-
   return (
     <CodeEditor
       isCopyEnabled
       isDarkTheme
       isLineNumbersVisible={false}
       isMinimapVisible={false}
-      code={initialQuery || ""}
+      code={props.initialQuery || ""}
       headerMainContent="Query Editor"
       customControls={customControls}
       options={{ fontSize: 14, wordWrap: "on" }}

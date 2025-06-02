@@ -9,7 +9,11 @@ import {
 import DemoSelect from "./DemoSelect"
 import ModelSelect from "./ModelSelect"
 
-export default function SPNLMasthead() {
+type Props = {
+  demo: string
+}
+
+export default function SPNLMasthead(props: Props) {
   return (
     <Masthead>
       <MastheadMain>
@@ -18,7 +22,7 @@ export default function SPNLMasthead() {
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent>
-        <DemoSelect />
+        <DemoSelect demo={props.demo} />
         <ModelSelect />
       </MastheadContent>
     </Masthead>
