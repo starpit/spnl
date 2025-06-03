@@ -87,7 +87,17 @@ pub async fn generate_ollama(
         stdout.write_all(b"\n").await?;
     }
 
-    Ok(Unit::User((response_string,)))
+    if let Some(_) = m {
+        Ok(Unit::User((response_string,)))
+    } else {
+        Ok(Unit::Generate((
+            format!("ollama/{model}"),
+            Box::new(Unit::User((response_string,))),
+            max_tokens,
+            temp,
+            false,
+        )))
+    }
 }
 
 fn messagify(input: &Unit) -> Vec<ChatMessage> {

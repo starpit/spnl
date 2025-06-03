@@ -1,21 +1,37 @@
 use crate::args::Args;
 use spnl::{Unit, spnl};
 
-#[derive(serde::Deserialize)]
-struct Problem {
-    question: String,
-    // answer: String,
-}
-
 pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
     let Args {
         model,
         embedding_model,
+        question,
+        document,
         ..
     } = args;
 
-    Ok(spnl!(g model
-             (with embedding_model
-              (user "Does PDL have a contribute keyword?")
-              (fetchb "./rag-doc1.pdf"))))
+    let doc = if document == "./rag-doc1.pdf" {
+        document
+    } else {
+        ::std::path::absolute(document)?
+            .into_os_string()
+            .into_string()
+            .expect("string")
+    };
+
+    Ok(
+        match ::std::path::Path::new(&doc)
+            .extension()
+            .and_then(std::ffi::OsStr::to_str)
+        {
+            Some("txt") | Some("json") | Some("jsonl") => spnl!(g model
+                  (with embedding_model
+                   (user question)
+                   (fetchn doc))),
+            _ => spnl!(g model
+                   (with embedding_model
+                    (user question)
+                    (fetchb doc))),
+        },
+    )
 }

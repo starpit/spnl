@@ -51,18 +51,18 @@ macro_rules! spnl {
     (filen $f:tt) => (($crate::spnl_arg!($f).to_string(), include_str!($crate::spnl_arg!($f)).to_string()));
 
     // Data: incorporate a file at run time
-    (fetch $f:tt) => ($crate::spnl!(fetchn $f).1);
+    (fetch $f:tt) => (match $crate::spnl!(fetchn $f).1 { $crate::Document::Text(a) => a,  $crate::Document::Binary(b) => String::from_utf8(b).expect("string") });
 
     // Data: incorporate a file at run time, preserving file name
     (fetchn $f:tt) => {{
         let filename = ::std::path::Path::new(file!()).parent().expect("macro to have parent directory").join($crate::spnl_arg!($f));
-        (filename.clone().into_os_string().into_string().expect("filename"), ::std::fs::read_to_string(filename).expect("file to be read"))
+        (filename.clone().into_os_string().into_string().expect("filename"), $crate::Document::Text(::std::fs::read_to_string(filename).expect("error reading file")))
     }};
 
     // Data: incorporate a binary file at run time, preserving file name
     (fetchb $f:tt) => {{
         let filename = ::std::path::Path::new(file!()).parent().expect("macro to have parent directory").join($crate::spnl_arg!($f));
-        (filename.clone().into_os_string().into_string().expect("filename"), $crate::Document::Binary(::std::fs::read(filename).expect("file to be read")))
+        (filename.clone().into_os_string().into_string().expect("filename"), $crate::Document::Binary(::std::fs::read(filename).expect("error reading file")))
     }};
 
     // Data: peel off the first $n elements of the given serialized

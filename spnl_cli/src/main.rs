@@ -30,7 +30,7 @@ async fn main() -> Result<(), SpnlError> {
         Some(Demo::Email) => email::demo(args),
         Some(Demo::Email2) => email2::demo(args),
         Some(Demo::Email3) => email3::demo(args),
-        Some(Demo::SWEAgent) => sweagent::demo(args),
+        Some(Demo::SWEAgent) => sweagent::demo(args).expect("sweagent query to be prepared"),
         Some(Demo::GSM8k) => gsm8k::demo(args).expect("gsm8k query to be prepared"),
         Some(Demo::Rag) => rag::demo(args).expect("rag demo to be prepared"),
         None => {
@@ -51,7 +51,7 @@ async fn main() -> Result<(), SpnlError> {
         let _ = pretty_print(&program)?;
         return Ok(());
     } else if verbose {
-        ptree::print_tree(&program)?;
+        ptree::write_tree(&program, ::std::io::stderr())?;
     }
 
     run(&program, &rp, None).await.map(|res| {

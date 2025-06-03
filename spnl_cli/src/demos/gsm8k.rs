@@ -1,12 +1,6 @@
 use crate::args::Args;
 use spnl::{Unit, spnl};
 
-#[derive(serde::Deserialize)]
-struct Problem {
-    question: String,
-    // answer: String,
-}
-
 pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
     let Args {
         model,

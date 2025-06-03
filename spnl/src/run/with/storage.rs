@@ -51,6 +51,7 @@ impl VecDB {
             .default_table
             .query()
             .nearest_to(vector)?
+            .distance_range(None, Some(1.0))
             .limit(n)
             .execute()
             .await?
@@ -97,8 +98,16 @@ impl VecDB {
         let batch_iterator = RecordBatchIterator::new(batches, schema);
         // Create a RecordBatch stream.
         let boxed_batches = Box::new(batch_iterator);
+
         // add them to the table
-        self.default_table.add(boxed_batches).execute().await?;
+        //self.default_table.add(boxed_batches).execute().await?;
+
+        let mut merge_insert = self.default_table.merge_insert(&["filename"]);
+        merge_insert
+            .when_matched_update_all(None)
+            .when_not_matched_insert_all();
+        merge_insert.execute(Box::new(boxed_batches)).await?;
+
         Ok(())
     }
 

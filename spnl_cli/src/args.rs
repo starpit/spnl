@@ -13,7 +13,7 @@ pub struct Args {
     pub demo: Option<Demo>,
 
     /// Generative Model
-    #[arg(short, long, default_value = "ollama/granite3.2:2b")]
+    #[arg(short, long, default_value = "ollama/granite3.3:2b")]
     pub model: String,
 
     /// Embedding Model
@@ -39,6 +39,18 @@ pub struct Args {
     /// Vector DB Url
     #[arg(long, default_value = "data/spnl")]
     pub vecdb_uri: String,
+
+    /// Question to pose
+    #[arg(
+        short = 'w',
+        long,
+        default_value = "Does PDL have a contribute keyword?"
+    )]
+    pub question: String,
+
+    /// Document that will augment the question
+    #[arg(short = 'r', long, default_value = "./rag-doc1.pdf")]
+    pub document: String,
 
     /// Re-emit the compiled query
     #[arg(short, long, default_value_t = false)]
