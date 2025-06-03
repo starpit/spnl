@@ -57,7 +57,16 @@ export default function Console({
         })
         onComplete(true)
       } catch (err) {
-        console.error(err)
+        const msg = String(err)
+        if (/WebGPUNotAvailableError/.test(msg)) {
+          // want: instanceof WebGPUNotAvailableError) {
+          setExecutionOutput(
+            "**Error**: this browser does not support WebGPU. Consult [this page](https://caniuse.com/webgpu) to find a supported browser. Chrome is a good bet right now.",
+          )
+        } else {
+          console.error(err)
+          setExecutionOutput("**Error**: " + msg)
+        }
         onComplete(false)
       }
     }
