@@ -36,9 +36,7 @@ export default function QueryEditor(props: Props) {
       tooltipProps={{ content: "Toggle Query Viewer" }}
       onClick={() =>
         navigate({
-          to: "/demos/$demo",
-          params: { demo: props.demo },
-          search: { qv: !props.isDrawerOpen },
+          search: { demo: props.demo, qv: !props.isDrawerOpen },
         })
       }
     />,

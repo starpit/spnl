@@ -27,13 +27,13 @@ export default function DemoSelect(props: Props) {
 
   const onSelect = (
     _event: React.MouseEvent<Element, MouseEvent> | undefined,
-    value: string | number | undefined,
+    demo: string | number | undefined,
   ) => {
     // eslint-disable-next-line no-console
     // console.log("selected", value)
 
     setIsOpen(false)
-    navigate({ to: `/demos/${value}`, search: true })
+    navigate({ search: { demo }})
   }
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
