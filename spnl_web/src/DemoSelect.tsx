@@ -32,8 +32,10 @@ export default function DemoSelect(props: Props) {
     // eslint-disable-next-line no-console
     // console.log("selected", value)
 
-    setIsOpen(false)
-    navigate({ search: { demo }})
+    if (typeof demo === "string") {
+      setIsOpen(false)
+      navigate({ to: "/", search: { demo } })
+    }
   }
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (

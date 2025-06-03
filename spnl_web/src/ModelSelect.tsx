@@ -34,8 +34,7 @@ export default function ModelSelect(props: Props) {
 
     setIsOpen(false)
     navigate({
-      to: "/demos/$demo",
-      params: { demo: props.demo },
+      to: "/",
       search: { model: value === models[0].value ? undefined : String(value) },
     })
   }
