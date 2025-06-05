@@ -5574,6 +5574,7 @@ dependencies = [
  "rustyline",
  "serde",
  "serde-lexpr",
+ "serde_json",
  "tokio",
  "tokio-stream",
  "tracing",

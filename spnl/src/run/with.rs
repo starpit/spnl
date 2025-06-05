@@ -35,6 +35,24 @@ fn windowed_text(s: &String) -> Result<Vec<String>, SpnlError> {
     //        .collect())
 }
 
+#[derive(serde::Deserialize)]
+struct JsonlText {
+    text: String,
+}
+
+/// e.g. bytes="a\nb\nc\nd", window_width=2 -> ["a\nb", "b\nc", "c\nd"]
+fn windowed_jsonl(s: &String) -> Result<Vec<String>, SpnlError> {
+    s.lines()
+        .map(|s| Ok(serde_json::from_str::<JsonlText>(s)?.text))
+        .collect::<Result<_, _>>()
+    //        .filter(|s| s.len() > 0)
+    //        .collect::<Vec<_>>()
+    //        .windows(window_width)
+    //        .step_by(window_width - 2)
+    //        .map(|s| s.join("\n"))
+    //        .collect())
+}
+
 pub async fn embed_and_retrieve(
     embedding_model: &String,
     body: &Unit,
@@ -66,7 +84,8 @@ pub async fn embed_and_retrieve(
                 .extension()
                 .and_then(std::ffi::OsStr::to_str),
         ) {
-            (Document::Text(content), _) => windowed_text(content),
+            (Document::Text(content), Some("txt")) => windowed_text(content),
+            (Document::Text(content), Some("jsonl")) => windowed_jsonl(content),
             (Document::Binary(content), Some("pdf")) => windowed_pdf(&content, window_size),
             _ => Err(Box::from(format!(
                 "Unsupported `with` binary document {filename}"
