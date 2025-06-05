@@ -108,11 +108,18 @@ fn messagify(input: &Unit) -> Vec<ChatCompletionRequestMessage> {
                 content: ChatCompletionRequestSystemMessageContent::Text(s.clone()),
             },
         )],
-        o => vec![ChatCompletionRequestMessage::User(
-            ChatCompletionRequestUserMessage {
-                name: None,
-                content: ChatCompletionRequestUserMessageContent::Text(o.to_string()),
-            },
-        )],
+        o => {
+            let s = o.to_string();
+            if s.len() == 0 {
+                vec![]
+            } else {
+                vec![ChatCompletionRequestMessage::User(
+                    ChatCompletionRequestUserMessage {
+                        name: None,
+                        content: ChatCompletionRequestUserMessageContent::Text(o.to_string()),
+                    }
+                )]
+            }
+        }
     }
 }
