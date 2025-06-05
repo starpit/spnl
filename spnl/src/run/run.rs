@@ -4,7 +4,10 @@ use indicatif::MultiProgress;
 use crate::{Unit, run::result::SpnlResult};
 
 pub struct RunParameters {
+    /// URI of vector database. Could be a local filepath.
     pub vecdb_uri: String,
+
+    /// Name of table to use in vector database.
     pub vecdb_table: String,
 }
 

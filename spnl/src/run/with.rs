@@ -19,20 +19,20 @@ fn windowed_pdf(bytes: &Vec<u8>, window_width: usize) -> Result<Vec<String>, Spn
         .filter(|s| s.len() > 0)
         .collect::<Vec<_>>()
         .windows(window_width)
-        .step_by(window_width - 2)
+        .step_by(2)
         .map(|s| s.join("\n"))
         .collect())
 }
 
 /// e.g. bytes="a\nb\nc\nd", window_width=2 -> ["a\nb", "b\nc", "c\nd"]
-fn windowed_text(s: &String, window_width: usize) -> Result<Vec<String>, SpnlError> {
-    Ok(s.lines()
-        .filter(|s| s.len() > 0)
-        .collect::<Vec<_>>()
-        .windows(window_width)
-        .step_by(window_width - 2)
-        .map(|s| s.join("\n"))
-        .collect())
+fn windowed_text(s: &String) -> Result<Vec<String>, SpnlError> {
+    Ok(s.lines().map(|s| s.to_string()).collect())
+    //        .filter(|s| s.len() > 0)
+    //        .collect::<Vec<_>>()
+    //        .windows(window_width)
+    //        .step_by(window_width - 2)
+    //        .map(|s| s.join("\n"))
+    //        .collect())
 }
 
 pub async fn embed_and_retrieve(
@@ -42,16 +42,23 @@ pub async fn embed_and_retrieve(
     db_uri: &str,
     table_name_base: &str,
 ) -> SpnlResult {
-    let max_matches = 100; // TODO allow to be specified in query
-    let table_name =
-        storage::VecDB::sanitize_table_name(format!("{table_name_base}.{filename}").as_str());
+    use std::time::Instant;
+    let now = Instant::now();
+
+    let embedding_batch_size = 64; // Number of fragment embeddings to perform in a single call
+    let max_matches = 100; // Maximum number of relevant fragments to consider
+
+    let window_size = match content {
+        Document::Text(_) => 1,
+        Document::Binary(_) => 8,
+    };
+
+    let table_name = storage::VecDB::sanitize_table_name(
+        format!("{table_name_base}.{embedding_model}.{window_size}.{filename}").as_str(),
+    );
     let db = storage::VecDB::connect(db_uri, table_name.as_str()).await?;
 
-    let window = match content {
-        Document::Text(_) => 64,
-        _ => 4,
-    };
-    let done_file = ::std::path::PathBuf::from(db_uri).join(format!("{table_name}.{window}.ok"));
+    let done_file = ::std::path::PathBuf::from(db_uri).join(format!("{table_name}.ok"));
     if !::std::fs::exists(&done_file)? {
         let doc_content = match (
             content,
@@ -59,42 +66,45 @@ pub async fn embed_and_retrieve(
                 .extension()
                 .and_then(std::ffi::OsStr::to_str),
         ) {
-            (Document::Text(content), _) => windowed_text(content, window),
-            (Document::Binary(content), Some("pdf")) => windowed_pdf(&content, window),
+            (Document::Text(content), _) => windowed_text(content),
+            (Document::Binary(content), Some("pdf")) => windowed_pdf(&content, window_size),
             _ => Err(Box::from(format!(
                 "Unsupported `with` binary document {filename}"
             ))),
         }?;
+        let key = doc_content.as_slice();
 
         eprintln!(
             "Embedding document {filename} with {} fragments using {embedding_model}",
             doc_content.len()
         );
-        /*let docs_vectors = ::futures::future::try_join_all(
-                doc_content
-                    .iter()
-                    .map(|chunk| embed(embedding_model, EmbedData::Vec(vec![chunk.clone()])))
-        ).await?.into_iter().flatten().collect();*/
         let m = MultiProgress::new();
-        let pb = m.add(ProgressBar::new(doc_content.len() as u64));
+        let pb = m.add(ProgressBar::new(
+            (doc_content.len() / embedding_batch_size).try_into()?,
+        ));
+        pb.inc(0);
+        let mut iter = doc_content.chunks(embedding_batch_size);
         let mut docs_vectors = vec![];
-        let mut iter = doc_content.iter();
-        while let Some(doc) = iter.next() {
-            let e = embed(embedding_model, EmbedData::Vec(vec![doc.clone()])).await?;
-            if e[0].len() < 1024 {
-                let mut ee = e[0].clone();
-                ee.resize(1024, 0.0);
-                docs_vectors.push(ee)
-            } else {
-                docs_vectors.extend(e);
-            }
+        while let Some(docs) = iter.next() {
+            let vecs = embed(embedding_model, EmbedData::Vec(docs.to_vec()))
+                .await?
+                .into_iter()
+                .map(|vec| {
+                    if vec.len() < 1024 {
+                        let mut ee = vec.clone();
+                        ee.resize(1024, 0.0);
+                        ee
+                    } else {
+                        vec
+                    }
+                });
             pb.inc(1);
+            docs_vectors.extend(vecs);
         }
         pb.finish();
 
         eprintln!("Inserting document embeddings {}", docs_vectors.len());
-        db.add_vector(doc_content.as_slice(), docs_vectors, 1024)
-            .await?;
+        db.add_vector(key, docs_vectors, 1024).await?;
 
         ::std::fs::OpenOptions::new()
             .create(true)
@@ -161,12 +171,15 @@ pub async fn embed_and_retrieve(
         matching_docs.clone().count()
     );
     eprintln!(
-        "RAG size reduction {:.2}x {len1} -> {len2} bytes",
+        "RAG size reduction factor {:.2} {len1} -> {len2} bytes",
         len1 / len2,
     );
 
     let d = matching_docs
-        .map(|doc| Unit::User((doc,)))
+        .enumerate()
+        .map(|(idx, doc)| Unit::User((format!("Relevant document {idx}: {doc}"),)))
         .collect::<Vec<_>>();
+
+    eprintln!("RAG time {:.2?} ms", now.elapsed().as_millis());
     Ok(Unit::Plus(d))
 }

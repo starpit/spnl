@@ -99,9 +99,8 @@ macro_rules! spnl {
     (with $embedding_model:tt $input:tt $( $doc:tt )+) => (
         $crate::spnl!(
             cross
-                (user "Here are some relevant documents that may help answer the following question. Relevant documents:")
                 (plus $( (__spnl_retrieve $embedding_model $input $doc) )+)
-                (user "And here is the question:")
+                (user "Please answer this question:")
                 $input
         )
     );

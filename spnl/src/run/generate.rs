@@ -9,7 +9,10 @@ pub async fn generate(
     temp: f32,
     mp: Option<&MultiProgress>,
 ) -> SpnlResult {
-    match model {
+    use std::time::Instant;
+    let now = Instant::now();
+
+    let res = match model {
         #[cfg(feature = "ollama")]
         m if m.starts_with("ollama/") => {
             crate::run::ollama::generate_ollama(&m[7..], input, max_tokens, temp, mp).await
@@ -26,5 +29,8 @@ pub async fn generate(
         }
 
         _ => todo!("Unknown model {model}"),
-    }
+    };
+
+    eprintln!("Generate time {:.2?} ms", now.elapsed().as_millis());
+    res
 }
