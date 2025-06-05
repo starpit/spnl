@@ -12,7 +12,9 @@ use crate::{
 
 mod storage;
 
-/// e.g. bytes="a\nb\nc\nd", window_width=2 -> ["a\nb", "b\nc", "c\nd"]
+/// This fragments and windows the lines in the given PDF content. For
+/// example if bytes="a\nb\nc\nd" and window_width=2, this will
+/// produce ["a\nb", "b\nc", "c\nd"]
 fn windowed_pdf(bytes: &Vec<u8>, window_width: usize) -> Result<Vec<String>, SpnlError> {
     Ok(pdf_extract::extract_text_from_mem(&bytes)?
         .lines()
@@ -24,15 +26,10 @@ fn windowed_pdf(bytes: &Vec<u8>, window_width: usize) -> Result<Vec<String>, Spn
         .collect())
 }
 
-/// e.g. bytes="a\nb\nc\nd", window_width=2 -> ["a\nb", "b\nc", "c\nd"]
+/// This treats every line of text as a separate document, with no
+/// need for windowing or sub-fragmentation.
 fn windowed_text(s: &String) -> Result<Vec<String>, SpnlError> {
     Ok(s.lines().map(|s| s.to_string()).collect())
-    //        .filter(|s| s.len() > 0)
-    //        .collect::<Vec<_>>()
-    //        .windows(window_width)
-    //        .step_by(window_width - 2)
-    //        .map(|s| s.join("\n"))
-    //        .collect())
 }
 
 #[derive(serde::Deserialize)]
@@ -40,17 +37,19 @@ struct JsonlText {
     text: String,
 }
 
-/// e.g. bytes="a\nb\nc\nd", window_width=2 -> ["a\nb", "b\nc", "c\nd"]
+/// This treats every jsonl line as a separate document, with no need
+/// for windowing or sub-fragmentation.
 fn windowed_jsonl(s: &String) -> Result<Vec<String>, SpnlError> {
-    s.lines()
-        .map(|s| Ok(serde_json::from_str::<JsonlText>(s)?.text))
-        .collect::<Result<_, _>>()
-    //        .filter(|s| s.len() > 0)
-    //        .collect::<Vec<_>>()
-    //        .windows(window_width)
-    //        .step_by(window_width - 2)
-    //        .map(|s| s.join("\n"))
-    //        .collect())
+    Ok(serde_json::Deserializer::from_str(s)
+        .into_iter::<JsonlText>()
+        .filter_map(|line| match line {
+            Ok(JsonlText { text }) => Some(text),
+            Err(s) => {
+                eprintln!("Error parsing jsonl line {:?}", s);
+                None
+            }
+        })
+        .collect())
 }
 
 pub async fn embed_and_retrieve(
