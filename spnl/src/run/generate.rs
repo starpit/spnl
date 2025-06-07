@@ -9,9 +9,6 @@ pub async fn generate(
     temp: f32,
     mp: Option<&MultiProgress>,
 ) -> SpnlResult {
-    use std::time::Instant;
-    let now = Instant::now();
-
     let res = match model {
         #[cfg(feature = "ollama")]
         m if m.starts_with("ollama/") => {
@@ -31,6 +28,5 @@ pub async fn generate(
         _ => todo!("Unknown model {model}"),
     };
 
-    eprintln!("Generate time {:.2?} ms", now.elapsed().as_millis());
     res
 }
