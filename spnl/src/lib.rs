@@ -351,8 +351,14 @@ mod tests {
     }
     #[test]
     fn macro_plus_1() {
-        let result = spnl!(plus (user "hello"));
-        assert_eq!(result, Unit::Plus(vec![Unit::User(("hello".to_string(),))]));
+        let result = spnl!(plus (user "hello") (user "world"));
+        assert_eq!(
+            result,
+            Unit::Plus(vec![
+                Unit::User(("hello".to_string(),)),
+                Unit::User(("world".to_string(),))
+            ])
+        );
     }
     #[test]
     fn macro_plus_2() {
@@ -375,13 +381,17 @@ mod tests {
     }
     #[test]
     fn macro_cross_3() {
-        let result = spnl!(cross (user "hello") (system "world") (plus (user "sloop")));
+        let result =
+            spnl!(cross (user "hello") (system "world") (plus (user "sloop") (user "boop")));
         assert_eq!(
             result,
             Unit::Cross(vec![
                 Unit::User(("hello".to_string(),)),
                 Unit::System(("world".to_string(),)),
-                Unit::Plus(vec![Unit::User(("sloop".to_string(),))])
+                Unit::Plus(vec![
+                    Unit::User(("sloop".to_string(),)),
+                    Unit::User(("boop".to_string(),))
+                ])
             ])
         );
     }
@@ -461,7 +471,7 @@ mod tests {
     }
     #[test]
     fn serde_gen() -> Result<(), serde_lexpr::error::Error> {
-        let result = from_str("(g \"ollama/granite3.2:2b\" (user \"hello\") 0 0.0)")?;
+        let result = from_str("(g \"ollama/granite3.2:2b\" (user \"hello\") 0 0.0 #f)")?;
         assert_eq!(
             result,
             Unit::Generate((

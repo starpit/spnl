@@ -128,7 +128,15 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() -> Result<(), SpnlError> {
-        let result = run(&"hello".into(), RunParameters { vecdb_uri: "" }, None).await?;
+        let result = run(
+            &"hello".into(),
+            &RunParameters {
+                vecdb_table: "".into(),
+                vecdb_uri: "".into(),
+            },
+            None,
+        )
+        .await?;
         assert_eq!(result, Unit::User(("hello".to_string(),)));
         Ok(())
     }
