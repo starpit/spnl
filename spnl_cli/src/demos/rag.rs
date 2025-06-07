@@ -25,13 +25,15 @@ pub fn demo(args: Args) -> Result<Unit, Box<dyn ::std::error::Error>> {
             .and_then(std::ffi::OsStr::to_str)
         {
             Some("txt") | Some("json") | Some("jsonl") => spnl!(g model
-                  (with embedding_model
-                   (user question)
-                   (fetchn doc))),
+                      (cross (system r#"You answer only with either "UNANSWERABLE" or "ANSWERABLE" depending on whether or not the given documents are sufficient to answer the question."#)
+                       (with embedding_model
+                        (user question)
+                        (fetchn doc)))),
             _ => spnl!(g model
-                   (with embedding_model
+                       (cross (system r#"The format of your answer is either "UNANSWERABLE" or "ANSWERABLE" depending on whether or not the given documents are sufficient to answer the question."#)
+                        (with embedding_model
                     (user question)
-                    (fetchb doc))),
+                    (fetchb doc)))),
         },
     )
 }

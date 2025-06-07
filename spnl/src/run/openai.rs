@@ -117,7 +117,7 @@ fn messagify(input: &Unit) -> Vec<ChatCompletionRequestMessage> {
                     ChatCompletionRequestUserMessage {
                         name: None,
                         content: ChatCompletionRequestUserMessageContent::Text(o.to_string()),
-                    }
+                    },
                 )]
             }
         }

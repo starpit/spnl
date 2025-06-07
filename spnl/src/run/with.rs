@@ -1,6 +1,7 @@
 use futures::future::try_join_all;
 use indicatif::{MultiProgress, ProgressBar};
 use itertools::Itertools;
+use sha2::Digest;
 
 use crate::{
     Document, Unit,
@@ -174,6 +175,27 @@ pub async fn embed_and_retrieve(
     })
     .flatten()
     .unique();
+
+    eprintln!(
+        "RAGSizes {}",
+        matching_docs
+            .clone()
+            .enumerate()
+            .map(|(_idx, doc)| doc.len())
+            .join(" ")
+    );
+    eprintln!(
+        "RAGHashes {}",
+        matching_docs
+            .clone()
+            .enumerate()
+            .map(|(_idx, doc)| {
+                let mut hasher = sha2::Sha256::new();
+                hasher.update(doc);
+                format!("{:x}", hasher.finalize())
+            })
+            .join(" ")
+    );
 
     let len1 = match content {
         Document::Text(c) => c.len(),
