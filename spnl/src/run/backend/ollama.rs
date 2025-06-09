@@ -16,7 +16,7 @@ use ollama_rs::{
     models::ModelOptions,
 };
 
-pub async fn generate_ollama(
+pub async fn generate(
     model: &str,
     input: &Unit,
     max_tokens: i32,

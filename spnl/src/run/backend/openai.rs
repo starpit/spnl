@@ -14,7 +14,7 @@ use async_openai::{
 
 use crate::{Unit, run::result::SpnlResult};
 
-pub async fn generate_openai(
+pub async fn generate(
     model: &str,
     input: &Unit,
     max_tokens: i32,
