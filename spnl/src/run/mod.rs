@@ -1,11 +1,6 @@
+mod backend;
 mod extract;
 mod generate;
-
-#[cfg(feature = "ollama")]
-mod ollama;
-
-#[cfg(feature = "openai")]
-mod openai;
 
 #[cfg(feature = "run")]
 pub mod plan;
