@@ -2,7 +2,7 @@ use clap::Parser;
 use petname::Generator; // Trait needs to be in scope for `iter`.
 use spnl::{
     Unit,
-    run::{result::SpnlError, run},
+    run::{RunParameters, result::SpnlError, run},
     spnl,
 };
 
@@ -190,7 +190,16 @@ async fn main() -> Result<(), SpnlError> {
         return Ok(());
     }
 
-    match run(&program, Some(&indicatif::MultiProgress::new())).await? {
+    match run(
+        &program,
+        &RunParameters {
+            vecdb_uri: "".to_string(),
+            vecdb_table: "".to_string(),
+        },
+        Some(&indicatif::MultiProgress::new()),
+    )
+    .await?
+    {
         Unit::User((ss,)) => {
             // oof, be gracious here. sometimes the model wraps the
             // requested json array with markdown even though we asked
