@@ -1,3 +1,6 @@
+#[cfg(feature = "tok")]
+use pyo3::prelude::*;
+
 pub mod run;
 
 // Inspiration: https://github.com/JunSuzukiJapan/macro-lisp
@@ -226,6 +229,8 @@ pub enum Unit {
     #[cfg(feature = "rag")]
     Retrieve((String, Box<Unit>, (String, Document))),
 }
+
+#[cfg(feature = "cli_support")]
 fn truncate(s: &str, max_chars: usize) -> String {
     if s.len() < max_chars {
         return s.to_string();
@@ -236,6 +241,7 @@ fn truncate(s: &str, max_chars: usize) -> String {
         Some((idx, _)) => format!("{}…", &s[..idx]),
     }
 }
+
 #[cfg(feature = "cli_support")]
 impl ptree::TreeItem for Unit {
     type Child = Self;
@@ -319,8 +325,8 @@ pub fn pretty_print(u: &Unit) -> serde_lexpr::Result<()> {
 }
 
 /// Deserialize a SPNL query from a string
-pub fn from_str(s: &str) -> serde_lexpr::error::Result<Unit> {
-    serde_lexpr::from_str(s)
+pub fn from_str(s: &str) -> serde_lexpr::Result<Unit> {
+    Ok(serde_lexpr::from_str(s)?)
 }
 
 /// Deserialize a SPNL query from a reader
@@ -331,6 +337,22 @@ pub fn from_reader(r: impl ::std::io::Read) -> serde_lexpr::error::Result<Unit> 
 /// Deserialize a SPNL query from a file path
 pub fn from_file(f: &str) -> serde_lexpr::error::Result<Unit> {
     serde_lexpr::from_reader(::std::fs::File::open(f)?)
+}
+
+#[pymodule]
+#[cfg(feature = "tok")]
+fn spnl(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<crate::run::openai_utils::TokenizedQuery>()?;
+    m.add_function(wrap_pyfunction!(
+        crate::run::openai_utils::tokenize_query,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        crate::run::openai_utils::tokenize_plus,
+        m
+    )?)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -414,31 +436,31 @@ mod tests {
     }
 
     #[test]
-    fn serde_user() -> Result<(), serde_lexpr::error::Error> {
+    fn serde_user() -> serde_lexpr::Result<()> {
         let result = from_str("(user \"hello\")")?;
         assert_eq!(result, Unit::User(("hello".to_string(),)));
         Ok(())
     }
     #[test]
-    fn serde_system() -> Result<(), serde_lexpr::error::Error> {
+    fn serde_system() -> serde_lexpr::Result<()> {
         let result = from_str("(system \"hello\")")?;
         assert_eq!(result, Unit::System(("hello".to_string(),)));
         Ok(())
     }
     #[test]
-    fn serde_ask() -> Result<(), serde_lexpr::error::Error> {
+    fn serde_ask() -> serde_lexpr::Result<()> {
         let result = from_str("(ask \"hello\")")?;
         assert_eq!(result, Unit::Ask(("hello".to_string(),)));
         Ok(())
     }
     #[test]
-    fn serde_plus_1() -> Result<(), serde_lexpr::error::Error> {
+    fn serde_plus_1() -> serde_lexpr::Result<()> {
         let result = from_str("(plus (user \"hello\"))")?;
         assert_eq!(result, Unit::Plus(vec![Unit::User(("hello".to_string(),))]));
         Ok(())
     }
     #[test]
-    fn serde_plus_2() -> Result<(), serde_lexpr::error::Error> {
+    fn serde_plus_2() -> serde_lexpr::Result<()> {
         let result = from_str("(plus (user \"hello\") (system \"world\"))")?;
         assert_eq!(
             result,
@@ -450,7 +472,7 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn serde_cross_1() -> Result<(), serde_lexpr::error::Error> {
+    fn serde_cross_1() -> serde_lexpr::Result<()> {
         let result = from_str("(cross (user \"hello\"))")?;
         assert_eq!(
             result,
@@ -459,7 +481,7 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn serde_cross_3() -> Result<(), serde_lexpr::error::Error> {
+    fn serde_cross_3() -> serde_lexpr::Result<()> {
         let result =
             from_str("(cross (user \"hello\") (system \"world\") (plus (user \"sloop\")))")?;
         assert_eq!(
@@ -473,7 +495,7 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn serde_gen() -> Result<(), serde_lexpr::error::Error> {
+    fn serde_gen() -> serde_lexpr::Result<()> {
         let result = from_str("(g \"ollama/granite3.2:2b\" (user \"hello\") 0 0.0 #f)")?;
         assert_eq!(
             result,

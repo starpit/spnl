@@ -3,9 +3,7 @@ use crate::Unit;
 fn expand_repeats(v: &Vec<Unit>) -> Vec<Unit> {
     v.iter()
         .flat_map(|u| match u {
-            Unit::Repeat((n, uu)) => ::std::iter::repeat(plan(&*uu.clone()))
-                .take(*n)
-                .collect::<Vec<_>>(),
+            Unit::Repeat((n, uu)) => ::std::iter::repeat(plan(&uu)).take(*n).collect::<Vec<_>>(),
             x => vec![plan(x)],
         })
         .collect()

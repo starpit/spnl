@@ -1,5 +1,13 @@
+#[cfg(feature = "openai")]
+pub mod openai_utils;
+
+#[cfg(feature = "run")]
 mod backend;
+
+#[cfg(feature = "run")]
 mod extract;
+
+#[cfg(feature = "run")]
 mod generate;
 
 #[cfg(feature = "run")]

@@ -2,15 +2,7 @@ use futures::StreamExt;
 use indicatif::{MultiProgress, ProgressBar};
 use tokio::io::{AsyncWriteExt, stdout};
 
-use async_openai::{
-    Client,
-    config::OpenAIConfig,
-    types::{
-        ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
-        ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
-        ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
-    },
-};
+use async_openai::{Client, config::OpenAIConfig, types::CreateChatCompletionRequestArgs};
 
 use crate::{Unit, run::result::SpnlResult};
 
@@ -23,7 +15,7 @@ pub async fn generate(
 ) -> SpnlResult {
     let client = Client::with_config(OpenAIConfig::new().with_api_base("http://localhost:8000/v1"));
 
-    let input_messages = messagify(input);
+    let input_messages = crate::run::openai_utils::messagify(input);
 
     let quiet = m.is_some();
     let mut stdout = stdout();
@@ -96,30 +88,5 @@ pub async fn generate(
             temp,
             false,
         )))
-    }
-}
-
-fn messagify(input: &Unit) -> Vec<ChatCompletionRequestMessage> {
-    match input {
-        Unit::Cross(v) | Unit::Plus(v) => v.into_iter().flat_map(messagify).collect(),
-        Unit::System((s,)) => vec![ChatCompletionRequestMessage::System(
-            ChatCompletionRequestSystemMessage {
-                name: None,
-                content: ChatCompletionRequestSystemMessageContent::Text(s.clone()),
-            },
-        )],
-        o => {
-            let s = o.to_string();
-            if s.len() == 0 {
-                vec![]
-            } else {
-                vec![ChatCompletionRequestMessage::User(
-                    ChatCompletionRequestUserMessage {
-                        name: None,
-                        content: ChatCompletionRequestUserMessageContent::Text(o.to_string()),
-                    },
-                )]
-            }
-        }
     }
 }

@@ -67,7 +67,7 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
             false => {
                 crate::run::generate::generate(
                     model.as_str(),
-                    &run(&input, rp, m).await?,
+                    &run(input, rp, m).await?,
                     *max_tokens,
                     *temp,
                     m,
