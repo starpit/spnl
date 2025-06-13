@@ -223,6 +223,7 @@ pub enum Unit {
 
     /// (embedding_model, question, docs): Incorporate information relevant to the
     /// question gathered from the given docs
+    #[cfg(feature = "rag")]
     Retrieve((String, Box<Unit>, (String, Document))),
 }
 fn truncate(s: &str, max_chars: usize) -> String {
@@ -259,6 +260,7 @@ impl ptree::TreeItem for Unit {
                 Unit::Repeat((n, _)) => style.paint(format!("Repeat {n}")),
                 Unit::Ask((m,)) => style.paint(format!("Ask {m}")),
                 Unit::Print((m,)) => style.paint(format!("Print {}", truncate(m, 700))),
+                #[cfg(feature = "rag")]
                 Unit::Retrieve((_, _, _)) => style.paint("\x1b[34;1mAugment\x1b[0m".to_string()),
             }
         )
@@ -269,6 +271,7 @@ impl ptree::TreeItem for Unit {
             Unit::Plus(v) | Unit::Cross(v) => v.clone(),
             Unit::Repeat((_, v)) => vec![*v.clone()],
             Unit::Generate((_, i, _, _, _)) => vec![*i.clone()],
+            #[cfg(feature = "rag")]
             Unit::Retrieve((_, body, (filename, _))) => vec![
                 *body.clone(),
                 Unit::User((format!("<augmentation document: {filename}>"),)),

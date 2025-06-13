@@ -15,7 +15,9 @@ pub async fn embed(
         m if m.starts_with("ollama/") => crate::run::backend::ollama::embed(&m[7..], &data).await,
 
         #[cfg(feature = "ollama")]
-        m if m.starts_with("ollama_chat/") => crate::run::backend::ollama::embed(&m[12..], &data).await,
+        m if m.starts_with("ollama_chat/") => {
+            crate::run::backend::ollama::embed(&m[12..], &data).await
+        }
 
         #[cfg(feature = "openai")]
         m if m.starts_with("openai/") => {

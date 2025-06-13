@@ -32,6 +32,7 @@ async fn main() -> Result<(), SpnlError> {
         Some(Demo::Email3) => email3::demo(args),
         Some(Demo::SWEAgent) => sweagent::demo(args).expect("sweagent query to be prepared"),
         Some(Demo::GSM8k) => gsm8k::demo(args).expect("gsm8k query to be prepared"),
+        #[cfg(feature = "rag")]
         Some(Demo::Rag) => rag::demo(args).expect("rag demo to be prepared"),
         None => {
             use std::io::prelude::*;

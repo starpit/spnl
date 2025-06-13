@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["cli_support", "run", "ollama", "openai", "pull", "rag"]
+default = ["cli_support", "run", "ollama", "openai", "pull"]
 cli_support = ["dep:ptree","dep:rustyline"]
 run = ["dep:futures","dep:indicatif","dep:async-recursion"]
 ollama = ["run","dep:ollama-rs","dep:tokio","dep:tokio-stream"]

@@ -60,8 +60,6 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
             )
             .await
         }
-        #[cfg(not(feature = "rag"))]
-        Unit::Retrieve((embedding_model, body, docs)) => Err(Box::from("rag feature not enabled")),
 
         Unit::Cross(u) => cross(&u, rp, m).await,
         Unit::Plus(u) => plus(&u, rp).await,

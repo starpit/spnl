@@ -7,5 +7,6 @@ pub enum Demo {
     Email3,
     SWEAgent,
     GSM8k,
+    #[cfg(feature = "rag")]
     Rag,
 }

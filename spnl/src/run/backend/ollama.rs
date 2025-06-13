@@ -2,10 +2,7 @@ use indicatif::{MultiProgress, ProgressBar};
 use tokio::io::{AsyncWriteExt, stdout};
 use tokio_stream::StreamExt;
 
-use crate::{
-    Unit,
-    run::result::{SpnlError, SpnlResult},
-};
+use crate::{Unit, run::result::SpnlResult};
 
 use ollama_rs::{
     Ollama,
@@ -108,10 +105,11 @@ fn messagify(input: &Unit) -> Vec<ChatMessage> {
     }
 }
 
+#[cfg(feature = "rag")]
 pub async fn embed(
     embedding_model: &str,
     data: &crate::run::embed::EmbedData,
-) -> Result<Vec<Vec<f32>>, SpnlError> {
+) -> Result<Vec<Vec<f32>>, crate::run::result::SpnlError> {
     use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
 
     let docs = match data {
