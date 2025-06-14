@@ -1,7 +1,9 @@
-#[cfg(feature = "tok")]
-use pyo3::prelude::*;
-
 pub mod run;
+
+#[cfg(feature = "python_bindings")]
+mod python_bindings;
+#[cfg(feature = "python_bindings")]
+pub use python_bindings::spnl;
 
 // Inspiration: https://github.com/JunSuzukiJapan/macro-lisp
 #[macro_export]
@@ -337,22 +339,6 @@ pub fn from_reader(r: impl ::std::io::Read) -> serde_lexpr::error::Result<Unit> 
 /// Deserialize a SPNL query from a file path
 pub fn from_file(f: &str) -> serde_lexpr::error::Result<Unit> {
     serde_lexpr::from_reader(::std::fs::File::open(f)?)
-}
-
-#[pymodule]
-#[cfg(feature = "tok")]
-fn spnl(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<crate::run::openai_utils::TokenizedQuery>()?;
-    m.add_function(wrap_pyfunction!(
-        crate::run::openai_utils::tokenize_query,
-        m
-    )?)?;
-    m.add_function(wrap_pyfunction!(
-        crate::run::openai_utils::tokenize_plus,
-        m
-    )?)?;
-
-    Ok(())
 }
 
 #[cfg(test)]
