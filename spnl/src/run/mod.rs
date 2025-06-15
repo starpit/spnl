@@ -1,5 +1,5 @@
-#[cfg(feature = "openai")]
-pub mod openai_utils;
+#[cfg(feature = "tok")]
+pub mod tokenizer;
 
 #[cfg(feature = "run")]
 mod backend;

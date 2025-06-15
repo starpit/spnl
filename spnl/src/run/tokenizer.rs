@@ -1,41 +1,8 @@
-use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
-    ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
-    ChatCompletionRequestUserMessageContent,
-};
-
-#[cfg(feature = "tok")]
 use pyo3::prelude::*;
+use tokenizers::tokenizer::Tokenizer;
 
 use crate::Unit;
 
-pub fn messagify(input: &Unit) -> Vec<ChatCompletionRequestMessage> {
-    match input {
-        Unit::Cross(v) => v.into_iter().flat_map(messagify).collect(),
-        Unit::Plus(v) => v.into_iter().flat_map(messagify).collect(),
-        Unit::System((s,)) => vec![ChatCompletionRequestMessage::System(
-            ChatCompletionRequestSystemMessage {
-                name: None,
-                content: ChatCompletionRequestSystemMessageContent::Text(s.clone()),
-            },
-        )],
-        o => {
-            let s = o.to_string();
-            if s.len() == 0 {
-                vec![]
-            } else {
-                vec![ChatCompletionRequestMessage::User(
-                    ChatCompletionRequestUserMessage {
-                        name: None,
-                        content: ChatCompletionRequestUserMessageContent::Text(o.to_string()),
-                    },
-                )]
-            }
-        }
-    }
-}
-
-#[cfg(feature = "tok")]
 #[pyclass]
 #[derive(Debug)]
 pub struct TokenizedQuery {
@@ -44,7 +11,6 @@ pub struct TokenizedQuery {
     messages_: Vec<u32>,
 }
 
-#[cfg(feature = "tok")]
 #[pymethods]
 impl TokenizedQuery {
     #[getter]
@@ -53,10 +19,6 @@ impl TokenizedQuery {
     }
 }
 
-#[cfg(feature = "tok")]
-use tokenizers::tokenizer::Tokenizer;
-
-#[cfg(feature = "tok")]
 fn pad(pad_token: u32, block_size: usize, toklist: Vec<u32>) -> Vec<u32> {
     toklist[0..toklist.len() - 1]
         .iter()
@@ -66,7 +28,6 @@ fn pad(pad_token: u32, block_size: usize, toklist: Vec<u32>) -> Vec<u32> {
         .collect()
 }
 
-#[cfg(feature = "tok")]
 fn tokenize_part(
     input: &Unit,
     tok: &Tokenizer,
@@ -141,17 +102,14 @@ fn tokenize_part(
     }
 }
 
-#[cfg(feature = "tok")]
 fn handle_err(e: tokenizers::tokenizer::Error) -> PyErr {
     pyo3::exceptions::PyTypeError::new_err(format!("Error in tokenization {:?}", e))
 }
 
-#[cfg(feature = "tok")]
 fn handle_serde_err(e: serde_lexpr::Error) -> PyErr {
     pyo3::exceptions::PyTypeError::new_err(format!("Error in deserialization {:?}", e))
 }
 
-#[cfg(feature = "tok")]
 #[pyfunction]
 pub fn tokenize_query<'a>(
     query: &'a str,
@@ -185,7 +143,6 @@ pub fn tokenize_query<'a>(
     })
 }
 
-#[cfg(feature = "tok")]
 fn extract_plus(u: &Unit, in_plus: bool) -> Vec<String> {
     match (u, in_plus) {
         (Unit::Cross(v), _) => v.iter().flat_map(|u| extract_plus(u, false)).collect(),
@@ -195,7 +152,6 @@ fn extract_plus(u: &Unit, in_plus: bool) -> Vec<String> {
     }
 }
 
-#[cfg(feature = "tok")]
 #[pyfunction]
 pub fn tokenize_plus<'a>(
     query: &'a str,
