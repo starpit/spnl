@@ -73,6 +73,7 @@ macro_rules! spnl {
     // Data: peel off the first $n elements of the given serialized
     // json vector of strings (TODO: split this into multiple macros)
     (take $n:tt $s:tt) => (
+        #[cfg(feature = "rag")]
         serde_json::from_str::<Vec<String>>($crate::spnl_arg!($s))?
             .into_iter()
             .take($crate::spnl_arg!($n).try_into().expect("usize"))
