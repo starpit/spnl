@@ -46,7 +46,7 @@ ${x.system
     .with({ assistant: P._ }, (x) => x)
     .with(
       { g: { model: P.string, input: P._ } },
-      async ({ g: { input, maxTokens = 100, temperature = 0.2 } }) => {
+      async ({ g: { input, max_tokens = 100, temperature = 0.2 } }) => {
         const evaluatedInput = await run(input, props, inPlusOrCross)
 
         const updateGenerationProgress =
@@ -56,7 +56,7 @@ ${x.system
                 props.setProgressDoPar((A) => {
                   const item = {
                     min: 0,
-                    max: maxTokens * 10,
+                    max: max_tokens * 10,
                     value: value + (!A ? 0 : (A[inPlusOrCross]?.value ?? 0)),
                   }
                   return !A
@@ -71,7 +71,7 @@ ${x.system
         const res = await generate(
           evaluatedInput,
           props.defaultModel,
-          maxTokens,
+          max_tokens,
           temperature,
           inPlusOrCross >= 0 ? noEmit : props.emit,
           props.setProgressInit,
@@ -81,7 +81,11 @@ ${x.system
         )
         if (inPlusOrCross >= 0) {
           props.setProgressDoPar((A) => {
-            const item = { min: 0, max: maxTokens * 10, value: maxTokens * 10 }
+            const item = {
+              min: 0,
+              max: max_tokens * 10,
+              value: max_tokens * 10,
+            }
             return !A
               ? [item]
               : [
