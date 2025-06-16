@@ -17,13 +17,13 @@ function messagify(input: Query): Message[] {
   return match(input)
     .with({ cross: P.array() }, ({ cross }) => cross.flatMap(messagify))
     .with({ plus: P.array() }, ({ plus }) => plus.flatMap(messagify))
-    .with({ assistant: P.array(P.string) }, ({ assistant: [content] }) => [
+    .with({ assistant: P.string }, ({ assistant: content }) => [
       { role: "assistant" as const, content },
     ])
-    .with({ user: P.array(P.string) }, ({ user: [content] }) => [
+    .with({ user: P.string }, ({ user: content }) => [
       { role: "user" as const, content },
     ])
-    .with({ system: P.array(P.string) }, ({ system: [content] }) => [
+    .with({ system: P.string }, ({ system: content }) => [
       { role: "system" as const, content },
     ])
     .otherwise(() => [])

@@ -24,17 +24,17 @@ function node(id: string, label: string, children: Data[] = []) {
 
 function graphify(unit: import("./Query").Query, id = "root"): Data[] {
   return match(unit)
-    .with({ user: P.array(P.string) }, () => [node(id, "U")])
-    .with({ assistant: P.array(P.string) }, () => [node(id, "A")])
-    .with({ system: P.array(P.string) }, () => [node(id, "S")])
-    .with({ g: P.array() }, ({ g }) => [
-      node(id, "G", graphify(g[1], id + ".G")),
+    .with({ user: P.string }, () => [node(id, "U")])
+    .with({ assistant: P.string }, () => [node(id, "A")])
+    .with({ system: P.string }, () => [node(id, "S")])
+    .with({ g: { input: P._ } }, ({ g: { input } }) => [
+      node(id, "G", graphify(input, id + ".G")),
     ])
     .with({ print: P._ }, () => [])
-    .with({ repeat: P.array() }, ({ repeat }) =>
-      Array(repeat[0])
+    .with({ repeat: { n: P.number, query: P._ } }, ({ repeat }) =>
+      Array(repeat.n)
         .fill(0)
-        .flatMap((_, idx) => graphify(repeat[1], id + "." + idx)),
+        .flatMap((_, idx) => graphify(repeat.query, id + "." + idx)),
     )
     .with({ cross: P.array() }, ({ cross }) => [
       node(

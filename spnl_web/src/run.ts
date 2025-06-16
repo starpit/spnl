@@ -23,20 +23,20 @@ export default async function run(
   console.log("Execute query", unit, inPlusOrCross)
 
   return match(unit)
-    .with({ user: P._ }, (x) => {
+    .with({ user: P.string }, (x) => {
       if (inPlusOrCross < 0) {
         props.emit(`> **User**
-${x.user[0]
+${x.user
   .split("\n")
   .map((line) => `> ${line}`)
   .join("\n")}\n\n`)
       }
       return x
     })
-    .with({ system: P._ }, (x) => {
+    .with({ system: P.string }, (x) => {
       if (inPlusOrCross < 0) {
         props.emit(`> **System**
-${x.system[0]
+${x.system
   .split("\n")
   .map((line) => `> ${line}`)
   .join("\n")}\n\n`)
@@ -45,8 +45,8 @@ ${x.system[0]
     })
     .with({ assistant: P._ }, (x) => x)
     .with(
-      { g: P.array() },
-      async ({ g: [, input, maxTokens, temperature] }) => {
+      { g: { model: P.string, input: P._ } },
+      async ({ g: { input, maxTokens = 100, temperature = 0.2 } }) => {
         const evaluatedInput = await run(input, props, inPlusOrCross)
 
         const updateGenerationProgress =
@@ -92,15 +92,15 @@ ${x.system[0]
           })
         }
         return inPlusOrCross >= 0
-          ? ({ user: [res] } satisfies User)
-          : ({ assistant: [res] } satisfies Assistant)
+          ? ({ user: res } satisfies User)
+          : ({ assistant: res } satisfies Assistant)
       },
     )
-    .with({ print: P.array(P.string) }, (x) => {
-      props.emit("*" + x.print[0] + "*\n\n")
+    .with({ print: P.string }, (x) => {
+      props.emit("*" + x.print + "*\n\n")
       return x
     })
-    .with({ repeat: P.array() }, (x) => {
+    .with({ repeat: { n: P.number, query: P._ } }, (x) => {
       /* will be expanded by the planner */
       return x
     })
