@@ -1,4 +1,4 @@
-use crate::Query;
+use crate::{Generate, Query};
 
 /// Extract models referenced by the program
 pub fn extract_models(program: &Query) -> Vec<String> {
@@ -21,8 +21,10 @@ fn extract_values(program: &Query, field: &str) -> Vec<String> {
 fn extract_values_iter(program: &Query, field: &str, values: &mut Vec<String>) {
     match program {
         #[cfg(feature = "rag")]
-        Query::Retrieve((model, _, _)) => values.push(model.clone()),
-        Query::Generate((model, _, _, _, _)) => values.push(model.clone()),
+        Query::Retrieve(crate::Retrieve {
+            embedding_model, ..
+        }) => values.push(embedding_model.clone()),
+        Query::Generate(Generate { model, .. }) => values.push(model.clone()),
         Query::Plus(v) | Query::Cross(v) => {
             v.iter()
                 .for_each(|vv| extract_values_iter(vv, field, values));

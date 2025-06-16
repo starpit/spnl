@@ -1,7 +1,7 @@
 use async_recursion::async_recursion;
 use indicatif::MultiProgress;
 
-use crate::{Query, run::result::SpnlResult};
+use crate::{Generate, Query, run::result::SpnlResult};
 
 pub struct RunParameters {
     /// URI of vector database. Could be a local filepath.
@@ -42,15 +42,19 @@ pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) ->
     let _ = crate::run::pull::pull_if_needed(unit).await?;
 
     match unit {
-        Query::Print((m,)) => {
+        Query::Print(m) => {
             println!("{}", m);
-            Ok(Query::Print((m.clone(),)))
+            Ok(Query::Print(m.clone()))
         }
         Query::User(s) => Ok(Query::User(s.clone())),
         Query::System(s) => Ok(Query::System(s.clone())),
 
         #[cfg(feature = "rag")]
-        Query::Retrieve((embedding_model, body, doc)) => {
+        Query::Retrieve(crate::Retrieve {
+            embedding_model,
+            body,
+            doc,
+        }) => {
             crate::run::with::embed_and_retrieve(
                 embedding_model,
                 body,
@@ -63,30 +67,36 @@ pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) ->
 
         Query::Cross(u) => cross(&u, rp, m).await,
         Query::Plus(u) => plus(&u, rp).await,
-        Query::Generate((model, input, max_tokens, temp, accumulate)) => match accumulate {
-            false => {
+        Query::Generate(Generate {
+            model,
+            input,
+            max_tokens,
+            temperature,
+            accumulate,
+        }) => match accumulate {
+            None | Some(false) => {
                 crate::run::generate::generate(
                     model.as_str(),
                     &run(input, rp, m).await?,
-                    *max_tokens,
-                    *temp,
+                    max_tokens,
+                    temperature,
                     m,
                 )
                 .await
             }
-            true => {
+            Some(true) => {
                 let mut accum = match &**input {
                     Query::Cross(v) => v.clone(),
                     _ => vec![*input.clone()],
                 };
                 loop {
-                    let program = Query::Generate((
-                        model.clone(),
-                        Box::new(Query::Cross(accum.clone())),
-                        *max_tokens,
-                        *temp,
-                        false,
-                    ));
+                    let program = Query::Generate(Generate {
+                        model: model.clone(),
+                        input: Box::new(Query::Cross(accum.clone())),
+                        max_tokens: max_tokens.clone(),
+                        temperature: temperature.clone(),
+                        accumulate: None,
+                    });
                     let out = run(&program, rp, m).await?;
                     accum.push(out.clone());
                 }
@@ -96,7 +106,7 @@ pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) ->
         #[cfg(not(feature = "cli_support"))]
         Query::Ask((message,)) => todo!("ask"),
         #[cfg(feature = "cli_support")]
-        Query::Ask((message,)) => {
+        Query::Ask(message) => {
             use rustyline::error::ReadlineError;
             let mut rl = rustyline::DefaultEditor::new().unwrap();
             let _ = rl.load_history("history.txt");
@@ -111,7 +121,7 @@ pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) ->
                 Err(err) => panic!("{}", err), // TODO this only works in a CLI
             };
             rl.append_history("history.txt").unwrap();
-            Ok(Query::User((prompt,)))
+            Ok(Query::User(prompt))
         }
 
         // should not happen
@@ -135,7 +145,7 @@ mod tests {
             None,
         )
         .await?;
-        assert_eq!(result, Query::User(("hello".to_string(),)));
+        assert_eq!(result, Query::User("hello".to_string()));
         Ok(())
     }
 }

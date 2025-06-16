@@ -217,7 +217,7 @@ pub async fn embed_and_retrieve(
 
     let d = matching_docs
         .enumerate()
-        .map(|(idx, doc)| Query::User((format!("Relevant document {idx}: {doc}"),)))
+        .map(|(idx, doc)| Query::User(format!("Relevant document {idx}: {doc}")))
         .collect::<Vec<_>>();
 
     eprintln!("RAG time {:.2?} ms", now.elapsed().as_millis());

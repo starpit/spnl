@@ -1,9 +1,11 @@
-use crate::Query;
+use crate::{Generate, Query, Repeat};
 
 fn expand_repeats(v: &Vec<Query>) -> Vec<Query> {
     v.iter()
         .flat_map(|u| match u {
-            Query::Repeat((n, uu)) => ::std::iter::repeat(plan(&uu)).take(*n).collect::<Vec<_>>(),
+            Query::Repeat(Repeat { n, query }) => ::std::iter::repeat(plan(&query))
+                .take(*n)
+                .collect::<Vec<_>>(),
             x => vec![plan(x)],
         })
         .collect()
@@ -14,9 +16,19 @@ pub fn plan(ast: &Query) -> Query {
     match ast {
         Query::Plus(v) => Query::Plus(expand_repeats(v)),
         Query::Cross(v) => Query::Cross(expand_repeats(v)),
-        Query::Generate((m, i, mt, t, accumulate)) => {
-            Query::Generate((m.clone(), Box::new(plan(i)), *mt, *t, *accumulate))
-        }
+        Query::Generate(Generate {
+            model,
+            input,
+            max_tokens,
+            temperature,
+            accumulate,
+        }) => Query::Generate(Generate {
+            model: model.clone(),
+            input: Box::new(plan(input)),
+            max_tokens: max_tokens.clone(),
+            temperature: temperature.clone(),
+            accumulate: accumulate.clone(),
+        }),
         x => x.clone(),
     }
 }

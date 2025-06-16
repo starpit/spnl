@@ -11,11 +11,13 @@ macro_rules! spnl {
     (g $model:tt $input:tt $temp:tt $max_tokens:tt) => ($crate::spnl!(g $model $input $temp $max_tokens false));
 
     (g $model:tt $input:tt $temp:tt $max_tokens:tt $accumulate:tt) => (
-        $crate::Query::Generate((
-            $crate::spnl_arg!($model).to_string(),
-            Box::new($crate::spnl_arg!($input).into()),
-            $crate::spnl_arg!($max_tokens), $crate::spnl_arg!($temp), $crate::spnl_arg!($accumulate),
-        ))
+        $crate::Query::Generate($crate::Generate {
+            model: $crate::spnl_arg!($model).to_string(),
+            input: Box::new($crate::spnl_arg!($input).into()),
+            max_tokens: Some($crate::spnl_arg!($max_tokens)),
+            temperature: Some($crate::spnl_arg!($temp)),
+            accumulate: Some($crate::spnl_arg!($accumulate)),
+        })
     );
 
     // Core: Generate with accumulation
@@ -37,10 +39,10 @@ macro_rules! spnl {
     (plus $( $e:tt )+) => ( $crate::Query::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
 
     // Core: A user message
-    (user $e:tt) => ($crate::Query::User(($crate::spnl_arg!($e).clone().into(),)));
+    (user $e:tt) => ($crate::Query::User($crate::spnl_arg!($e).clone().into()));
 
     // Core: A system message
-    (system $e:tt) => ($crate::Query::System(($crate::spnl_arg!($e).into(),)));
+    (system $e:tt) => ($crate::Query::System($crate::spnl_arg!($e).into()));
 
     // Data: incorporate a file at compile time
     (file $f:tt) => (include_str!($crate::spnl_arg!($f)));
@@ -105,10 +107,11 @@ macro_rules! spnl {
 
     // Internal
     (__spnl_retrieve $embedding_model:tt $input:tt $doc:tt) => (
-        vec![$crate::Query::Retrieve(
-            ($crate::spnl_arg!($embedding_model),
-             Box::new($crate::spnl_arg!($input)),
-             $crate::spnl_arg!( $doc ).into()) )]
+        vec![$crate::Query::Retrieve($crate::Retrieve {
+            embedding_model: $crate::spnl_arg!($embedding_model),
+            body: Box::new($crate::spnl_arg!($input)),
+            doc: $crate::spnl_arg!( $doc ).into()
+        })]
     );
 
     // Sugar: this unfolds to a `(g $model (cross $body))` but with
@@ -165,10 +168,10 @@ macro_rules! spnl {
     (length $list:tt) => ($crate::spnl_arg!($list).len());
 
     // Utility: read as string from stdin
-    (ask $message:tt) => ( $crate::Query::Ask(($crate::spnl_arg!($message).into(),)) );
+    (ask $message:tt) => ( $crate::Query::Ask($crate::spnl_arg!($message).into()) );
 
     // Utility: print a helpful message to the console
-    (print $message:tt) => ( $crate::Query::Print(($crate::spnl_arg!($message).into(),)) );
+    (print $message:tt) => ( $crate::Query::Print($crate::spnl_arg!($message).into()) );
 
     // Utility:
     (format $fmt:tt $( $e:tt )*) => ( &format!($fmt, $($crate::spnl_arg!($e)),* ) );
@@ -192,19 +195,19 @@ mod tests {
     #[test]
     fn macro_user() {
         let result = spnl!(user "hello");
-        assert_eq!(result, Query::User(("hello".to_string(),)));
+        assert_eq!(result, Query::User("hello".to_string()));
     }
 
     #[test]
     fn macro_system() {
         let result = spnl!(system "hello");
-        assert_eq!(result, Query::System(("hello".to_string(),)));
+        assert_eq!(result, Query::System("hello".to_string()));
     }
 
     #[test]
     fn macro_ask() {
         let result = spnl!(ask "hello");
-        assert_eq!(result, Query::Ask(("hello".to_string(),)));
+        assert_eq!(result, Query::Ask("hello".to_string()));
     }
 
     #[test]
@@ -213,8 +216,8 @@ mod tests {
         assert_eq!(
             result,
             Query::Plus(vec![
-                Query::User(("hello".to_string(),)),
-                Query::User(("world".to_string(),))
+                Query::User("hello".to_string()),
+                Query::User("world".to_string())
             ])
         );
     }
@@ -225,8 +228,8 @@ mod tests {
         assert_eq!(
             result,
             Query::Plus(vec![
-                Query::User(("hello".to_string(),)),
-                Query::System(("world".to_string(),))
+                Query::User("hello".to_string()),
+                Query::System("world".to_string())
             ])
         );
     }
@@ -234,10 +237,7 @@ mod tests {
     #[test]
     fn macro_cross_1() {
         let result = spnl!(cross (user "hello"));
-        assert_eq!(
-            result,
-            Query::Cross(vec![Query::User(("hello".to_string(),))])
-        );
+        assert_eq!(result, Query::Cross(vec![Query::User("hello".to_string())]));
     }
 
     #[test]
@@ -247,28 +247,31 @@ mod tests {
         assert_eq!(
             result,
             Query::Cross(vec![
-                Query::User(("hello".to_string(),)),
-                Query::System(("world".to_string(),)),
+                Query::User("hello".to_string()),
+                Query::System("world".to_string()),
                 Query::Plus(vec![
-                    Query::User(("sloop".to_string(),)),
-                    Query::User(("boop".to_string(),))
+                    Query::User("sloop".to_string()),
+                    Query::User("boop".to_string())
                 ])
             ])
         );
     }
 
     #[test]
-    fn macro_gen() {
+    fn macro_gen() -> Result<(), Box<dyn ::std::error::Error>> {
         let result = spnl!(g "ollama/granite3.2:2b" (user "hello") 0.0 0);
         assert_eq!(
             result,
-            Query::Generate((
-                "ollama/granite3.2:2b".to_string(),
-                Box::new(Query::User(("hello".to_string(),))),
-                0,
-                0.0,
-                false
-            ))
+            Query::Generate(
+                crate::GenerateBuilder::default()
+                    .model("ollama/granite3.2:2b".to_string())
+                    .input(Box::new(Query::User("hello".to_string())))
+                    .max_tokens(Some(0))
+                    .temperature(Some(0.0))
+                    .accumulate(Some(false))
+                    .build()?
+            )
         );
+        Ok(())
     }
 }

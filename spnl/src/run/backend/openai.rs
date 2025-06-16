@@ -10,13 +10,13 @@ use tokio::io::{AsyncWriteExt, stdout};
 
 use async_openai::{Client, config::OpenAIConfig, types::CreateChatCompletionRequestArgs};
 
-use crate::{Query, run::result::SpnlResult};
+use crate::{Generate, Query, run::result::SpnlResult};
 
 pub async fn generate(
     model: &str,
     input: &Query,
-    max_tokens: i32,
-    temp: f32,
+    max_tokens: &Option<i32>,
+    temp: &Option<f32>,
     m: Option<&MultiProgress>,
 ) -> SpnlResult {
     let client = Client::with_config(OpenAIConfig::new().with_api_base("http://localhost:8000/v1"));
@@ -40,19 +40,19 @@ pub async fn generate(
     let request = CreateChatCompletionRequestArgs::default()
         .model(model)
         .messages(input_messages)
-        .temperature(temp)
-        .max_completion_tokens(if max_tokens == 0 {
-            10000
+        .temperature(temp.unwrap_or_default())
+        .max_completion_tokens(if let Some(max_tokens) = max_tokens {
+            *max_tokens as u32
         } else {
-            max_tokens as u32
+            10000
         })
         .build()?;
 
     let mut pb = m.and_then(|m| {
-        Some(m.add(if max_tokens == 0 {
-            ProgressBar::no_length()
+        Some(m.add(if let Some(max_tokens) = max_tokens {
+            ProgressBar::new(*max_tokens as u64)
         } else {
-            ProgressBar::new(max_tokens as u64)
+            ProgressBar::no_length()
         }))
     });
 
@@ -85,15 +85,15 @@ pub async fn generate(
     }
 
     if let Some(_) = m {
-        Ok(Query::User((response_string,)))
+        Ok(Query::User(response_string))
     } else {
-        Ok(Query::Generate((
-            format!("openai/{model}"),
-            Box::new(Query::User((response_string,))),
-            max_tokens,
-            temp,
-            false,
-        )))
+        Ok(Query::Generate(Generate {
+            model: format!("openai/{model}"),
+            input: Box::new(Query::User(response_string)),
+            max_tokens: max_tokens.clone(),
+            temperature: temp.clone(),
+            accumulate: None,
+        }))
     }
 }
 
@@ -101,7 +101,7 @@ pub fn messagify(input: &Query) -> Vec<ChatCompletionRequestMessage> {
     match input {
         Query::Cross(v) => v.into_iter().flat_map(messagify).collect(),
         Query::Plus(v) => v.into_iter().flat_map(messagify).collect(),
-        Query::System((s,)) => vec![ChatCompletionRequestMessage::System(
+        Query::System(s) => vec![ChatCompletionRequestMessage::System(
             ChatCompletionRequestSystemMessage {
                 name: None,
                 content: ChatCompletionRequestSystemMessageContent::Text(s.clone()),

@@ -5,8 +5,8 @@ use crate::{Query, run::result::SpnlResult};
 pub async fn generate(
     model: &str,
     input: &Query,
-    max_tokens: i32,
-    temp: f32,
+    max_tokens: &Option<i32>,
+    temp: &Option<f32>,
     mp: Option<&MultiProgress>,
 ) -> SpnlResult {
     let res = match model {

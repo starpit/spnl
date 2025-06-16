@@ -4,17 +4,48 @@ pub enum Document {
     Binary(Vec<u8>),
 }
 
+#[derive(
+    Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize, derive_builder::Builder,
+)]
+pub struct Generate {
+    pub model: String,
+    pub input: Box<Query>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<i32>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f32>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accumulate: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct Repeat {
+    pub n: usize,
+    pub query: Box<Query>,
+}
+
+#[cfg(feature = "rag")]
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct Retrieve {
+    pub embedding_model: String,
+    pub body: Box<Query>,
+    pub doc: (String, Document),
+}
+
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Query {
     /// User prompt
-    User((String,)),
+    User(String),
 
     /// System prompt
-    System((String,)),
+    System(String),
 
     /// Print a helpful message to the console
-    Print((String,)),
+    Print(String),
 
     /// Reduce
     Cross(Vec<Query>),
@@ -23,19 +54,19 @@ pub enum Query {
     Plus(Vec<Query>),
 
     /// Helpful for repeating an operation n times in a Plus
-    Repeat((usize, Box<Query>)),
+    Repeat(Repeat),
 
     /// (model, input, max_tokens, temperature, accumulate?)
     #[serde(rename = "g")]
-    Generate((String, Box<Query>, i32, f32, bool)),
+    Generate(Generate),
 
     /// Ask with a given message
-    Ask((String,)),
+    Ask(String),
 
     /// (embedding_model, question, docs): Incorporate information relevant to the
     /// question gathered from the given docs
     #[cfg(feature = "rag")]
-    Retrieve((String, Box<Query>, (String, Document))),
+    Retrieve(Retrieve),
 }
 
 #[cfg(feature = "cli_support")]
@@ -62,20 +93,22 @@ impl ptree::TreeItem for Query {
             f,
             "{}",
             match self {
-                Query::User((s,)) =>
-                    style.paint(format!("\x1b[33mUser\x1b[0m {}", truncate(s, 700))),
-                Query::System((s,)) =>
+                Query::User(s) => style.paint(format!("\x1b[33mUser\x1b[0m {}", truncate(s, 700))),
+                Query::System(s) =>
                     style.paint(format!("\x1b[34mSystem\x1b[0m {}", truncate(s, 700))),
                 Query::Plus(_) => style.paint("\x1b[31;1mPlus\x1b[0m".to_string()),
                 Query::Cross(_) => style.paint("\x1b[31;1mCross\x1b[0m".to_string()),
-                Query::Generate((m, _, _, _, accumulate)) => style.paint(format!(
-                    "\x1b[31;1mGenerate\x1b[0m \x1b[2m{m}\x1b[0m accumulate?={accumulate}"
+                Query::Generate(Generate {
+                    model, accumulate, ..
+                }) => style.paint(format!(
+                    "\x1b[31;1mGenerate\x1b[0m \x1b[2m{model}\x1b[0m accumulate?={}",
+                    accumulate.unwrap_or_default()
                 )),
-                Query::Repeat((n, _)) => style.paint(format!("Repeat {n}")),
-                Query::Ask((m,)) => style.paint(format!("Ask {m}")),
-                Query::Print((m,)) => style.paint(format!("Print {}", truncate(m, 700))),
+                Query::Repeat(Repeat { n, .. }) => style.paint(format!("Repeat {n}")),
+                Query::Ask(m) => style.paint(format!("Ask {m}")),
+                Query::Print(m) => style.paint(format!("Print {}", truncate(m, 700))),
                 #[cfg(feature = "rag")]
-                Query::Retrieve((_, _, _)) => style.paint("\x1b[34;1mAugment\x1b[0m".to_string()),
+                Query::Retrieve(_) => style.paint("\x1b[34;1mAugment\x1b[0m".to_string()),
             }
         )
     }
@@ -83,12 +116,16 @@ impl ptree::TreeItem for Query {
         ::std::borrow::Cow::from(match self {
             Query::Ask(_) | Query::User(_) | Query::System(_) | Query::Print(_) => vec![],
             Query::Plus(v) | Query::Cross(v) => v.clone(),
-            Query::Repeat((_, v)) => vec![*v.clone()],
-            Query::Generate((_, i, _, _, _)) => vec![*i.clone()],
+            Query::Repeat(Repeat { query, .. }) => vec![*query.clone()],
+            Query::Generate(Generate { input, .. }) => vec![*input.clone()],
             #[cfg(feature = "rag")]
-            Query::Retrieve((_, body, (filename, _))) => vec![
+            Query::Retrieve(Retrieve {
+                body,
+                doc: (filename, _),
+                ..
+            }) => vec![
                 *body.clone(),
-                Query::User((format!("<augmentation document: {filename}>"),)),
+                Query::User(format!("<augmentation document: {filename}>")),
             ],
         })
     }
@@ -105,7 +142,7 @@ impl ::std::fmt::Display for Query {
                     .collect::<Vec<_>>()
                     .join("\n")
             ),
-            Query::System((s,)) | Query::User((s,)) => write!(f, "{}", s),
+            Query::System(s) | Query::User(s) => write!(f, "{}", s),
             _ => Ok(()),
         }
     }
@@ -113,42 +150,42 @@ impl ::std::fmt::Display for Query {
 
 impl From<&str> for Query {
     fn from(s: &str) -> Self {
-        Self::User((s.into(),))
+        Self::User(s.into())
     }
 }
 
 impl ::std::str::FromStr for Query {
     type Err = Box<dyn ::std::error::Error>;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::User((s.to_string(),)))
+        Ok(Self::User(s.to_string()))
     }
 }
 
 impl From<&String> for Query {
     fn from(s: &String) -> Self {
-        Self::User((s.clone(),))
+        Self::User(s.clone())
     }
 }
 
 /// Pretty print a query
-pub fn pretty_print(u: &Query) -> serde_lexpr::Result<()> {
-    println!("{}", serde_lexpr::to_string(u)?);
+pub fn pretty_print(u: &Query) -> serde_json::Result<()> {
+    println!("{}", serde_json::to_string(u)?);
     Ok(())
 }
 
 /// Deserialize a SPNL query from a string
-pub fn from_str(s: &str) -> serde_lexpr::Result<Query> {
-    Ok(serde_lexpr::from_str(s)?)
+pub fn from_str(s: &str) -> serde_json::Result<Query> {
+    Ok(serde_json::from_str(s)?)
 }
 
 /// Deserialize a SPNL query from a reader
-pub fn from_reader(r: impl ::std::io::Read) -> serde_lexpr::error::Result<Query> {
-    serde_lexpr::from_reader(r)
+pub fn from_reader(r: impl ::std::io::Read) -> serde_json::Result<Query> {
+    serde_json::from_reader(r)
 }
 
 /// Deserialize a SPNL query from a file path
-pub fn from_file(f: &str) -> serde_lexpr::error::Result<Query> {
-    serde_lexpr::from_reader(::std::fs::File::open(f)?)
+pub fn from_file(f: &str) -> Result<Query, Box<dyn ::std::error::Error>> {
+    Ok(serde_json::from_reader(::std::fs::File::open(f)?)?)
 }
 
 #[cfg(test)]
@@ -156,86 +193,84 @@ mod tests {
     use super::*;
 
     #[test]
-    fn serde_user() -> serde_lexpr::Result<()> {
-        let result = from_str("(user \"hello\")")?;
-        assert_eq!(result, Query::User(("hello".to_string(),)));
+    fn serde_user() -> serde_json::Result<()> {
+        let result = from_str(r#"{"user": "hello"}"#)?;
+        assert_eq!(result, Query::User("hello".to_string()));
         Ok(())
     }
 
     #[test]
-    fn serde_system() -> serde_lexpr::Result<()> {
-        let result = from_str("(system \"hello\")")?;
-        assert_eq!(result, Query::System(("hello".to_string(),)));
+    fn serde_system() -> serde_json::Result<()> {
+        let result = from_str(r#"{"system": "hello"}"#)?;
+        assert_eq!(result, Query::System("hello".to_string()));
         Ok(())
     }
 
     #[test]
-    fn serde_ask() -> serde_lexpr::Result<()> {
-        let result = from_str("(ask \"hello\")")?;
-        assert_eq!(result, Query::Ask(("hello".to_string(),)));
+    fn serde_ask() -> serde_json::Result<()> {
+        let result = from_str(r#"{"ask": "hello"}"#)?;
+        assert_eq!(result, Query::Ask("hello".to_string()));
         Ok(())
     }
 
     #[test]
-    fn serde_plus_1() -> serde_lexpr::Result<()> {
-        let result = from_str("(plus (user \"hello\"))")?;
-        assert_eq!(
-            result,
-            Query::Plus(vec![Query::User(("hello".to_string(),))])
-        );
+    fn serde_plus_1() -> serde_json::Result<()> {
+        let result = from_str(r#"{"plus": [{"user": "hello"}]}"#)?;
+        assert_eq!(result, Query::Plus(vec![Query::User("hello".to_string())]));
         Ok(())
     }
 
     #[test]
-    fn serde_plus_2() -> serde_lexpr::Result<()> {
-        let result = from_str("(plus (user \"hello\") (system \"world\"))")?;
+    fn serde_plus_2() -> serde_json::Result<()> {
+        let result = from_str(r#"{"plus": [{"user": "hello"},{"system": "world"}]}"#)?;
         assert_eq!(
             result,
             Query::Plus(vec![
-                Query::User(("hello".to_string(),)),
-                Query::System(("world".to_string(),))
+                Query::User("hello".to_string()),
+                Query::System("world".to_string())
             ])
         );
         Ok(())
     }
 
     #[test]
-    fn serde_cross_1() -> serde_lexpr::Result<()> {
-        let result = from_str("(cross (user \"hello\"))")?;
-        assert_eq!(
-            result,
-            Query::Cross(vec![Query::User(("hello".to_string(),))])
-        );
+    fn serde_cross_1() -> serde_json::Result<()> {
+        let result = from_str(r#"{"cross": [{"user": "hello"}]}"#)?;
+        assert_eq!(result, Query::Cross(vec![Query::User("hello".to_string())]));
         Ok(())
     }
 
     #[test]
-    fn serde_cross_3() -> serde_lexpr::Result<()> {
-        let result =
-            from_str("(cross (user \"hello\") (system \"world\") (plus (user \"sloop\")))")?;
+    fn serde_cross_3() -> serde_json::Result<()> {
+        let result = from_str(
+            r#"{"cross": [{"user": "hello"},{"system": "world"},{"plus": [{"user": "sloop"}]}]}"#,
+        )?;
         assert_eq!(
             result,
             Query::Cross(vec![
-                Query::User(("hello".to_string(),)),
-                Query::System(("world".to_string(),)),
-                Query::Plus(vec![Query::User(("sloop".to_string(),))])
+                Query::User("hello".to_string()),
+                Query::System("world".to_string()),
+                Query::Plus(vec![Query::User("sloop".to_string())])
             ])
         );
         Ok(())
     }
 
     #[test]
-    fn serde_gen() -> serde_lexpr::Result<()> {
-        let result = from_str("(g \"ollama/granite3.2:2b\" (user \"hello\") 0 0.0 #f)")?;
+    fn serde_gen() -> Result<(), Box<dyn ::std::error::Error>> {
+        let result =
+            from_str(r#"{"g": {"model": "ollama/granite3.2:2b", "input": {"user": "hello"}}}"#)?;
         assert_eq!(
             result,
-            Query::Generate((
-                "ollama/granite3.2:2b".to_string(),
-                Box::new(Query::User(("hello".to_string(),))),
-                0,
-                0.0,
-                false
-            ))
+            Query::Generate(
+                GenerateBuilder::default()
+                    .model("ollama/granite3.2:2b".into())
+                    .input(Query::User("hello".to_string()).into())
+                    .max_tokens(None)
+                    .temperature(None)
+                    .accumulate(None)
+                    .build()?
+            )
         );
         Ok(())
     }
