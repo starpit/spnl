@@ -47,7 +47,11 @@ flowchart TD
 ```
 
 The Rust code is capable of deserializing a JSON structure that models
-these core concepts (g, cross, plus). 
+these core concepts (g, cross, plus). Below we show some
+[examples](#examples) of the current JSON syntax. We have made the
+conscious choice in favor of fast server-side parsing, through the use
+of what is known in the Rust world as [externally tagged
+enums](https://serde.rs/enum-representations.html#externally-tagged).
 
 ## Feature Flags
 
