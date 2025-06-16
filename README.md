@@ -17,14 +17,23 @@ possibilities for [span query planning](./query-planning.md).
 
 ## Getting Started
 
-The span query system is written in
-[Rust](https://www.rust-lang.org/). Thus, step 1 is to [configure your
-environment](./https://www.rust-lang.org/tools/install) for Rust, if
-you haven't already. Step 2 is to clone this repository. 
+To kick the tires, you can use the Span Query CLI front-end. This CLI
+is only geared towards demos, at this point. Using it, you can run one
+of the built-in demos, or you can point it to a JSON file. Plans are
+underway for integration backends (stay tuned!) and also with
+user-facing libraries such as
+[PDL](https://github.com/IBM/prompt-declaration-language). Please open
+an issue documenting your use cases!
 
-Using these pre-requisities, we have a quick and dirty CLI on top of
-the core capabilities to help with tire kicking. Using it, you can run
-a quick demo with:
+The span query system is written in
+[Rust](https://www.rust-lang.org/). This choice was made to facilitate
+flexible integration with backends, CLIs, and with Python
+libraries. Rust is also awesome. Thus, step 1 in getting started is to
+[configure your
+environment](./https://www.rust-lang.org/tools/install) for Rust, if
+you haven't already. Step 2 is to clone this repository.
+
+Now you can run a quick demo with:
 
 ```shell
 cargo run
