@@ -112,39 +112,73 @@ but should be soon.
 This will generate (`g`) some output, using the given model, provided
 with the given input of a user message "Hello world":
 ```json
-g:
-  model: ollama/granite3.2:2b
-  input: 
-  - user: Hello world
+{
+  "g": {
+    "model": "ollama/granite3.2:2b",
+    "input": [
+      {
+        "user": "Hello world"
+      }
+    ]
+  }
+}
 ```
 
 Send a sequence of prompts to the model:
 ```json
-g:
-  model: ollama/granite3.2:2b
-  input:
-  - cross:
-    - ask: What should I ask the model?
-    - file: ./prompt.txt
+{
+  "g": {
+    "model": "ollama/granite3.2:2b",
+    "input": {
+      "cross": [
+        {
+          "ask": "What should I ask the model?"
+        },
+        {
+          "file": "./prompt.txt"
+        }
+      ]
+    }
+  }
+}
 ```
 
 The `g` operator also accepts optional max tokens and temperature
 options. Here analyze three independent inputs, each generated with
 max tokens of 1000 and a temperature of 0.3:
 ```json
-g:
-  model: ollama/granite3.2:2b
-  input:
-    cross:
-    - system: You judge emails by scoring them.
-    - plus:
-      - repeat
-        n: 4
-        query:
-          g:
-            model: ollama/granite3.2:2b
-            input: Generate a fun email
-            max_tokens: 1000
-            temperature: 0.3
-    - user: I am looking for a job at NASA
+{
+  "g": {
+    "model": "ollama/granite3.2:2b",
+    "input": {
+      "cross": [
+        {
+          "system": "You judge emails by scoring them"
+        },
+        {
+          "plus": [
+            {
+              "repeat": {
+                "n": 4,
+                "query": {
+                  "g": {
+                    "model": "ollama/granite3.2:2b",
+                    "input": {
+                      "user": "Generate a fun email"
+                    },
+                    "max_tokens": 1000,
+                    "temperature": 0.3
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "user": "I am looking for a job at NASA"
+        }
+      ]
+    }
+  }
+}
 ```
