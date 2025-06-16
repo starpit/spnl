@@ -1,6 +1,6 @@
 import { match, P } from "ts-pattern"
 
-import { type Unit, isGenerate, type User, type Assistant } from "./Unit"
+import { type Query, isGenerate, type User, type Assistant } from "./Query"
 import { type InitProgress } from "./ProgressUI"
 
 import generate from "./generate"
@@ -16,10 +16,10 @@ type Props = {
 function noEmit() {}
 
 export default async function run(
-  unit: Unit,
+  unit: Query,
   props: Props,
   inPlusOrCross = -1,
-): Promise<Unit> {
+): Promise<Query> {
   console.log("Execute query", unit, inPlusOrCross)
 
   return match(unit)

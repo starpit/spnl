@@ -37,7 +37,7 @@ export default function Body(props: BodyProps) {
   const initialQuery = demo.query
   const model = props.model || models[0].value
 
-  const [unit, setUnit] = useState<null | import("./Unit").Unit>(null)
+  const [unit, setUnit] = useState<null | import("./Query").Query>(null)
   const [query, setQuery] = useState<string>(initialQuery)
   const [compilationError, setCompilationError] = useState<null | Error>(null)
 
@@ -51,7 +51,7 @@ export default function Body(props: BodyProps) {
   useEffect(() => {
     try {
       setCompilationError(null)
-      setUnit(JSON.parse(compile_query(query)) as import("./Unit").Unit)
+      setUnit(JSON.parse(compile_query(query)) as import("./Query").Query)
     } catch (err) {
       console.error(err)
       setCompilationError(err as Error)

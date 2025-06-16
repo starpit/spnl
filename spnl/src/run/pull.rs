@@ -4,7 +4,7 @@ use duct::cmd;
 use fs4::fs_std::FileExt;
 use rayon::prelude::*;
 
-use crate::{Unit, run::extract};
+use crate::{Query, run::extract};
 
 /* pub async fn pull_if_needed_from_path(
     source_file_path: &str,
@@ -16,7 +16,7 @@ use crate::{Unit, run::extract};
 } */
 
 /// Pull models (in parallel) from the program in the given filepath.
-pub async fn pull_if_needed(program: &Unit) -> Result<(), Error> {
+pub async fn pull_if_needed(program: &Query) -> Result<(), Error> {
     #[cfg(feature = "pull")]
     extract::extract_models(program)
         .into_par_iter()

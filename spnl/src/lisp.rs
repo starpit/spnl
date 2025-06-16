@@ -11,7 +11,7 @@ macro_rules! spnl {
     (g $model:tt $input:tt $temp:tt $max_tokens:tt) => ($crate::spnl!(g $model $input $temp $max_tokens false));
 
     (g $model:tt $input:tt $temp:tt $max_tokens:tt $accumulate:tt) => (
-        $crate::Unit::Generate((
+        $crate::Query::Generate((
             $crate::spnl_arg!($model).to_string(),
             Box::new($crate::spnl_arg!($input).into()),
             $crate::spnl_arg!($max_tokens), $crate::spnl_arg!($temp), $crate::spnl_arg!($accumulate),
@@ -28,19 +28,19 @@ macro_rules! spnl {
     (gx $model:tt $input:tt $temp:tt $max_tokens:tt) => ($create::spnl!(g $model $input $temp $max_tokens true));
 
     // Core: Dependent/needs-attention
-    (cross $( $e:tt )+) => ( $crate::Unit::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
+    (cross $( $e:tt )+) => ( $crate::Query::Cross(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
 
     // Core: Independent/no-attention with one or more inputs provided directly as a vector
-    (plus $e:tt) => ( $crate::Unit::Plus($crate::spnl_arg!( $e )) );
+    (plus $e:tt) => ( $crate::Query::Plus($crate::spnl_arg!( $e )) );
 
     // Core: Independent/no-attention with multiple inputs provided inline
-    (plus $( $e:tt )+) => ( $crate::Unit::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
+    (plus $( $e:tt )+) => ( $crate::Query::Plus(vec![$( $crate::spnl_arg!( $e ).into() ),+]) );
 
     // Core: A user message
-    (user $e:tt) => ($crate::Unit::User(($crate::spnl_arg!($e).clone().into(),)));
+    (user $e:tt) => ($crate::Query::User(($crate::spnl_arg!($e).clone().into(),)));
 
     // Core: A system message
-    (system $e:tt) => ($crate::Unit::System(($crate::spnl_arg!($e).into(),)));
+    (system $e:tt) => ($crate::Query::System(($crate::spnl_arg!($e).into(),)));
 
     // Data: incorporate a file at compile time
     (file $f:tt) => (include_str!($crate::spnl_arg!($f)));
@@ -105,7 +105,7 @@ macro_rules! spnl {
 
     // Internal
     (__spnl_retrieve $embedding_model:tt $input:tt $doc:tt) => (
-        vec![$crate::Unit::Retrieve(
+        vec![$crate::Query::Retrieve(
             ($crate::spnl_arg!($embedding_model),
              Box::new($crate::spnl_arg!($input)),
              $crate::spnl_arg!( $doc ).into()) )]
@@ -147,7 +147,7 @@ macro_rules! spnl {
     // times and makes available an index variable $i ranging from
     // $start to $n-$start-1.
     (repeat $i:ident $start:tt $n:tt $e:tt) => {{
-        let mut args: Vec<$crate::Unit> = vec![];
+        let mut args: Vec<$crate::Query> = vec![];
         let start = $crate::spnl_arg!($start);
         let end = $crate::spnl_arg!($n) + start;
         for $i in start..end {
@@ -159,16 +159,16 @@ macro_rules! spnl {
     // Utility: Defines an n-ary function that accepts the given $name'd arguments
     (lambda ( $( $name:ident )* )
      $( ( $($e:tt)* ))*
-    ) => (| $($name: Vec<Unit>),* |{ $( $crate::spnl!( $($e)* ) );* });
+    ) => (| $($name: Vec<Query>),* |{ $( $crate::spnl!( $($e)* ) );* });
 
     // Utility: the length of $list
     (length $list:tt) => ($crate::spnl_arg!($list).len());
 
     // Utility: read as string from stdin
-    (ask $message:tt) => ( $crate::Unit::Ask(($crate::spnl_arg!($message).into(),)) );
+    (ask $message:tt) => ( $crate::Query::Ask(($crate::spnl_arg!($message).into(),)) );
 
     // Utility: print a helpful message to the console
-    (print $message:tt) => ( $crate::Unit::Print(($crate::spnl_arg!($message).into(),)) );
+    (print $message:tt) => ( $crate::Query::Print(($crate::spnl_arg!($message).into(),)) );
 
     // Utility:
     (format $fmt:tt $( $e:tt )*) => ( &format!($fmt, $($crate::spnl_arg!($e)),* ) );
@@ -187,24 +187,24 @@ macro_rules! spnl_arg {
 
 #[cfg(test)]
 mod tests {
-    use crate::Unit;
+    use crate::Query;
 
     #[test]
     fn macro_user() {
         let result = spnl!(user "hello");
-        assert_eq!(result, Unit::User(("hello".to_string(),)));
+        assert_eq!(result, Query::User(("hello".to_string(),)));
     }
 
     #[test]
     fn macro_system() {
         let result = spnl!(system "hello");
-        assert_eq!(result, Unit::System(("hello".to_string(),)));
+        assert_eq!(result, Query::System(("hello".to_string(),)));
     }
 
     #[test]
     fn macro_ask() {
         let result = spnl!(ask "hello");
-        assert_eq!(result, Unit::Ask(("hello".to_string(),)));
+        assert_eq!(result, Query::Ask(("hello".to_string(),)));
     }
 
     #[test]
@@ -212,9 +212,9 @@ mod tests {
         let result = spnl!(plus (user "hello") (user "world"));
         assert_eq!(
             result,
-            Unit::Plus(vec![
-                Unit::User(("hello".to_string(),)),
-                Unit::User(("world".to_string(),))
+            Query::Plus(vec![
+                Query::User(("hello".to_string(),)),
+                Query::User(("world".to_string(),))
             ])
         );
     }
@@ -224,9 +224,9 @@ mod tests {
         let result = spnl!(plus (user "hello") (system "world"));
         assert_eq!(
             result,
-            Unit::Plus(vec![
-                Unit::User(("hello".to_string(),)),
-                Unit::System(("world".to_string(),))
+            Query::Plus(vec![
+                Query::User(("hello".to_string(),)),
+                Query::System(("world".to_string(),))
             ])
         );
     }
@@ -236,7 +236,7 @@ mod tests {
         let result = spnl!(cross (user "hello"));
         assert_eq!(
             result,
-            Unit::Cross(vec![Unit::User(("hello".to_string(),))])
+            Query::Cross(vec![Query::User(("hello".to_string(),))])
         );
     }
 
@@ -246,12 +246,12 @@ mod tests {
             spnl!(cross (user "hello") (system "world") (plus (user "sloop") (user "boop")));
         assert_eq!(
             result,
-            Unit::Cross(vec![
-                Unit::User(("hello".to_string(),)),
-                Unit::System(("world".to_string(),)),
-                Unit::Plus(vec![
-                    Unit::User(("sloop".to_string(),)),
-                    Unit::User(("boop".to_string(),))
+            Query::Cross(vec![
+                Query::User(("hello".to_string(),)),
+                Query::System(("world".to_string(),)),
+                Query::Plus(vec![
+                    Query::User(("sloop".to_string(),)),
+                    Query::User(("boop".to_string(),))
                 ])
             ])
         );
@@ -262,9 +262,9 @@ mod tests {
         let result = spnl!(g "ollama/granite3.2:2b" (user "hello") 0.0 0);
         assert_eq!(
             result,
-            Unit::Generate((
+            Query::Generate((
                 "ollama/granite3.2:2b".to_string(),
-                Box::new(Unit::User(("hello".to_string(),))),
+                Box::new(Query::User(("hello".to_string(),))),
                 0,
                 0.0,
                 false

@@ -1,8 +1,8 @@
-use crate::Unit;
+use crate::Query;
 use crate::run::result::SpnlError;
 
 pub enum EmbedData {
-    Unit(Unit),
+    Query(Query),
     Vec(Vec<String>),
 }
 

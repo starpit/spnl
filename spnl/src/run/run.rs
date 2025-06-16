@@ -1,7 +1,7 @@
 use async_recursion::async_recursion;
 use indicatif::MultiProgress;
 
-use crate::{Unit, run::result::SpnlResult};
+use crate::{Query, run::result::SpnlResult};
 
 pub struct RunParameters {
     /// URI of vector database. Could be a local filepath.
@@ -11,7 +11,7 @@ pub struct RunParameters {
     pub vecdb_table: String,
 }
 
-async fn cross(units: &Vec<Unit>, rp: &RunParameters, mm: Option<&MultiProgress>) -> SpnlResult {
+async fn cross(units: &Vec<Query>, rp: &RunParameters, mm: Option<&MultiProgress>) -> SpnlResult {
     let mym = MultiProgress::new();
     let m = if let Some(m) = mm { m } else { &mym };
 
@@ -21,10 +21,10 @@ async fn cross(units: &Vec<Unit>, rp: &RunParameters, mm: Option<&MultiProgress>
         evaluated.push(run(u, rp, Some(m)).await?);
     }
 
-    Ok(Unit::Cross(evaluated))
+    Ok(Query::Cross(evaluated))
 }
 
-async fn plus(units: &Vec<Unit>, rp: &RunParameters) -> SpnlResult {
+async fn plus(units: &Vec<Query>, rp: &RunParameters) -> SpnlResult {
     let m = MultiProgress::new();
     let evaluated =
         futures::future::try_join_all(units.iter().map(|u| run(u, rp, Some(&m)))).await?;
@@ -32,25 +32,25 @@ async fn plus(units: &Vec<Unit>, rp: &RunParameters) -> SpnlResult {
     if evaluated.len() == 1 {
         Ok(evaluated[0].clone())
     } else {
-        Ok(Unit::Plus(evaluated))
+        Ok(Query::Plus(evaluated))
     }
 }
 
 #[async_recursion]
-pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> SpnlResult {
+pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) -> SpnlResult {
     #[cfg(feature = "pull")]
     let _ = crate::run::pull::pull_if_needed(unit).await?;
 
     match unit {
-        Unit::Print((m,)) => {
+        Query::Print((m,)) => {
             println!("{}", m);
-            Ok(Unit::Print((m.clone(),)))
+            Ok(Query::Print((m.clone(),)))
         }
-        Unit::User(s) => Ok(Unit::User(s.clone())),
-        Unit::System(s) => Ok(Unit::System(s.clone())),
+        Query::User(s) => Ok(Query::User(s.clone())),
+        Query::System(s) => Ok(Query::System(s.clone())),
 
         #[cfg(feature = "rag")]
-        Unit::Retrieve((embedding_model, body, doc)) => {
+        Query::Retrieve((embedding_model, body, doc)) => {
             crate::run::with::embed_and_retrieve(
                 embedding_model,
                 body,
@@ -61,9 +61,9 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
             .await
         }
 
-        Unit::Cross(u) => cross(&u, rp, m).await,
-        Unit::Plus(u) => plus(&u, rp).await,
-        Unit::Generate((model, input, max_tokens, temp, accumulate)) => match accumulate {
+        Query::Cross(u) => cross(&u, rp, m).await,
+        Query::Plus(u) => plus(&u, rp).await,
+        Query::Generate((model, input, max_tokens, temp, accumulate)) => match accumulate {
             false => {
                 crate::run::generate::generate(
                     model.as_str(),
@@ -76,13 +76,13 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
             }
             true => {
                 let mut accum = match &**input {
-                    Unit::Cross(v) => v.clone(),
+                    Query::Cross(v) => v.clone(),
                     _ => vec![*input.clone()],
                 };
                 loop {
-                    let program = Unit::Generate((
+                    let program = Query::Generate((
                         model.clone(),
-                        Box::new(Unit::Cross(accum.clone())),
+                        Box::new(Query::Cross(accum.clone())),
                         *max_tokens,
                         *temp,
                         false,
@@ -94,9 +94,9 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
         },
 
         #[cfg(not(feature = "cli_support"))]
-        Unit::Ask((message,)) => todo!("ask"),
+        Query::Ask((message,)) => todo!("ask"),
         #[cfg(feature = "cli_support")]
-        Unit::Ask((message,)) => {
+        Query::Ask((message,)) => {
             use rustyline::error::ReadlineError;
             let mut rl = rustyline::DefaultEditor::new().unwrap();
             let _ = rl.load_history("history.txt");
@@ -111,11 +111,11 @@ pub async fn run(unit: &Unit, rp: &RunParameters, m: Option<&MultiProgress>) -> 
                 Err(err) => panic!("{}", err), // TODO this only works in a CLI
             };
             rl.append_history("history.txt").unwrap();
-            Ok(Unit::User((prompt,)))
+            Ok(Query::User((prompt,)))
         }
 
         // should not happen
-        Unit::Repeat(_) => todo!("repeat"),
+        Query::Repeat(_) => todo!("repeat"),
     }
 }
 
@@ -135,7 +135,7 @@ mod tests {
             None,
         )
         .await?;
-        assert_eq!(result, Unit::User(("hello".to_string(),)));
+        assert_eq!(result, Query::User(("hello".to_string(),)));
         Ok(())
     }
 }

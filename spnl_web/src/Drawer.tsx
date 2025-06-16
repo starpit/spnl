@@ -14,7 +14,7 @@ import Topology from "./Topology"
 import CloseIcon from "@patternfly/react-icons/dist/esm/icons/times-icon"
 
 type Props = {
-  unit: null | import("./Unit").Unit
+  unit: null | import("./Query").Query
 }
 
 export default function Drawer({ unit }: Props) {

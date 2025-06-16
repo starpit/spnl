@@ -1,21 +1,21 @@
-use crate::Unit;
+use crate::Query;
 
-fn expand_repeats(v: &Vec<Unit>) -> Vec<Unit> {
+fn expand_repeats(v: &Vec<Query>) -> Vec<Query> {
     v.iter()
         .flat_map(|u| match u {
-            Unit::Repeat((n, uu)) => ::std::iter::repeat(plan(&uu)).take(*n).collect::<Vec<_>>(),
+            Query::Repeat((n, uu)) => ::std::iter::repeat(plan(&uu)).take(*n).collect::<Vec<_>>(),
             x => vec![plan(x)],
         })
         .collect()
 }
 
-pub fn plan(ast: &Unit) -> Unit {
+pub fn plan(ast: &Query) -> Query {
     // this is probably the wrong place for this, but here we expand any Repeats under Plus or Cross
     match ast {
-        Unit::Plus(v) => Unit::Plus(expand_repeats(v)),
-        Unit::Cross(v) => Unit::Cross(expand_repeats(v)),
-        Unit::Generate((m, i, mt, t, accumulate)) => {
-            Unit::Generate((m.clone(), Box::new(plan(i)), *mt, *t, *accumulate))
+        Query::Plus(v) => Query::Plus(expand_repeats(v)),
+        Query::Cross(v) => Query::Cross(expand_repeats(v)),
+        Query::Generate((m, i, mt, t, accumulate)) => {
+            Query::Generate((m.clone(), Box::new(plan(i)), *mt, *t, *accumulate))
         }
         x => x.clone(),
     }

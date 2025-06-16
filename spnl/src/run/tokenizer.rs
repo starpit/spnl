@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use tokenizers::tokenizer::Tokenizer;
 
-use crate::Unit;
+use crate::Query;
 
 #[pyclass]
 #[derive(Debug)]
@@ -29,7 +29,7 @@ fn pad(pad_token: u32, block_size: usize, toklist: Vec<u32>) -> Vec<u32> {
 }
 
 fn tokenize_part(
-    input: &Unit,
+    input: &Query,
     tok: &Tokenizer,
     pad_token: u32,
     cross_token: Option<u32>,
@@ -37,7 +37,7 @@ fn tokenize_part(
     block_size: usize,
 ) -> tokenizers::tokenizer::Result<Vec<u32>> {
     match input {
-        Unit::Cross(v) => {
+        Query::Cross(v) => {
             let l = v
                 .iter()
                 .map(|u| tokenize_part(u, tok, pad_token, cross_token, plus_token, block_size))
@@ -54,7 +54,7 @@ fn tokenize_part(
                 Ok(l)
             }
         }
-        Unit::Plus(v) => {
+        Query::Plus(v) => {
             if let Some(plus_token) = plus_token {
                 v.iter()
                     .map(|u| {
@@ -87,11 +87,11 @@ fn tokenize_part(
                     .collect::<Result<_, _>>()
             }
         }
-        Unit::System((m,)) => Ok(tok
+        Query::System((m,)) => Ok(tok
             .encode(format!("\n<|system|>\n{m}"), false)?
             .get_ids()
             .to_vec()),
-        Unit::User((m,)) => Ok(tok
+        Query::User((m,)) => Ok(tok
             .encode(format!("\n<|user|>\n{m}"), false)?
             .get_ids()
             .to_vec()),
@@ -119,7 +119,7 @@ pub fn tokenize_query<'a>(
     block_size: usize,
 ) -> Result<TokenizedQuery, PyErr> {
     Ok(match crate::from_str(query).map_err(handle_serde_err)? {
-        Unit::Generate((model, input, _, _, _)) => {
+        Query::Generate((model, input, _, _, _)) => {
             let tok = Tokenizer::from_pretrained(&model, None).map_err(handle_err)?;
             let messages =
                 tokenize_part(&input, &tok, pad_token, cross_token, plus_token, block_size)
@@ -143,11 +143,11 @@ pub fn tokenize_query<'a>(
     })
 }
 
-fn extract_plus(u: &Unit, in_plus: bool) -> Vec<String> {
+fn extract_plus(u: &Query, in_plus: bool) -> Vec<String> {
     match (u, in_plus) {
-        (Unit::Cross(v), _) => v.iter().flat_map(|u| extract_plus(u, false)).collect(),
-        (Unit::Plus(v), _) => v.iter().flat_map(|u| extract_plus(u, true)).collect(),
-        (Unit::User((m,)), true) => vec![m.clone()],
+        (Query::Cross(v), _) => v.iter().flat_map(|u| extract_plus(u, false)).collect(),
+        (Query::Plus(v), _) => v.iter().flat_map(|u| extract_plus(u, true)).collect(),
+        (Query::User((m,)), true) => vec![m.clone()],
         _ => vec![],
     }
 }
@@ -160,7 +160,7 @@ pub fn tokenize_plus<'a>(
     block_size: usize,
 ) -> Result<Vec<Vec<u32>>, PyErr> {
     match crate::from_str(query).map_err(handle_serde_err)? {
-        Unit::Generate((model, input, _, _, _)) => {
+        Query::Generate((model, input, _, _, _)) => {
             let tok = Tokenizer::from_pretrained(model, None).map_err(handle_err)?;
             extract_plus(&input, false)
                 .into_iter()

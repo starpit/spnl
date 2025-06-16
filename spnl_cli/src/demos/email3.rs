@@ -1,10 +1,10 @@
 use rustyline::error::ReadlineError;
 
 use crate::args::Args;
-use spnl::{Unit, spnl};
+use spnl::{Query, spnl};
 
 // https://github.ibm.com/AI4BA/agentic-policy
-pub fn demo(args: Args) -> Unit {
+pub fn demo(args: Args) -> Query {
     let Args {
         model,
         n,

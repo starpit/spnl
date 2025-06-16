@@ -5,7 +5,7 @@ import { Tree, type Data } from "react-tree-graph"
 import "./Topology.css"
 
 type Props = {
-  unit: null | import("./Unit").Unit
+  unit: null | import("./Query").Query
 }
 
 const NODE_SIZE = 18
@@ -22,7 +22,7 @@ function node(id: string, label: string, children: Data[] = []) {
   }
 }
 
-function graphify(unit: import("./Unit").Unit, id = "root"): Data[] {
+function graphify(unit: import("./Query").Query, id = "root"): Data[] {
   return match(unit)
     .with({ user: P.array(P.string) }, () => [node(id, "U")])
     .with({ assistant: P.array(P.string) }, () => [node(id, "A")])

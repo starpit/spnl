@@ -7,13 +7,13 @@ import {
   type ChatCompletionRequestStreaming,
 } from "@mlc-ai/web-llm"
 
-import { type Unit } from "./Unit"
+import { type Query } from "./Query"
 import { type InitProgress } from "./ProgressUI"
 
 const engines: Record<string, Promise<MLCEngine>> = {}
 type Message = ChatCompletionMessageParam
 
-function messagify(input: Unit): Message[] {
+function messagify(input: Query): Message[] {
   return match(input)
     .with({ cross: P.array() }, ({ cross }) => cross.flatMap(messagify))
     .with({ plus: P.array() }, ({ plus }) => plus.flatMap(messagify))
@@ -106,7 +106,7 @@ async function initializeEngine(
 }
 
 export default async function generate(
-  input: Unit,
+  input: Query,
   defaultModel: string,
   maxTokens: number,
   temperature: number,

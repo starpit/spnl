@@ -10,7 +10,7 @@ export type RunState = "idle" | "running" | "success" | "error"
 type Props = {
   model: string
   runState: RunState
-  query: null | import("./Unit").Unit
+  query: null | import("./Query").Query
   onComplete(success: boolean): void
 }
 
@@ -36,7 +36,7 @@ export default function Console({
   )
 
   useEffect(() => {
-    const start = async (query: import("./Unit").Unit) => {
+    const start = async (query: import("./Query").Query) => {
       if (!defaultModel) {
         setExecutionOutput("**Error**: please select a model")
         onComplete(false)

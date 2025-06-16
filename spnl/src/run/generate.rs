@@ -1,10 +1,10 @@
 use indicatif::MultiProgress;
 
-use crate::{Unit, run::result::SpnlResult};
+use crate::{Query, run::result::SpnlResult};
 
 pub async fn generate(
     model: &str,
-    input: &Unit,
+    input: &Query,
     max_tokens: i32,
     temp: f32,
     mp: Option<&MultiProgress>,

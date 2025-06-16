@@ -2,7 +2,7 @@ use indicatif::{MultiProgress, ProgressBar};
 use tokio::io::{AsyncWriteExt, stdout};
 use tokio_stream::StreamExt;
 
-use crate::{Unit, run::result::SpnlResult};
+use crate::{Query, run::result::SpnlResult};
 
 use ollama_rs::{
     Ollama,
@@ -15,7 +15,7 @@ use ollama_rs::{
 
 pub async fn generate(
     model: &str,
-    input: &Unit,
+    input: &Query,
     max_tokens: i32,
     temp: f32,
     m: Option<&MultiProgress>,
@@ -85,11 +85,11 @@ pub async fn generate(
     }
 
     if let Some(_) = m {
-        Ok(Unit::User((response_string,)))
+        Ok(Query::User((response_string,)))
     } else {
-        Ok(Unit::Generate((
+        Ok(Query::Generate((
             format!("ollama/{model}"),
-            Box::new(Unit::User((response_string,))),
+            Box::new(Query::User((response_string,))),
             max_tokens,
             temp,
             false,
@@ -97,10 +97,10 @@ pub async fn generate(
     }
 }
 
-fn messagify(input: &Unit) -> Vec<ChatMessage> {
+fn messagify(input: &Query) -> Vec<ChatMessage> {
     match input {
-        Unit::Cross(v) | Unit::Plus(v) => v.into_iter().flat_map(messagify).collect(),
-        Unit::System((s,)) => vec![ChatMessage::system(s.clone())],
+        Query::Cross(v) | Query::Plus(v) => v.into_iter().flat_map(messagify).collect(),
+        Query::System((s,)) => vec![ChatMessage::system(s.clone())],
         o => vec![ChatMessage::user(o.to_string())],
     }
 }
@@ -114,7 +114,7 @@ pub async fn embed(
 
     let docs = match data {
         crate::run::embed::EmbedData::Vec(v) => v,
-        crate::run::embed::EmbedData::Unit(u) => &messagify(u)
+        crate::run::embed::EmbedData::Query(u) => &messagify(u)
             .into_iter()
             .map(|m| m.content)
             .collect::<Vec<_>>(),

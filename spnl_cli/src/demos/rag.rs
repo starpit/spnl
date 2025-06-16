@@ -1,5 +1,5 @@
 #[cfg(feature = "rag")]
-pub fn demo(args: crate::args::Args) -> Result<spnl::Unit, Box<dyn ::std::error::Error>> {
+pub fn demo(args: crate::args::Args) -> Result<spnl::Query, Box<dyn ::std::error::Error>> {
     let crate::args::Args {
         model,
         embedding_model,

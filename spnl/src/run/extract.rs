@@ -1,12 +1,12 @@
-use crate::Unit;
+use crate::Query;
 
 /// Extract models referenced by the program
-pub fn extract_models(program: &Unit) -> Vec<String> {
+pub fn extract_models(program: &Query) -> Vec<String> {
     extract_values(program, "model")
 }
 
 /// Take a list of Yaml fragments and produce a vector of the string-valued entries of the given field
-fn extract_values(program: &Unit, field: &str) -> Vec<String> {
+fn extract_values(program: &Query, field: &str) -> Vec<String> {
     let mut values = vec![];
     extract_values_iter(program, field, &mut values);
 
@@ -18,12 +18,12 @@ fn extract_values(program: &Unit, field: &str) -> Vec<String> {
 }
 
 /// Produce a vector of the string-valued entries of the given field
-fn extract_values_iter(program: &Unit, field: &str, values: &mut Vec<String>) {
+fn extract_values_iter(program: &Query, field: &str, values: &mut Vec<String>) {
     match program {
         #[cfg(feature = "rag")]
-        Unit::Retrieve((model, _, _)) => values.push(model.clone()),
-        Unit::Generate((model, _, _, _, _)) => values.push(model.clone()),
-        Unit::Plus(v) | Unit::Cross(v) => {
+        Query::Retrieve((model, _, _)) => values.push(model.clone()),
+        Query::Generate((model, _, _, _, _)) => values.push(model.clone()),
+        Query::Plus(v) | Query::Cross(v) => {
             v.iter()
                 .for_each(|vv| extract_values_iter(vv, field, values));
         }

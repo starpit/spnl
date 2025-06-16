@@ -4,7 +4,7 @@ use itertools::Itertools;
 use sha2::Digest;
 
 use crate::{
-    Document, Unit,
+    Document, Query,
     run::{
         embed::{EmbedData, embed},
         result::{SpnlError, SpnlResult},
@@ -55,7 +55,7 @@ fn windowed_jsonl(s: &String) -> Result<Vec<String>, SpnlError> {
 
 pub async fn embed_and_retrieve(
     embedding_model: &String,
-    body: &Unit,
+    body: &Query,
     (filename, content): &(String, Document),
     db_uri: &str,
     table_name_base: &str,
@@ -132,7 +132,7 @@ pub async fn embed_and_retrieve(
     }
 
     eprintln!("Embedding question {body}");
-    let body_vectors = embed(embedding_model, EmbedData::Unit(body.clone()))
+    let body_vectors = embed(embedding_model, EmbedData::Query(body.clone()))
         .await?
         .into_iter()
         .map(|v| {
@@ -217,9 +217,9 @@ pub async fn embed_and_retrieve(
 
     let d = matching_docs
         .enumerate()
-        .map(|(idx, doc)| Unit::User((format!("Relevant document {idx}: {doc}"),)))
+        .map(|(idx, doc)| Query::User((format!("Relevant document {idx}: {doc}"),)))
         .collect::<Vec<_>>();
 
     eprintln!("RAG time {:.2?} ms", now.elapsed().as_millis());
-    Ok(Unit::Plus(d))
+    Ok(Query::Plus(d))
 }
