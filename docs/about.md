@@ -46,50 +46,105 @@ flowchart TD
         class u1,u2,u3,u4,u5 u
 ```
 
-## A Prototype DSL for Span Queries
+The Rust code is capable of deserializing a JSON structure that models
+these core concepts (g, cross, plus). 
 
-To explore this space, we use a simple LISP-like DSL to allow directly
-injecting the internal representation into the span query planner and
-runner:
+## Feature Flags
 
-- `(g model input)`: Used to ask a model to generate new output.
-- `(plus d1 d2 ...)`: Used to signify that the given items `d1`, `d2`,
-  ... are to be considered independent of eachother.
-- `(cross d1 d2 ...)`: Ibid, except now the items are to be considered
-  as having a linear dependence on eachother.
+On top of these core concepts is a set of feature flags that extend
+what can be expressed in a span query. For example, you may wish to
+have client-side support for extended features, such as reading in
+messages from a filesystem or from stdin. Or you may wish to have your
+server side also support fetching message content from a
+filesystem. The choice is yours.
 
-### Helpers: ask, file, repeat, format
-In addition to these three core operators, the DSL offers some helpful
-syntactic sugarings. These include `(ask message)` which prompts the
-user for a message, `(file filepath)` which reads in a string from the
-given local file path, and `(repeat n <subquery>)` which expands the
-given subquery `n` times.
+- **rag**: This allows a span query to express that a given message
+  should be augmented with fragments from a given set of
+  documents. The query process, with this feature flag enabled,
+  handles the fragmentation, indexing, etc.
+  
+- **run**: This allows for execution of a query. Without this flag
+  enabled, the compiled code will only be able to parse
 
-### Examples:
+- **ollama**: This allows the query execution to direct `g` (generate)
+  at a local Ollama model server.
+  
+- **openai**: This allows the query execution to direct `g` (generate)
+  at an OpenAI compatible model server. By default, this will talk to
+  `http://localhost:8000`, but this can be changed via the
+  `OPENAI_BASE_URL` environment variable.
+  
+- **pull**: This allows the query execution to pull down Ollama models
+  specified in a query.
+  
+- **tok**: This adds an API for both parsing and then tokenizing the
+  messages in a query.
+  
+- **python_bindings**: This adds python bindings to the span query
+  APIs (currently only the tokenization APIs are supported).
+  
+- **lisp**: A highly experimental effort to allow for [static
+  compilation](./lisp) of a query into a shrinkwrapped executable.
 
-This will generate (`g`) some output, using the given "model server/model", provided with the given input "Hello world":
-```lisp
-(g "ollama/granite3.2:2b" "Hello world")
-```
+## Data Operations
 
-Same, except ask the user (or read from a file) which prompt should be send to the generation.
-```lisp
-(g "ollama/granite3.2:2b" (read "What should I ask the model?"))
-(g "ollama/granite3.2:2b" (file "./prompt.txt"))
+To help with assembling messages from storage subsystems, a span query
+may pull data from either stdin or a filesystem. These are not yet
+feature flagged, but that should happen soon. The key operations here are:
+
+- `ask prompt`: which takes a prompt to be displayed on the local
+  terminal, and returns the message the user typed in response
+- `read filepath`: which takes a file path and returns the contents of
+  that file.
+- `take N`: which assumes the given content is a set of line-based
+  records, and extracts the first `N` such records.
+
+## Sugaring Utilities
+
+Finally, there are a set of syntactic sugars that can help with
+constructing concise prompts. These also are not yet feature flagged,
+but should be soon.
+
+- `repeat N body`: which repeats the given `body` `N` times.
+
+## Examples:
+
+This will generate (`g`) some output, using the given model, provided
+with the given input of a user message "Hello world":
+```json
+g:
+  model: ollama/granite3.2:2b
+  input: 
+  - user: Hello world
 ```
 
 Send a sequence of prompts to the model:
-```lisp
-(g "ollama/granite3.2:2b" (cross (read "What should I ask the model?")  (file "./prompt.txt")))
+```json
+g:
+  model: ollama/granite3.2:2b
+  input:
+  - cross:
+    - ask: What should I ask the model?
+    - file: ./prompt.txt
 ```
 
 The `g` operator also accepts optional max tokens and temperature
 options. Here analyze three independent inputs, each generated with
 max tokens of 1000 and a temperature of 0.3:
-```lisp
-(g "ollama/granite3.2:2b"
-   (cross "Pick the best one"
-          (plus (g "ollama/granite3.2:2b" "Generate a fun email" 1000 0.3)
-                (g "ollama/granite3.2:2b" "Generate a fun email" 1000 0.3)
-                (g "ollama/granite3.2:2b" "Generate a fun email" 1000 0.3))))
+```json
+g:
+  model: ollama/granite3.2:2b
+  input:
+    cross:
+    - system: You judge emails by scoring them.
+    - plus:
+      - repeat
+        n: 4
+        query:
+          g:
+            model: ollama/granite3.2:2b
+            input: Generate a fun email
+            max_tokens: 1000
+            temperature: 0.3
+    - user: I am looking for a job at NASA
 ```

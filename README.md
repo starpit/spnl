@@ -1,6 +1,6 @@
 # Span Queries: the SQL for GenAI
 
-:rocket: [Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false) **|** [Poster](./docs/poster-20250529.pdf) **|** [About Span Queries](./docs/about.md) **|** [Contribute](./docs/dev.md)
+:rocket: [Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false) **|** [Research Poster](./docs/poster-20250529.pdf) **|** [About Span Queries](./docs/about.md) **|** [Contribute](./docs/dev.md)
 
 What if we had a **SQL for GenAI**? Span Queries provide a declarative
 query foundation for writing scale-up and scale-out interactions with
