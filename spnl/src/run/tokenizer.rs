@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use tokenizers::tokenizer::Tokenizer;
 
-use crate::Query;
+use crate::{Generate, Query};
 
 #[pyclass]
 #[derive(Debug)]
@@ -87,11 +87,11 @@ fn tokenize_part(
                     .collect::<Result<_, _>>()
             }
         }
-        Query::System((m,)) => Ok(tok
+        Query::System(m) => Ok(tok
             .encode(format!("\n<|system|>\n{m}"), false)?
             .get_ids()
             .to_vec()),
-        Query::User((m,)) => Ok(tok
+        Query::User(m) => Ok(tok
             .encode(format!("\n<|user|>\n{m}"), false)?
             .get_ids()
             .to_vec()),
@@ -106,7 +106,7 @@ fn handle_err(e: tokenizers::tokenizer::Error) -> PyErr {
     pyo3::exceptions::PyTypeError::new_err(format!("Error in tokenization {:?}", e))
 }
 
-fn handle_serde_err(e: serde_lexpr::Error) -> PyErr {
+fn handle_serde_err(e: serde_json::Error) -> PyErr {
     pyo3::exceptions::PyTypeError::new_err(format!("Error in deserialization {:?}", e))
 }
 
@@ -119,7 +119,7 @@ pub fn tokenize_query<'a>(
     block_size: usize,
 ) -> Result<TokenizedQuery, PyErr> {
     Ok(match crate::from_str(query).map_err(handle_serde_err)? {
-        Query::Generate((model, input, _, _, _)) => {
+        Query::Generate(Generate { model, input, .. }) => {
             let tok = Tokenizer::from_pretrained(&model, None).map_err(handle_err)?;
             let messages =
                 tokenize_part(&input, &tok, pad_token, cross_token, plus_token, block_size)
@@ -147,7 +147,7 @@ fn extract_plus(u: &Query, in_plus: bool) -> Vec<String> {
     match (u, in_plus) {
         (Query::Cross(v), _) => v.iter().flat_map(|u| extract_plus(u, false)).collect(),
         (Query::Plus(v), _) => v.iter().flat_map(|u| extract_plus(u, true)).collect(),
-        (Query::User((m,)), true) => vec![m.clone()],
+        (Query::User(m), true) => vec![m.clone()],
         _ => vec![],
     }
 }
@@ -160,7 +160,7 @@ pub fn tokenize_plus<'a>(
     block_size: usize,
 ) -> Result<Vec<Vec<u32>>, PyErr> {
     match crate::from_str(query).map_err(handle_serde_err)? {
-        Query::Generate((model, input, _, _, _)) => {
+        Query::Generate(Generate { model, input, .. }) => {
             let tok = Tokenizer::from_pretrained(model, None).map_err(handle_err)?;
             extract_plus(&input, false)
                 .into_iter()
