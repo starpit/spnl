@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use tokenizers::tokenizer::Tokenizer;
 
-use crate::{Generate, Query};
+use crate::{Generate, Query, python_bindings::SimpleQuery};
 
 #[pyclass]
 #[derive(Debug)]
@@ -112,13 +112,15 @@ fn handle_serde_err(e: serde_json::Error) -> PyErr {
 
 #[pyfunction]
 pub fn tokenize_query<'a>(
-    query: &'a str,
+    q: &'a str,
     pad_token: u32,
     cross_token: Option<u32>,
     plus_token: Option<u32>,
     block_size: usize,
 ) -> Result<TokenizedQuery, PyErr> {
-    Ok(match crate::from_str(query).map_err(handle_serde_err)? {
+    let squery: SimpleQuery = serde_json::from_str(q).map_err(handle_serde_err)?;
+    let query: Query = squery.into();
+    Ok(match query {
         Query::Generate(Generate { model, input, .. }) => {
             let tok = Tokenizer::from_pretrained(&model, None).map_err(handle_err)?;
             let messages =
@@ -154,12 +156,14 @@ fn extract_plus(u: &Query, in_plus: bool) -> Vec<String> {
 
 #[pyfunction]
 pub fn tokenize_plus<'a>(
-    query: &'a str,
+    q: &'a str,
     pad_token: u32,
     plus_token: Option<u32>,
     block_size: usize,
 ) -> Result<Vec<Vec<u32>>, PyErr> {
-    match crate::from_str(query).map_err(handle_serde_err)? {
+    let squery: SimpleQuery = serde_json::from_str(q).map_err(handle_serde_err)?;
+    let query: Query = squery.into();
+    match query {
         Query::Generate(Generate { model, input, .. }) => {
             let tok = Tokenizer::from_pretrained(model, None).map_err(handle_err)?;
             extract_plus(&input, false)
