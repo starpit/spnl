@@ -96,8 +96,6 @@ To help with assembling messages from storage subsystems, a span query
 may pull data from either stdin or a filesystem. These are not yet
 feature flagged, but that should happen soon. The key operations here are:
 
-- `ask prompt`: which takes a prompt to be displayed on the local
-  terminal, and returns the message the user typed in response
 - `read filepath`: which takes a file path and returns the contents of
   that file.
 - `take N`: which assumes the given content is a set of line-based
@@ -109,7 +107,16 @@ Finally, there are a set of syntactic sugars that can help with
 constructing concise prompts. These also are not yet feature flagged,
 but should be soon.
 
-- `repeat N body`: which repeats the given `body` `N` times.
+- `repeat N body`: which repeats the given `body` `N` times. Helpful
+  in judge/generator patterns, to generate a fixed number of replicas
+  of a base generate pattern.
+
+## Debugging Utilities
+
+- `ask prompt`: takes a prompt to be displayed on the local terminal,
+  and returns the message the user typed in response.
+- `print message`: for debugging, will print the given message to the
+  console.
 
 ## Examples:
 
