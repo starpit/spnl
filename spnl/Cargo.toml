@@ -6,7 +6,7 @@ edition = "2024"
 [features]
 default = ["cli_support","lisp","run","ollama","openai","pull"]
 cli_support = ["dep:ptree","dep:rustyline"]
-lisp = []
+lisp = ["dep:serde-lexpr"]
 ollama = ["run","dep:ollama-rs","dep:tokio","dep:tokio-stream"]
 openai = ["dep:async-openai","dep:tokio","dep:tokio-stream"]
 pull = ["dep:duct","dep:fs4","dep:rayon"]
@@ -18,7 +18,7 @@ tok = ["dep:tokenizers", "python_bindings"]
 [dependencies]
 ptree = { version = "0.5.2", default-features = false, features = ["ansi"], optional = true }
 serde = { version = "1.0.219", features = ["derive"] }
-serde-lexpr = { version = "0.1.3" }
+serde-lexpr = { version = "0.1.3", optional = true }
 async-openai = { version = "0.28.1", optional = true }
 async-recursion = {version = "1.1.1", optional = true }
 duct = { version = "0.13.7", optional = true }
