@@ -8,6 +8,10 @@ use crate::{Generate, Query, python_bindings::SimpleQuery};
 pub struct TokenizedQuery {
     #[pyo3(get)]
     model: String,
+    #[pyo3(get)]
+    max_tokens: Option<i32>,
+    #[pyo3(get)]
+    temperature: Option<f32>,
     messages_: Vec<u32>,
 }
 
@@ -37,32 +41,23 @@ fn tokenize_part(
     block_size: usize,
 ) -> tokenizers::tokenizer::Result<Vec<u32>> {
     match input {
-        Query::Cross(v) => {
-            let l = v
-                .iter()
-                .map(|u| tokenize_part(u, tok, pad_token, cross_token, plus_token, block_size))
-                .flat_map(|result| match result {
-                    Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
-                    Err(er) => vec![Err(er)],
-                })
-                .collect::<Result<_, _>>()?;
-            if let Some(cross_token) = cross_token {
-                let mut res = vec![cross_token];
-                res.extend(l);
-                Ok(res)
-            } else {
-                Ok(l)
-            }
-        }
+        Query::Cross(v) => v
+            .iter()
+            .map(|u| tokenize_part(u, tok, pad_token, cross_token, plus_token, block_size))
+            .flat_map(|result| match result {
+                Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
+                Err(er) => vec![Err(er)],
+            })
+            .collect::<Result<_, _>>(),
         Query::Plus(v) => {
-            if let Some(plus_token) = plus_token {
+            if let (Some(cross_token), Some(plus_token)) = (cross_token, plus_token) {
                 v.iter()
                     .map(|u| {
                         let toks = tokenize_part(
                             u,
                             tok,
                             pad_token,
-                            cross_token,
+                            Some(cross_token),
                             Some(plus_token),
                             block_size,
                         )?;
@@ -76,6 +71,7 @@ fn tokenize_part(
                         Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
                         Err(er) => vec![Err(er)],
                     })
+                    .chain([Ok(cross_token)]) // add cross token at the very end of the plus vector
                     .collect::<Result<_, _>>()
             } else {
                 v.iter()
@@ -121,7 +117,13 @@ pub fn tokenize_query<'a>(
     let squery: SimpleQuery = serde_json::from_str(q).map_err(handle_serde_err)?;
     let query: Query = squery.into();
     Ok(match query {
-        Query::Generate(Generate { model, input, .. }) => {
+        Query::Generate(Generate {
+            model,
+            input,
+            max_tokens,
+            temperature,
+            ..
+        }) => {
             let tok = Tokenizer::from_pretrained(&model, None).map_err(handle_err)?;
             let messages =
                 tokenize_part(&input, &tok, pad_token, cross_token, plus_token, block_size)
@@ -139,6 +141,8 @@ pub fn tokenize_query<'a>(
             TokenizedQuery {
                 model: model.clone(),
                 messages_: messages,
+                max_tokens: max_tokens,
+                temperature: temperature,
             }
         }
         _ => todo!(),
