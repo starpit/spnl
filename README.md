@@ -24,10 +24,17 @@ independent of each other. The goals of this work are to:
 
 ## Getting Started
 
-To kick the tires, you can use the Span Query CLI front-end. This CLI
-is only geared towards demos, at this point. Using it, you can run one
-of the built-in demos, or you can point it to a JSON file containing a
-span query. 
+To kick the tires, you can use the [online
+playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false),
+or the Span Query CLI. The playground will let you run queries
+directly in browsers that support
+[WebGPU](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)
+(albeit slowly).  The CLI can leverage local
+[Ollama](https://ollama.com/) or any OpenAI-compatible model server
+(e.g. [vLLM](https://github.com/vllm-project/vllm)). The CLI is
+currently geared towards demos. Using it, you can run one of the
+built-in demos, or you can point it to a JSON file containing a span
+query.
 
 The span query system is written in
 [Rust](https://www.rust-lang.org/). This choice was made to facilitate
