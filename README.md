@@ -2,28 +2,32 @@
 
 :rocket: [Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false) **|** [Research Poster](./docs/poster-20250529.pdf) **|** [About Span Queries](./docs/about.md) **|** [Contribute](./docs/dev.md)
 
-What if we had a **SQL for GenAI**? Span Queries provide a declarative
-query foundation for writing scale-up and scale-out interactions with
-large language models (LLMs).  A span query allows messages to be
-arranged into a [map/reduce](https://en.wikipedia.org/wiki/MapReduce)
-tree of generation calls. When LLM calls are arranged in this way into
-bulk (multi-generation) queries. 
+What if we had a **SQL for GenAI**? A [Span Query](./docs/about.md) is
+a declarative description of how to link together data into a
+[map/reduce](https://en.wikipedia.org/wiki/MapReduce) tree of one or
+more generation calls. For example, in a RAG scenario, a span query
+allows you to express that the relevant document fragments are
+independent of each other. The goals of this work are to:
 
-Learn more about the [structure of a span
-queries](./docs/about.md). And learn more about the research
-possibilities for [span query planning](./docs/query-planning.md).
+- improve cache locality and reduce inference latency for deep
+  research (c.f. [block attention](https://arxiv.org/pdf/2409)).
+- provide a generalized inference scaling strategy using the power of map/reduce.
+- facilitate [query planning](./docs/query-planning.md) to improve
+  both outcomes and request routing.
+- as with SQL, allow for a clean separation of concerns between
+  conventional programming logic and backend interactions.
 
 **Examples** [Judge/generator](https://pages.github.ibm.com/cloud-computer/spnl/?demo=email&qv=true) **|** [Judge/generator (optimized)](https://pages.github.ibm.com/cloud-computer/spnl/?demo=email2&qv=true) **|** [Policy-driven email generation](https://pages.github.ibm.com/cloud-computer/spnl/?demo=email3&qv=true)
+
+> [!NOTE]
+> Plans are underway for integration backends (stay tuned!) and also with user-facing libraries such as [PDL](https://github.com/IBM/prompt-declaration-language). Please open an issue documenting your use cases!
 
 ## Getting Started
 
 To kick the tires, you can use the Span Query CLI front-end. This CLI
 is only geared towards demos, at this point. Using it, you can run one
-of the built-in demos, or you can point it to a JSON file. Plans are
-underway for integration backends (stay tuned!) and also with
-user-facing libraries such as
-[PDL](https://github.com/IBM/prompt-declaration-language). Please open
-an issue documenting your use cases!
+of the built-in demos, or you can point it to a JSON file containing a
+span query. 
 
 The span query system is written in
 [Rust](https://www.rust-lang.org/). This choice was made to facilitate
