@@ -36,15 +36,16 @@ currently geared towards demos. Using it, you can run one of the
 built-in demos, or you can point it to a JSON file containing a span
 query.
 
+### Setting up the Span Query CLI
+
 The span query system is written in
 [Rust](https://www.rust-lang.org/). This choice was made to facilitate
 flexible integration with backends, CLIs, and with Python
-libraries. Rust is also awesome. Thus, step 1 in getting started is to
-[configure your
-environment](./https://www.rust-lang.org/tools/install) for Rust, if
-you haven't already. Step 2 is to clone this repository.
-
-Now you can run a quick demo with:
+libraries. Plus, Rust is awesome. Thus, step 1 in getting started with
+the CLI is to [configure your
+environment](./https://www.rust-lang.org/tools/install) for
+Rust.. Step 2 is to clone this repository. Now you can run a quick
+demo with:
 
 ```shell
 cargo run
@@ -53,7 +54,7 @@ cargo run
 The full usage is provided via `cargo run -- --help`, which also
 specifies the available demos.
 
-```
+```bash
 Usage: spnl [OPTIONS] [FILE]
 
 Arguments:
