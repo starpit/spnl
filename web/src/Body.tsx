@@ -17,7 +17,7 @@ import Console, { type RunState } from "./Console"
 import demos from "./demos"
 import models from "./models"
 
-import { compile_query } from "spnl_wasm"
+import { compile_query } from "spnl-wasm"
 
 import "@patternfly/react-core/dist/styles/base.css"
 
