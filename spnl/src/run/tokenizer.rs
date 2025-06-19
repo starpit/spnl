@@ -32,6 +32,50 @@ fn pad(pad_token: u32, block_size: usize, toklist: Vec<u32>) -> Vec<u32> {
         .collect()
 }
 
+fn user(m: &String) -> String {
+    format!("\n<|user|>\n{m}")
+}
+fn usertok(m: &String, tok: &Tokenizer) -> tokenizers::tokenizer::Result<Vec<u32>> {
+    Ok(tok.encode_fast(user(m), false)?.get_ids().to_vec())
+}
+
+fn system(m: &String) -> String {
+    format!("\n<|system|>\n{m}")
+}
+fn systemtok(m: &String, tok: &Tokenizer) -> tokenizers::tokenizer::Result<Vec<u32>> {
+    Ok(tok.encode_fast(system(m), false)?.get_ids().to_vec())
+}
+
+fn encode_plus_part(
+    part: &String,
+    tok: &Tokenizer,
+    pad_token: u32,
+    plus_token: Option<u32>,
+    block_size: usize,
+) -> tokenizers::tokenizer::Result<Vec<u32>> {
+    let encoded = tok.encode_fast(part.clone(), false)?;
+    let toks = encoded.get_ids();
+    if let Some(plus_token) = plus_token {
+        Ok(pad(
+            pad_token,
+            block_size,
+            [&[plus_token], &toks[..]].concat(),
+        ))
+    } else {
+        Ok(toks.to_vec())
+    }
+}
+
+fn extract_parts(u: &Query, in_plus: bool) -> Vec<String> {
+    match (u, in_plus) {
+        (Query::Cross(v), _) => v.iter().flat_map(|u| extract_parts(u, in_plus)).collect(),
+        (Query::Plus(v), _) => v.iter().map(|u| extract_parts(u, true).join("")).collect(),
+        (Query::User(m), true) => vec![user(m)],
+        (Query::System(m), true) => vec![system(m)],
+        _ => vec![],
+    }
+}
+
 fn tokenize_part(
     input: &Query,
     tok: &Tokenizer,
@@ -49,48 +93,27 @@ fn tokenize_part(
                 Err(er) => vec![Err(er)],
             })
             .collect::<Result<_, _>>(),
-        Query::Plus(v) => {
-            if let (Some(cross_token), Some(plus_token)) = (cross_token, plus_token) {
-                v.iter()
-                    .map(|u| {
-                        let toks = tokenize_part(
-                            u,
-                            tok,
-                            pad_token,
-                            Some(cross_token),
-                            Some(plus_token),
-                            block_size,
-                        )?;
-                        Ok(pad(
-                            pad_token,
-                            block_size,
-                            [&[plus_token], &toks[..]].concat(),
-                        ))
-                    })
-                    .flat_map(|result| match result {
-                        Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
-                        Err(er) => vec![Err(er)],
-                    })
+        Query::Plus(_) => {
+            let parts = extract_parts(input, false)
+                .into_iter()
+                .map(|part| encode_plus_part(&part, tok, pad_token, plus_token, block_size))
+                .flat_map(|result| match result {
+                    Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
+                    Err(er) => vec![Err(er)],
+                });
+            if let Some(cross_token) = cross_token {
+                parts
                     .chain([Ok(cross_token)]) // add cross token at the very end of the plus vector
                     .collect::<Result<_, _>>()
             } else {
-                v.iter()
-                    .map(|u| tokenize_part(u, tok, pad_token, cross_token, plus_token, block_size))
-                    .flat_map(|result| match result {
-                        Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
-                        Err(er) => vec![Err(er)],
-                    })
-                    .collect::<Result<_, _>>()
+                parts.collect::<Result<_, _>>()
             }
         }
-        Query::System(m) => Ok(tok
-            .encode(format!("\n<|system|>\n{m}"), false)?
-            .get_ids()
-            .to_vec()),
-        Query::User(m) => Ok(tok
-            .encode(format!("\n<|user|>\n{m}"), false)?
-            .get_ids()
-            .to_vec()),
+
+        // TODO... we may over-pad here. We could collapse consecutive
+        // System/User messages into one padded section
+        Query::User(m) => Ok(pad(pad_token, block_size, usertok(m, tok)?)),
+        Query::System(m) => Ok(pad(pad_token, block_size, systemtok(m, tok)?)),
         _ => {
             eprintln!("Warning: Unhandled span query component {:?}", input);
             Ok(vec![])
@@ -124,13 +147,14 @@ pub fn tokenize_query<'a>(
             temperature,
             ..
         }) => {
+            println!("Spnl tokenizer from pretrained {model}");
             let tok = Tokenizer::from_pretrained(&model, None).map_err(handle_err)?;
             let messages =
                 tokenize_part(&input, &tok, pad_token, cross_token, plus_token, block_size)
                     .map_err(handle_err)?
                     .into_iter()
                     .chain(
-                        tok.encode("\n<|assistant|>\n", false)
+                        tok.encode_fast("\n<|assistant|>\n", false)
                             .map_err(handle_err)?
                             .get_ids()
                             .into_iter()
@@ -149,15 +173,6 @@ pub fn tokenize_query<'a>(
     })
 }
 
-fn extract_plus(u: &Query, in_plus: bool) -> Vec<String> {
-    match (u, in_plus) {
-        (Query::Cross(v), _) => v.iter().flat_map(|u| extract_plus(u, false)).collect(),
-        (Query::Plus(v), _) => v.iter().flat_map(|u| extract_plus(u, true)).collect(),
-        (Query::User(m), true) => vec![m.clone()],
-        _ => vec![],
-    }
-}
-
 #[pyfunction]
 pub fn tokenize_plus<'a>(
     q: &'a str,
@@ -170,21 +185,9 @@ pub fn tokenize_plus<'a>(
     match query {
         Query::Generate(Generate { model, input, .. }) => {
             let tok = Tokenizer::from_pretrained(model, None).map_err(handle_err)?;
-            extract_plus(&input, false)
+            extract_parts(&input, false)
                 .into_iter()
-                .map(|s| {
-                    let encoding = tok.encode(s, false)?;
-                    let toks = encoding.get_ids();
-                    if let Some(plus_token) = plus_token {
-                        Ok(pad(
-                            pad_token,
-                            block_size,
-                            [&[plus_token], &toks[..]].concat(),
-                        ))
-                    } else {
-                        Ok(toks.to_vec())
-                    }
-                })
+                .map(|s| encode_plus_part(&s, &tok, pad_token, plus_token, block_size))
                 .collect::<Result<_, _>>()
                 .map_err(handle_err)
         }
