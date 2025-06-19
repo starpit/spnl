@@ -1,4 +1,10 @@
-# Feature Flags
+# Feature Flags of the `spnl` library for Span Queries
+
+> [!INFO]
+> Rust supports conditional compilation via
+> ["features"](https://doc.rust-lang.org/cargo/reference/features.html). The
+> `spnl` library uses this to allow you to selectively compile in more
+> complex, expensive, or exploratory capabilities.
 
 On top of these core concepts is a set of feature flags that extend
 what can be expressed in a span query. For example, you may wish to

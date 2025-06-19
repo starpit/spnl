@@ -1,8 +1,9 @@
-# Concretely Speaking, What is a Span Query?
+# Span Queries - Details and Design
 
 > [!TIP]
-> Consult [this page](feature-flags.md) for a summary of the feature
-> flags you can use to selectively enable more complex features.
+> The core `spnl` library has a set of [feature
+> flags](feature-flags.md) that you can use to selectively enable more
+> complex features.
 
 A span query can be considered as an abstract syntax tree (AST) where
 each leaf node is a message (i.e. some kind of content to be sent to
