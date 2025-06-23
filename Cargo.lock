@@ -5832,6 +5832,7 @@ dependencies = [
  "indicatif",
  "itertools 0.14.0",
  "lancedb",
+ "moka",
  "ollama-rs",
  "pdf-extract",
  "ptree",

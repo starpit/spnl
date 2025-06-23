@@ -11,6 +11,9 @@ pub fn spnl(m: &Bound<'_, PyModule>) -> PyResult<()> {
     #[cfg(feature = "tok")]
     m.add_function(wrap_pyfunction!(crate::run::tokenizer::tokenize_plus, m)?)?;
 
+    #[cfg(feature = "tok")]
+    m.add_function(wrap_pyfunction!(crate::run::tokenizer::init, m)?)?;
+
     //m.add_class::<SimpleQuery>()?;
     //m.add_class::<SimpleGenerate>()?;
     //m.add_class::<SimpleGenerateInput>()?;

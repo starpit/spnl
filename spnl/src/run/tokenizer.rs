@@ -4,6 +4,31 @@ use tokenizers::tokenizer::Tokenizer;
 use crate::{Generate, Query, python_bindings::SimpleQuery};
 
 #[pyclass]
+pub struct TokenizerState {
+    cache: moka::sync::Cache<String, ::std::sync::Arc<Tokenizer>>,
+}
+
+impl TokenizerState {
+    fn get_or_create(
+        &mut self,
+        model: &String,
+    ) -> Result<::std::sync::Arc<Tokenizer>, ::std::sync::Arc<tokenizers::tokenizer::Error>> {
+        self.cache.try_get_with(model.clone(), || {
+            Ok(::std::sync::Arc::new(Tokenizer::from_pretrained(
+                model, None,
+            )?))
+        })
+    }
+}
+
+#[pyfunction]
+pub fn init(max_capacity: u64) -> TokenizerState {
+    TokenizerState {
+        cache: moka::sync::Cache::new(max_capacity),
+    }
+}
+
+#[pyclass]
 #[derive(Debug)]
 pub struct TokenizedQuery {
     #[pyo3(get)]
@@ -121,6 +146,10 @@ fn tokenize_part(
     }
 }
 
+fn handle_arc_err(e: ::std::sync::Arc<tokenizers::tokenizer::Error>) -> PyErr {
+    pyo3::exceptions::PyTypeError::new_err(format!("Error in tokenization {:?}", e))
+}
+
 fn handle_err(e: tokenizers::tokenizer::Error) -> PyErr {
     pyo3::exceptions::PyTypeError::new_err(format!("Error in tokenization {:?}", e))
 }
@@ -131,6 +160,7 @@ fn handle_serde_err(e: serde_json::Error) -> PyErr {
 
 #[pyfunction]
 pub fn tokenize_query<'a>(
+    state: &mut TokenizerState,
     q: &'a str,
     pad_token: u32,
     cross_token: Option<u32>,
@@ -147,8 +177,12 @@ pub fn tokenize_query<'a>(
             temperature,
             ..
         }) => {
-            println!("Spnl tokenizer from pretrained {model}");
-            let tok = Tokenizer::from_pretrained(&model, None).map_err(handle_err)?;
+            let s = ::std::time::Instant::now();
+            let tok = state.get_or_create(&model).map_err(handle_arc_err)?;
+            println!(
+                "Spnl tokenize_query from pretrained {model}. Loaded in {:?}",
+                s.elapsed()
+            );
             let messages =
                 tokenize_part(&input, &tok, pad_token, cross_token, plus_token, block_size)
                     .map_err(handle_err)?
@@ -175,6 +209,7 @@ pub fn tokenize_query<'a>(
 
 #[pyfunction]
 pub fn tokenize_plus<'a>(
+    state: &mut TokenizerState,
     q: &'a str,
     pad_token: u32,
     plus_token: Option<u32>,
@@ -184,10 +219,15 @@ pub fn tokenize_plus<'a>(
     let query: Query = squery.into();
     match query {
         Query::Generate(Generate { model, input, .. }) => {
-            let tok = Tokenizer::from_pretrained(model, None).map_err(handle_err)?;
+            let s = ::std::time::Instant::now();
+            let tok = state.get_or_create(&model).map_err(handle_arc_err)?;
+            println!(
+                "Spnl tokenize_plus from pretrained {model}. Loaded in {:?}",
+                s.elapsed()
+            );
             extract_parts(&input, false)
                 .into_iter()
-                .map(|s| encode_plus_part(&s, &tok, pad_token, plus_token, block_size))
+                .map(|part| encode_plus_part(&part, &tok, pad_token, plus_token, block_size))
                 .collect::<Result<_, _>>()
                 .map_err(handle_err)
         }
