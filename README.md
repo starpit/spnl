@@ -1,9 +1,11 @@
-# Span Queries: the SQL for GenAI
+# Span Queries
 
 :rocket: [Playground](https://pages.github.ibm.com/cloud-computer/spnl/?qv=false) **|** [Research Poster](./docs/poster-20250529.pdf) **|** [About Span Queries](./docs/about.md) **|** [Contribute](./docs/dev.md)
 
-What if we had a **SQL for GenAI**? A [Span Query](./docs/about.md) is
-a declarative description of how to link together data into a
+What if we had a way to plan and optimize GenAI like we do for
+[SQL](https://en.wikipedia.org/wiki/SQL)? A [Span
+Query](./docs/about.md) is a declarative description of how to link
+together data into a
 [map/reduce](https://en.wikipedia.org/wiki/MapReduce) tree of one or
 more generation calls. For example, in a RAG scenario, a span query
 allows you to express that the relevant document fragments are
