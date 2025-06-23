@@ -1,7 +1,7 @@
 use clap::Parser;
 use petname::Generator; // Trait needs to be in scope for `iter`.
 use spnl::{
-    Unit,
+    Query,
     run::{RunParameters, result::SpnlError, run},
     spnl,
 };
@@ -99,7 +99,7 @@ async fn main() -> Result<(), SpnlError> {
     // let max_tokens: i32 = names.iter().map(|n| n.len() as i32).sum::<i32>();
 
     let mut rng = rand::thread_rng();
-    let docs: Vec<Unit> = if chain {
+    let docs: Vec<Query> = if chain {
         names
             .iter()
             .enumerate()
@@ -144,8 +144,8 @@ async fn main() -> Result<(), SpnlError> {
     let system_prompt = r#"Your are an AI that responds to questions with a plain JSON array of strings such as ["a","b","c"] or ["x","y","z","w"] or ["hello","world"], no markdown or html or any other extra text"#;
     let user_prompt = "Tell me the names of the cats mentioned";
 
-    let program: Unit = if chunk > 0 {
-        let chunks: Vec<Unit> = docs
+    let program: Query = if chunk > 0 {
+        let chunks: Vec<Query> = docs
             .chunks(chunk)
             .map(|chunk| chunk.to_vec())
             .map(|chunk| {
@@ -200,7 +200,7 @@ async fn main() -> Result<(), SpnlError> {
     )
     .await?
     {
-        Unit::User((ss,)) => {
+        Query::User(ss) => {
             // oof, be gracious here. sometimes the model wraps the
             // requested json array with markdown even though we asked
             // it not to
