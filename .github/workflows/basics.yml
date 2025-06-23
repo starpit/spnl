@@ -19,8 +19,7 @@ jobs:
     name: Rust project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
+      - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
 
       - name: setup toolchain
@@ -29,7 +28,7 @@ jobs:
           rust-version: stable
 
       - name: cargo test
-        run: cargo test --all-features
+        run: cargo test --all-features --all
 
       - name: rustfmt
         run: cargo fmt --all -- --check
