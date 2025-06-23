@@ -53,7 +53,7 @@ fn ratio(n: usize, d: usize) -> f64 {
     (n as f64) / (d as f64)
 }
 
-fn score(expected: &Vec<String>, actual: &Vec<String>) -> (f64, f64) {
+fn score(expected: &[String], actual: &[String]) -> (f64, f64) {
     let true_positives = actual.iter().filter(|s| expected.contains(s)).count();
     let false_positives = actual.iter().filter(|s| !expected.contains(s)).count();
     let false_negatives = expected.iter().filter(|s| !actual.contains(s)).count();
@@ -62,17 +62,11 @@ fn score(expected: &Vec<String>, actual: &Vec<String>) -> (f64, f64) {
     (if precision.is_nan() { 0.0 } else { precision }, recall)
 }
 
-fn score_chain(expected: &Vec<String>, actual: &Vec<String>) -> (f64, f64) {
+fn score_chain(expected: &[String], actual: &[String]) -> (f64, f64) {
     let do_not_want = &expected[0];
     let n = expected.len() - 1;
     (
-        1.0 - ratio(
-            actual[1..]
-                .into_iter()
-                .filter(|b| *b == do_not_want)
-                .count(),
-            n,
-        ),
+        1.0 - ratio(actual[1..].iter().filter(|b| *b == do_not_want).count(), n),
         0.0,
     )
 }
@@ -132,9 +126,7 @@ async fn main() -> Result<(), SpnlError> {
     };
 
     let expected_names = if chain {
-        let mut v = ::std::iter::repeat("".to_string())
-            .take(num_documents)
-            .collect::<Vec<_>>();
+        let mut v = ::std::iter::repeat_n("".to_string(), num_documents).collect::<Vec<_>>();
         v[0] = names[0].clone();
         v
     } else {
@@ -210,9 +202,9 @@ async fn main() -> Result<(), SpnlError> {
                 ss.trim()
             };
 
-            let generated_names: GeneratedNames = serde_json::from_str::<GeneratedNames>(&s)
+            let generated_names: GeneratedNames = serde_json::from_str::<GeneratedNames>(s)
                 .unwrap_or_else(|_| {
-                    let n2: GeneratedNames2 = serde_json::from_str(&s).unwrap_or_else(|_| vec![]);
+                    let n2: GeneratedNames2 = serde_json::from_str(s).unwrap_or_else(|_| vec![]);
                     n2.into_iter().map(|n| n.name).collect()
                 })
                 .into_iter()
