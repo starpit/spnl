@@ -3,6 +3,9 @@ pub use query::*;
 
 pub mod run;
 
+#[cfg(feature = "tok")]
+pub mod tokenizer;
+
 #[cfg(feature = "lisp")]
 mod lisp;
 

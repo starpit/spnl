@@ -1,6 +1,3 @@
-#[cfg(feature = "tok")]
-pub mod tokenizer;
-
 #[cfg(feature = "run")]
 mod backend;
 
