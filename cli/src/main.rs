@@ -49,14 +49,14 @@ async fn main() -> Result<(), SpnlError> {
     });
 
     if show_only {
-        let _ = pretty_print(&program)?;
+        pretty_print(&program)?;
         return Ok(());
     } else if verbose {
         ptree::write_tree(&program, ::std::io::stderr())?;
     }
 
     run(&program, &rp, None).await.map(|res| {
-        if res.to_string().len() > 0 {
+        if !res.to_string().is_empty() {
             println!("{}", res);
         }
         Ok(())

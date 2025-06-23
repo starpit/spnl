@@ -187,12 +187,8 @@ impl From<NonGenerateInput> for Query {
         match input {
             NonGenerateInput::User(m) => Query::User(m.clone()),
             NonGenerateInput::System(m) => Query::System(m.clone()),
-            NonGenerateInput::Plus(v) => {
-                Query::Plus(v.into_iter().map(|m| m.into()).collect())
-            }
-            NonGenerateInput::Cross(v) => {
-                Query::Cross(v.into_iter().map(|m| m.into()).collect())
-            }
+            NonGenerateInput::Plus(v) => Query::Plus(v.into_iter().map(|m| m.into()).collect()),
+            NonGenerateInput::Cross(v) => Query::Cross(v.into_iter().map(|m| m.into()).collect()),
         }
     }
 }
