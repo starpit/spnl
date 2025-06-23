@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
-members = [ "cli", "spnl", "haystack", "wasm"]
+members = [ "cli", "spnl", "haystack", "wasm", "py"]
 default-members = [ "cli" ]
