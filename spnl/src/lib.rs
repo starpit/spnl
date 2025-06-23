@@ -3,6 +3,9 @@ pub use query::*;
 
 pub mod run;
 
+#[cfg(feature = "pull")]
+pub mod pull;
+
 #[cfg(feature = "tok")]
 pub mod tokenizer;
 

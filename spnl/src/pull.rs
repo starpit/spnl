@@ -4,7 +4,7 @@ use duct::cmd;
 use fs4::fs_std::FileExt;
 use rayon::prelude::*;
 
-use crate::{Query, run::extract};
+use crate::{Generate, Query};
 
 /* pub async fn pull_if_needed_from_path(
     source_file_path: &str,
@@ -18,7 +18,7 @@ use crate::{Query, run::extract};
 /// Pull models (in parallel) from the program in the given filepath.
 pub async fn pull_if_needed(program: &Query) -> Result<(), Error> {
     #[cfg(feature = "pull")]
-    extract::extract_models(program)
+    extract_models(program)
         .into_par_iter()
         .try_for_each(|model| match model {
             m if model.starts_with("ollama/") => ollama_pull_if_needed(&m[7..]),
@@ -59,4 +59,31 @@ fn ollama_pull_if_needed(model: &str) -> Result<(), Error> {
 
     FileExt::unlock(&f)?;
     res
+}
+
+/// Extract models referenced by the query
+pub fn extract_models(query: &Query) -> Vec<String> {
+    let mut models = vec![];
+    extract_models_iter(query, &mut models);
+
+    // A single query may specify the same model more than once. Dedup!
+    models.sort();
+    models.dedup();
+
+    models
+}
+
+/// Produce a vector of the models used by the given `query`
+fn extract_models_iter(query: &Query, models: &mut Vec<String>) {
+    match query {
+        #[cfg(feature = "rag")]
+        Query::Retrieve(crate::Retrieve {
+            embedding_model, ..
+        }) => models.push(embedding_model.clone()),
+        Query::Generate(Generate { model, .. }) => models.push(model.clone()),
+        Query::Plus(v) | Query::Cross(v) => {
+            v.iter().for_each(|vv| extract_models_iter(vv, models));
+        }
+        _ => {}
+    }
 }

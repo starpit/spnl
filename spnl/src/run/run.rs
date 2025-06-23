@@ -38,7 +38,7 @@ async fn plus(units: &[Query], rp: &RunParameters) -> SpnlResult {
 #[async_recursion]
 pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) -> SpnlResult {
     #[cfg(feature = "pull")]
-    crate::run::pull::pull_if_needed(unit).await?;
+    crate::pull::pull_if_needed(unit).await?;
 
     match unit {
         Query::Print(m) => {
