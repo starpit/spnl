@@ -1,4 +1,10 @@
-use async_recursion::async_recursion;
+mod backend;
+mod generate;
+pub mod plan;
+pub mod result;
+#[cfg(feature = "rag")]
+mod with;
+
 use indicatif::MultiProgress;
 
 use crate::{Generate, Query, run::result::SpnlResult};
@@ -35,7 +41,7 @@ async fn plus(units: &[Query], rp: &RunParameters) -> SpnlResult {
     }
 }
 
-#[async_recursion]
+#[async_recursion::async_recursion]
 pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) -> SpnlResult {
     #[cfg(feature = "pull")]
     crate::pull::pull_if_needed(unit).await?;
