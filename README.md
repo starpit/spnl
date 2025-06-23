@@ -20,7 +20,7 @@ independent of each other. The goals of this work are to:
 **Examples** [Judge/generator](https://pages.github.ibm.com/cloud-computer/spnl/?demo=email&qv=true) **|** [Judge/generator (optimized)](https://pages.github.ibm.com/cloud-computer/spnl/?demo=email2&qv=true) **|** [Policy-driven email generation](https://pages.github.ibm.com/cloud-computer/spnl/?demo=email3&qv=true)
 
 > [!NOTE]
-> Plans are underway for integration backends (stay tuned!) and also with user-facing libraries such as [PDL](https://github.com/IBM/prompt-declaration-language). Please open an issue documenting your use cases!
+> Plans are underway for integration with model serving backends (stay tuned!) and with user-facing libraries such as [PDL](https://github.com/IBM/prompt-declaration-language). Please open an issue documenting your use cases!
 
 ## Getting Started
 
