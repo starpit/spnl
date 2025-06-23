@@ -13,7 +13,8 @@ independent of each other. The goals of this work are to:
   research (c.f. [block attention](https://arxiv.org/pdf/2409)).
 - provide a generalized inference scaling strategy using the power of map/reduce.
 - facilitate [query planning](./docs/query-planning.md) to improve
-  both outcomes and request routing.
+  generation outcomes as well as to provide a plannable basis for
+  routing future requests.
 - as with SQL, allow for a clean separation of concerns between
   conventional programming logic and backend interactions.
 
