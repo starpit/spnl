@@ -1,6 +1,7 @@
 mod query;
 pub use query::*;
 
+#[cfg(feature = "run")]
 pub mod run;
 
 #[cfg(feature = "pull")]

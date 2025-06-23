@@ -1,3 +1,5 @@
+pub mod embed;
+
 use futures::future::try_join_all;
 use indicatif::{MultiProgress, ProgressBar};
 use itertools::Itertools;
@@ -6,8 +8,8 @@ use sha2::Digest;
 use crate::{
     Document, Query,
     run::{
-        embed::{EmbedData, embed},
         result::{SpnlError, SpnlResult},
+        with::embed::{EmbedData, embed},
     },
 };
 

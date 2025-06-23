@@ -1,26 +1,10 @@
-#[cfg(feature = "run")]
 mod backend;
-
-#[cfg(feature = "run")]
 mod generate;
-
-#[cfg(feature = "run")]
 pub mod plan;
-
-#[cfg(feature = "run")]
 pub mod result;
-
-#[cfg(feature = "run")]
 mod run;
-
-#[cfg(feature = "run")]
-pub use run::run;
-
-#[cfg(feature = "run")]
 pub use run::RunParameters;
+pub use run::run;
 
 #[cfg(feature = "rag")]
 mod with;
-
-#[cfg(feature = "rag")]
-mod embed;

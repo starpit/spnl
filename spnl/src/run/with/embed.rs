@@ -6,10 +6,7 @@ pub enum EmbedData {
     Vec(Vec<String>),
 }
 
-pub async fn embed(
-    embedding_model: &String,
-    data: crate::run::embed::EmbedData,
-) -> Result<Vec<Vec<f32>>, SpnlError> {
+pub async fn embed(embedding_model: &String, data: EmbedData) -> Result<Vec<Vec<f32>>, SpnlError> {
     match embedding_model {
         #[cfg(feature = "ollama")]
         m if m.starts_with("ollama/") => crate::run::backend::ollama::embed(&m[7..], &data).await,
