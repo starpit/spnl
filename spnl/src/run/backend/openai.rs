@@ -48,12 +48,12 @@ pub async fn generate(
         })
         .build()?;
 
-    let mut pb = m.and_then(|m| {
-        Some(m.add(if let Some(max_tokens) = max_tokens {
+    let mut pb = m.map(|m| {
+        m.add(if let Some(max_tokens) = max_tokens {
             ProgressBar::new(*max_tokens as u64)
         } else {
             ProgressBar::no_length()
-        }))
+        })
     });
 
     // println!("A {:?}", client.models().list().await?);
@@ -65,16 +65,15 @@ pub async fn generate(
 
     let mut stream = client.chat().create_stream(request).await?;
     while let Some(Ok(res)) = stream.next().await {
-        let mut iter = res.choices.iter();
-        while let Some(chat_choice) = iter.next() {
+        for chat_choice in res.choices.iter() {
             if let Some(ref content) = chat_choice.delta.content {
                 if !quiet {
                     stdout.write_all(b"\x1b[32m").await?; // green
                     stdout.write_all(content.as_bytes()).await?;
                     stdout.flush().await?;
                     stdout.write_all(b"\x1b[0m").await?; // reset color
-                } else {
-                    pb.as_mut().map(|pb| pb.inc(content.len() as u64));
+                } else if let Some(pb) = pb.as_mut() {
+                    pb.inc(content.len() as u64)
                 }
                 response_string += content.as_str();
             }
@@ -84,14 +83,14 @@ pub async fn generate(
         stdout.write_all(b"\n").await?;
     }
 
-    if let Some(_) = m {
+    if m.is_some() {
         Ok(Query::User(response_string))
     } else {
         Ok(Query::Generate(Generate {
             model: format!("openai/{model}"),
             input: Box::new(Query::User(response_string)),
-            max_tokens: max_tokens.clone(),
-            temperature: temp.clone(),
+            max_tokens: *max_tokens,
+            temperature: *temp,
             accumulate: None,
         }))
     }
@@ -99,8 +98,8 @@ pub async fn generate(
 
 pub fn messagify(input: &Query) -> Vec<ChatCompletionRequestMessage> {
     match input {
-        Query::Cross(v) => v.into_iter().flat_map(messagify).collect(),
-        Query::Plus(v) => v.into_iter().flat_map(messagify).collect(),
+        Query::Cross(v) => v.iter().flat_map(messagify).collect(),
+        Query::Plus(v) => v.iter().flat_map(messagify).collect(),
         Query::System(s) => vec![ChatCompletionRequestMessage::System(
             ChatCompletionRequestSystemMessage {
                 name: None,
@@ -109,7 +108,7 @@ pub fn messagify(input: &Query) -> Vec<ChatCompletionRequestMessage> {
         )],
         o => {
             let s = o.to_string();
-            if s.len() == 0 {
+            if s.is_empty() {
                 vec![]
             } else {
                 vec![ChatCompletionRequestMessage::User(

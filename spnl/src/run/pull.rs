@@ -34,14 +34,11 @@ pub async fn pull_if_needed(program: &Query) -> Result<(), Error> {
 }
 
 fn ollama_exists(model: &str) -> bool {
-    match cmd!("ollama", "show", model)
+    cmd!("ollama", "show", model)
         .stdout_null()
         .stderr_null()
         .run()
-    {
-        Ok(_output) => true,
-        _ => false,
-    }
+        .is_ok()
 }
 
 /// The Ollama implementation of a single model pull
@@ -55,7 +52,7 @@ fn ollama_pull_if_needed(model: &str) -> Result<(), Error> {
         cmd!("ollama", "pull", model)
             .stdout_to_stderr()
             .run()
-            .and_then(|_| Ok(()))
+            .map(|_| ())
     } else {
         Ok(())
     };

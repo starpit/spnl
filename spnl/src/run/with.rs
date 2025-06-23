@@ -16,10 +16,10 @@ mod storage;
 /// This fragments and windows the lines in the given PDF content. For
 /// example if bytes="a\nb\nc\nd" and window_width=2, this will
 /// produce ["a\nb", "b\nc", "c\nd"]
-fn windowed_pdf(bytes: &Vec<u8>, window_width: usize) -> Result<Vec<String>, SpnlError> {
-    Ok(pdf_extract::extract_text_from_mem(&bytes)?
+fn windowed_pdf(bytes: &[u8], window_width: usize) -> Result<Vec<String>, SpnlError> {
+    Ok(pdf_extract::extract_text_from_mem(bytes)?
         .lines()
-        .filter(|s| s.len() > 0)
+        .filter(|s| !s.is_empty())
         .collect::<Vec<_>>()
         .windows(window_width)
         .step_by(2)
@@ -29,7 +29,7 @@ fn windowed_pdf(bytes: &Vec<u8>, window_width: usize) -> Result<Vec<String>, Spn
 
 /// This treats every line of text as a separate document, with no
 /// need for windowing or sub-fragmentation.
-fn windowed_text(s: &String) -> Result<Vec<String>, SpnlError> {
+fn windowed_text(s: &str) -> Result<Vec<String>, SpnlError> {
     Ok(s.lines().map(|s| s.to_string()).collect())
 }
 
@@ -40,7 +40,7 @@ struct JsonlText {
 
 /// This treats every jsonl line as a separate document, with no need
 /// for windowing or sub-fragmentation.
-fn windowed_jsonl(s: &String) -> Result<Vec<String>, SpnlError> {
+fn windowed_jsonl(s: &str) -> Result<Vec<String>, SpnlError> {
     Ok(serde_json::Deserializer::from_str(s)
         .into_iter::<JsonlText>()
         .filter_map(|line| match line {
@@ -86,7 +86,7 @@ pub async fn embed_and_retrieve(
         ) {
             (Document::Text(content), Some("txt")) => windowed_text(content),
             (Document::Text(content), Some("jsonl")) => windowed_jsonl(content),
-            (Document::Binary(content), Some("pdf")) => windowed_pdf(&content, window_size),
+            (Document::Binary(content), Some("pdf")) => windowed_pdf(content, window_size),
             _ => Err(Box::from(format!(
                 "Unsupported `with` binary document {filename}"
             ))),
@@ -102,9 +102,8 @@ pub async fn embed_and_retrieve(
             (doc_content.len() / embedding_batch_size).try_into()?,
         ));
         pb.inc(0);
-        let mut iter = doc_content.chunks(embedding_batch_size);
         let mut docs_vectors = vec![];
-        while let Some(docs) = iter.next() {
+        for docs in doc_content.chunks(embedding_batch_size) {
             let vecs = embed(embedding_model, EmbedData::Vec(docs.to_vec()))
                 .await?
                 .into_iter()
@@ -127,6 +126,7 @@ pub async fn embed_and_retrieve(
 
         ::std::fs::OpenOptions::new()
             .create(true)
+            .truncate(true)
             .write(true)
             .open(done_file)?;
     }
@@ -178,18 +178,13 @@ pub async fn embed_and_retrieve(
 
     eprintln!(
         "RAGSizes {}",
-        matching_docs
-            .clone()
-            .enumerate()
-            .map(|(_idx, doc)| doc.len())
-            .join(" ")
+        matching_docs.clone().map(|doc| doc.len()).join(" ")
     );
     eprintln!(
         "RAGHashes {}",
         matching_docs
             .clone()
-            .enumerate()
-            .map(|(_idx, doc)| {
+            .map(|doc| {
                 let mut hasher = sha2::Sha256::new();
                 hasher.update(doc);
                 format!("{:x}", hasher.finalize())

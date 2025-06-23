@@ -9,7 +9,7 @@ pub async fn generate(
     temp: &Option<f32>,
     mp: Option<&MultiProgress>,
 ) -> SpnlResult {
-    let res = match model {
+    match model {
         #[cfg(feature = "ollama")]
         m if m.starts_with("ollama/") => {
             crate::run::backend::ollama::generate(&m[7..], input, max_tokens, temp, mp).await
@@ -26,7 +26,5 @@ pub async fn generate(
         }
 
         _ => todo!("Unknown model {model}"),
-    };
-
-    res
+    }
 }

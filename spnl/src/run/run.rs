@@ -11,20 +11,19 @@ pub struct RunParameters {
     pub vecdb_table: String,
 }
 
-async fn cross(units: &Vec<Query>, rp: &RunParameters, mm: Option<&MultiProgress>) -> SpnlResult {
+async fn cross(units: &[Query], rp: &RunParameters, mm: Option<&MultiProgress>) -> SpnlResult {
     let mym = MultiProgress::new();
     let m = if let Some(m) = mm { m } else { &mym };
 
-    let mut iter = units.iter();
     let mut evaluated = vec![];
-    while let Some(u) = iter.next() {
+    for u in units.iter() {
         evaluated.push(run(u, rp, Some(m)).await?);
     }
 
     Ok(Query::Cross(evaluated))
 }
 
-async fn plus(units: &Vec<Query>, rp: &RunParameters) -> SpnlResult {
+async fn plus(units: &[Query], rp: &RunParameters) -> SpnlResult {
     let m = MultiProgress::new();
     let evaluated =
         futures::future::try_join_all(units.iter().map(|u| run(u, rp, Some(&m)))).await?;
@@ -39,7 +38,7 @@ async fn plus(units: &Vec<Query>, rp: &RunParameters) -> SpnlResult {
 #[async_recursion]
 pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) -> SpnlResult {
     #[cfg(feature = "pull")]
-    let _ = crate::run::pull::pull_if_needed(unit).await?;
+    crate::run::pull::pull_if_needed(unit).await?;
 
     match unit {
         Query::Print(m) => {
@@ -65,8 +64,8 @@ pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) ->
             .await
         }
 
-        Query::Cross(u) => cross(&u, rp, m).await,
-        Query::Plus(u) => plus(&u, rp).await,
+        Query::Cross(u) => cross(u, rp, m).await,
+        Query::Plus(u) => plus(u, rp).await,
         Query::Generate(Generate {
             model,
             input,
@@ -93,8 +92,8 @@ pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) ->
                     let program = Query::Generate(Generate {
                         model: model.clone(),
                         input: Box::new(Query::Cross(accum.clone())),
-                        max_tokens: max_tokens.clone(),
-                        temperature: temperature.clone(),
+                        max_tokens: *max_tokens,
+                        temperature: *temperature,
                         accumulate: None,
                     });
                     let out = run(&program, rp, m).await?;

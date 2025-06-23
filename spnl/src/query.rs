@@ -175,7 +175,7 @@ pub fn pretty_print(u: &Query) -> serde_json::Result<()> {
 
 /// Deserialize a SPNL query from a string
 pub fn from_str(s: &str) -> serde_json::Result<Query> {
-    Ok(serde_json::from_str(s)?)
+    serde_json::from_str(s)
 }
 
 /// Deserialize a SPNL query from a reader

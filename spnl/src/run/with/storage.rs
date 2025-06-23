@@ -83,9 +83,7 @@ impl VecDB {
         let schema = self.default_table.schema().await?;
         let key_array = StringArray::from_iter_values(filenames);
         let vectors_array = FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(
-            vectors
-                .into_iter()
-                .map(|v| Some(v.into_iter().map(|i| Some(i)))),
+            vectors.into_iter().map(|v| Some(v.into_iter().map(Some))),
             vec_dim,
         );
         let batches = vec![

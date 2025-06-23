@@ -67,8 +67,8 @@ impl From<SimpleQuery> for crate::Query {
         Self::Generate(crate::Generate {
             model: q.g.model.clone(),
             input: Box::new(q.g.input.clone().into()),
-            max_tokens: q.g.max_tokens.clone(),
-            temperature: q.g.temperature.clone(),
+            max_tokens: q.g.max_tokens,
+            temperature: q.g.temperature,
             accumulate: None,
         })
     }

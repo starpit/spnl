@@ -44,7 +44,7 @@ pub struct TokenizedQuery {
 impl TokenizedQuery {
     #[getter]
     fn messages(&self) -> Vec<u32> {
-        return self.messages_.clone();
+        self.messages_.clone()
     }
 }
 
@@ -52,7 +52,10 @@ fn pad(pad_token: u32, block_size: usize, toklist: Vec<u32>) -> Vec<u32> {
     toklist[0..toklist.len() - 1]
         .iter()
         .copied()
-        .chain(::std::iter::repeat(pad_token).take(block_size - (toklist.len() % block_size)))
+        .chain(::std::iter::repeat_n(
+            pad_token,
+            block_size - (toklist.len() % block_size),
+        ))
         .chain(toklist[toklist.len() - 1..].iter().copied())
         .collect()
 }
@@ -72,20 +75,16 @@ fn systemtok(m: &String, tok: &Tokenizer) -> tokenizers::tokenizer::Result<Vec<u
 }
 
 fn encode_plus_part(
-    part: &String,
+    part: &str,
     tok: &Tokenizer,
     pad_token: u32,
     plus_token: Option<u32>,
     block_size: usize,
 ) -> tokenizers::tokenizer::Result<Vec<u32>> {
-    let encoded = tok.encode_fast(part.clone(), false)?;
+    let encoded = tok.encode_fast(part, false)?;
     let toks = encoded.get_ids();
     if let Some(plus_token) = plus_token {
-        Ok(pad(
-            pad_token,
-            block_size,
-            [&[plus_token], &toks[..]].concat(),
-        ))
+        Ok(pad(pad_token, block_size, [&[plus_token], toks].concat()))
     } else {
         Ok(toks.to_vec())
     }
@@ -114,7 +113,7 @@ fn tokenize_part(
             .iter()
             .map(|u| tokenize_part(u, tok, pad_token, cross_token, plus_token, block_size))
             .flat_map(|result| match result {
-                Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
+                Ok(vec) => vec.into_iter().map(Ok).collect(),
                 Err(er) => vec![Err(er)],
             })
             .collect::<Result<_, _>>(),
@@ -123,7 +122,7 @@ fn tokenize_part(
                 .into_iter()
                 .map(|part| encode_plus_part(&part, tok, pad_token, plus_token, block_size))
                 .flat_map(|result| match result {
-                    Ok(vec) => vec.into_iter().map(|item| Ok(item)).collect(),
+                    Ok(vec) => vec.into_iter().map(Ok).collect(),
                     Err(er) => vec![Err(er)],
                 });
             if let Some(cross_token) = cross_token {
@@ -159,9 +158,9 @@ fn handle_serde_err(e: serde_json::Error) -> PyErr {
 }
 
 #[pyfunction]
-pub fn tokenize_query<'a>(
+pub fn tokenize_query(
     state: &mut TokenizerState,
-    q: &'a str,
+    q: &str,
     pad_token: u32,
     cross_token: Option<u32>,
     plus_token: Option<u32>,
@@ -191,7 +190,7 @@ pub fn tokenize_query<'a>(
                         tok.encode_fast("\n<|assistant|>\n", false)
                             .map_err(handle_err)?
                             .get_ids()
-                            .into_iter()
+                            .iter()
                             .copied(),
                     )
                     .collect();
@@ -199,8 +198,8 @@ pub fn tokenize_query<'a>(
             TokenizedQuery {
                 model: model.clone(),
                 messages_: messages,
-                max_tokens: max_tokens,
-                temperature: temperature,
+                max_tokens,
+                temperature,
             }
         }
         _ => todo!(),
@@ -208,9 +207,9 @@ pub fn tokenize_query<'a>(
 }
 
 #[pyfunction]
-pub fn tokenize_plus<'a>(
+pub fn tokenize_plus(
     state: &mut TokenizerState,
-    q: &'a str,
+    q: &str,
     pad_token: u32,
     plus_token: Option<u32>,
     block_size: usize,

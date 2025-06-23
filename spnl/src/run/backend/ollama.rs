@@ -51,12 +51,12 @@ pub async fn generate(
         .await?;
 
     let quiet = m.is_some();
-    let mut pb = m.and_then(|m| {
-        Some(m.add(if let Some(max_tokens) = max_tokens {
-            ProgressBar::new(max_tokens.clone() as u64)
+    let mut pb = m.map(|m| {
+        m.add(if let Some(max_tokens) = max_tokens {
+            ProgressBar::new(*max_tokens as u64)
         } else {
             ProgressBar::no_length()
-        }))
+        })
     });
 
     let mut stdout = stdout();
@@ -77,9 +77,8 @@ pub async fn generate(
             stdout.write_all(res.message.content.as_bytes()).await?;
             stdout.flush().await?;
             stdout.write_all(b"\x1b[0m").await?; // reset color
-        } else {
-            pb.as_mut()
-                .map(|pb| pb.inc(res.message.content.len() as u64));
+        } else if let Some(pb) = pb.as_mut() {
+            pb.inc(res.message.content.len() as u64)
         }
         response_string += res.message.content.as_str();
         // last_res = Some(res);
@@ -88,14 +87,14 @@ pub async fn generate(
         stdout.write_all(b"\n").await?;
     }
 
-    if let Some(_) = m {
+    if m.is_some() {
         Ok(Query::User(response_string))
     } else {
         Ok(Query::Generate(Generate {
             model: format!("ollama/{model}"),
             input: Box::new(Query::User(response_string)),
-            max_tokens: max_tokens.clone(),
-            temperature: temp.clone(),
+            max_tokens: *max_tokens,
+            temperature: *temp,
             accumulate: None,
         }))
     }
@@ -103,7 +102,7 @@ pub async fn generate(
 
 fn messagify(input: &Query) -> Vec<ChatMessage> {
     match input {
-        Query::Cross(v) | Query::Plus(v) => v.into_iter().flat_map(messagify).collect(),
+        Query::Cross(v) | Query::Plus(v) => v.iter().flat_map(messagify).collect(),
         Query::System(s) => vec![ChatMessage::system(s.clone())],
         o => vec![ChatMessage::user(o.to_string())],
     }
