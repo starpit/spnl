@@ -74,6 +74,17 @@ fn systemtok(m: &String, tok: &Tokenizer) -> tokenizers::tokenizer::Result<Vec<u
     Ok(tok.encode_fast(system(m), false)?.get_ids().to_vec())
 }
 
+fn encode_nonplus_part(
+    part: &str,
+    tok: &Tokenizer,
+    pad_token: u32,
+    block_size: usize,
+) -> tokenizers::tokenizer::Result<Vec<u32>> {
+    let encoded = tok.encode_fast(part, false)?;
+    let toks = encoded.get_ids();
+    Ok(pad(pad_token, block_size, toks.to_vec()))
+}
+
 fn encode_plus_part(
     part: &str,
     tok: &Tokenizer,
@@ -90,10 +101,23 @@ fn encode_plus_part(
     }
 }
 
-fn extract_parts(u: &Query, in_plus: bool) -> Vec<String> {
-    match (u, in_plus) {
-        (Query::Cross(v), _) => v.iter().flat_map(|u| extract_parts(u, in_plus)).collect(),
-        (Query::Plus(v), _) => v.iter().map(|u| extract_parts(u, true).join("")).collect(),
+fn extract_up_to_plus(q: &Query) -> Vec<String> {
+    match q {
+        Query::Cross(v) => v.iter().flat_map(|qq| extract_up_to_plus(qq)).collect(),
+        Query::Plus(_) => vec![],
+        Query::User(m) => vec![user(m)],
+        Query::System(m) => vec![system(m)],
+        _ => vec![],
+    }
+}
+
+fn extract_parts(q: &Query, in_plus: bool) -> Vec<String> {
+    match (q, in_plus) {
+        (Query::Cross(v), _) => v.iter().flat_map(|qq| extract_parts(qq, in_plus)).collect(),
+        (Query::Plus(v), _) => v
+            .iter()
+            .map(|qq| extract_parts(qq, true).join(""))
+            .collect(),
         (Query::User(m), true) => vec![user(m)],
         (Query::System(m), true) => vec![system(m)],
         _ => vec![],
@@ -254,10 +278,14 @@ pub fn tokenize_query(
     })
 }
 
+/// Extract the relocatable spans from the given query `q`. If
+/// `collect_prefix_too`, then include also every span of input that
+/// precedes the first relocatable span.
 #[pyfunction]
-pub fn tokenize_plus(
+pub fn tokenize_prepare(
     state: &mut TokenizerState,
     q: &str,
+    collect_prefix_too: bool,
     pad_token: u32,
     plus_token: Option<u32>,
     block_size: usize,
@@ -272,11 +300,23 @@ pub fn tokenize_plus(
                 "Spnl tokenize_plus from pretrained {model}. Loaded in {:?}",
                 s.elapsed()
             );
-            extract_parts(&input, false)
+
+            let parts = extract_parts(&input, false)
                 .into_iter()
-                .map(|part| encode_plus_part(&part, &tok, pad_token, plus_token, block_size))
-                .collect::<Result<_, _>>()
-                .map_err(handle_err)
+                .map(|part| encode_plus_part(&part, &tok, pad_token, plus_token, block_size));
+
+            if collect_prefix_too {
+                parts
+                    .chain(
+                        extract_up_to_plus(&input)
+                            .into_iter()
+                            .map(|part| encode_nonplus_part(&part, &tok, pad_token, block_size)),
+                    )
+                    .collect::<Result<_, _>>()
+                    .map_err(handle_err)
+            } else {
+                parts.collect::<Result<_, _>>().map_err(handle_err)
+            }
         }
         _ => todo!(),
     }
