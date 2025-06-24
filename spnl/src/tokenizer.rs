@@ -103,7 +103,7 @@ fn encode_plus_part(
 
 fn extract_up_to_plus(q: &Query) -> Vec<String> {
     match q {
-        Query::Cross(v) => v.iter().flat_map(|qq| extract_up_to_plus(qq)).collect(),
+        Query::Cross(v) => v.iter().flat_map(extract_up_to_plus).collect(),
         Query::Plus(_) => vec![],
         Query::User(m) => vec![user(m)],
         Query::System(m) => vec![system(m)],
