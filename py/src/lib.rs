@@ -9,7 +9,7 @@ pub fn spnl_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(spnl_core::tokenizer::tokenize_query, m)?)?;
 
     #[cfg(feature = "tok")]
-    m.add_function(wrap_pyfunction!(spnl_core::tokenizer::tokenize_plus, m)?)?;
+    m.add_function(wrap_pyfunction!(spnl_core::tokenizer::tokenize_prepare, m)?)?;
 
     #[cfg(feature = "tok")]
     m.add_function(wrap_pyfunction!(spnl_core::tokenizer::init, m)?)?;
