@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [features]
 rag = ["spnl/rag"]
+spnl-api = ["spnl/spnl-api"]
 
 [dependencies]
 clap = { version = "4.5.37", features = ["derive"] }

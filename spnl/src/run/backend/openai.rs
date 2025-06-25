@@ -18,7 +18,12 @@ pub async fn generate(
     max_tokens: &Option<i32>,
     temp: &Option<f32>,
     m: Option<&MultiProgress>,
+    prepare: bool,
 ) -> SpnlResult {
+    if prepare {
+        todo!()
+    }
+
     let client = Client::with_config(OpenAIConfig::new().with_api_base("http://localhost:8000/v1"));
 
     let input_messages = messagify(input);

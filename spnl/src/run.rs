@@ -15,6 +15,9 @@ pub struct RunParameters {
 
     /// Name of table to use in vector database.
     pub vecdb_table: String,
+
+    /// Prepare query
+    pub prepare: Option<bool>,
 }
 
 async fn cross(units: &[Query], rp: &RunParameters, mm: Option<&MultiProgress>) -> SpnlResult {
@@ -86,6 +89,7 @@ pub async fn run(unit: &Query, rp: &RunParameters, m: Option<&MultiProgress>) ->
                     max_tokens,
                     temperature,
                     m,
+                    rp.prepare.unwrap_or_default(),
                 )
                 .await
             }

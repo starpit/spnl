@@ -1,4 +1,3 @@
-#[cfg(feature = "rag")]
 pub fn demo(args: crate::args::Args) -> Result<spnl::Query, Box<dyn ::std::error::Error>> {
     let crate::args::Args {
         model,

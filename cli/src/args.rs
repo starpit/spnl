@@ -40,6 +40,14 @@ pub struct Args {
     #[arg(long, default_value = "data/spnl")]
     pub vecdb_uri: String,
 
+    /// Reverse order
+    #[arg(short, long, default_value_t = false)]
+    pub reverse: bool,
+
+    /// Prepare query
+    #[arg(short, long, default_value_t = false)]
+    pub prepare: bool,
+
     /// Question to pose
     #[arg(
         short = 'w',
@@ -49,7 +57,7 @@ pub struct Args {
     pub question: String,
 
     /// Document that will augment the question
-    #[arg(short = 'r', long, default_value = "./rag-doc1.pdf")]
+    #[arg(short = 'u', long, default_value = "./rag-doc1.pdf")]
     pub document: String,
 
     /// Re-emit the compiled query

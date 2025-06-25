@@ -14,6 +14,8 @@ python_bindings = ["dep:pyo3"]
 rag = ["run","dep:anyhow","dep:sha2", "dep:lancedb","dep:tracing","dep:arrow-schema","dep:arrow-array","dep:itertools","dep:pdf-extract"]
 run = ["dep:futures","dep:indicatif","dep:async-recursion"]
 tok = ["python_bindings","dep:moka","dep:tokenizers"]
+spnl-api = []
+
 
 [dependencies]
 ptree = { version = "0.5.2", default-features = false, features = ["ansi"], optional = true }
@@ -43,3 +45,4 @@ pyo3 = { version = "0.25.0", features = ["macros"], optional = true }
 tokenizers = { version = "0.21.1", features = ["hf-hub", "http"], optional = true }
 derive_builder = "0.20.2"
 moka = { version = "0.12.10", features = ["sync"], optional = true }
+reqwest = { version = "0.12.20", features = ["json"] }

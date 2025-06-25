@@ -19,9 +19,13 @@ pub async fn generate(
     max_tokens: &Option<i32>,
     temp: &Option<f32>,
     m: Option<&MultiProgress>,
+    prepare: bool,
 ) -> SpnlResult {
-    let ollama = Ollama::default();
+    if prepare {
+        todo!()
+    }
 
+    let ollama = Ollama::default();
     let input_messages: Vec<ChatMessage> = messagify(input);
 
     let (prompt, history_slice): (&ChatMessage, &[ChatMessage]) = match input_messages.split_last()
