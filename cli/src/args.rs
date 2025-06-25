@@ -64,6 +64,10 @@ pub struct Args {
     #[arg(short, long, default_value_t = false)]
     pub show_query: bool,
 
+    /// Report query execution time to stderr
+    #[arg(long, default_value_t = false)]
+    pub time: bool,
+
     /// Verbose output
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,

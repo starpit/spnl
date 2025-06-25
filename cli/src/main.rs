@@ -26,6 +26,12 @@ async fn main() -> Result<(), SpnlError> {
             .unwrap_or(args.file.clone().unwrap_or("default".to_string())),
     };
 
+    let time = if args.time {
+        Some(::std::time::Instant::now())
+    } else {
+        None
+    };
+
     let program = plan(&match args.demo {
         Some(Demo::Chat) => chat::demo(args),
         Some(Demo::Email) => email::demo(args),
@@ -58,10 +64,16 @@ async fn main() -> Result<(), SpnlError> {
         ptree::write_tree(&program, ::std::io::stderr())?;
     }
 
-    run(&program, &rp, None).await.map(|res| {
+    let res = run(&program, &rp, None).await.map(|res| {
         if !res.to_string().is_empty() {
             println!("{}", res);
         }
         Ok(())
-    })?
+    })?;
+
+    if let Some(time) = time {
+        eprintln!("{}", time.elapsed().as_millis());
+    }
+
+    res
 }
