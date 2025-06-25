@@ -39,18 +39,21 @@ pub async fn generate(
     });
     // eprintln!("Sending query {:?}", to_string(&query)?);
 
-    let response_string = client
+    let response = client
         .post(format!("http://localhost:8000/v1/query/{exec}"))
         .header("Content-Type", "text/plain")
         .body(to_string(&query)?)
         .send()
-        .await?
-        .json::<Response>()
-        .await?
-        .choices[0]
-        .message
-        .content
-        .clone();
+        .await?;
+
+    let response_string = if prepare {
+        "prepared".to_string()
+    } else {
+        response.json::<Response>().await?.choices[0]
+            .message
+            .content
+            .clone()
+    };
 
     let quiet = m.is_some();
     let mut stdout = stdout();
