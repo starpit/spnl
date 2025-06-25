@@ -15,6 +15,7 @@ rag = ["run","dep:anyhow","dep:sha2", "dep:lancedb","dep:tracing","dep:arrow-sch
 run = ["dep:futures","dep:indicatif","dep:async-recursion"]
 tok = ["python_bindings","dep:moka","dep:tokenizers"]
 spnl-api = []
+openssl-vendored = ["dep:openssl"]
 
 
 [dependencies]
@@ -46,3 +47,4 @@ tokenizers = { version = "0.21.1", features = ["hf-hub", "http"], optional = tru
 derive_builder = "0.20.2"
 moka = { version = "0.12.10", features = ["sync"], optional = true }
 reqwest = { version = "0.12.20", features = ["json"] }
+openssl = { version = "0.10", features = ["vendored"], optional = true }
