@@ -1,0 +1,11 @@
+*
+
+!Containerflke
+!.containerignore
+!spnl/src
+!spnl/README.md
+!cli/src
+!web/wasm/src
+!benchmarks/haystack/src
+!**/Cargo.toml
+!**/Cargo.lock
