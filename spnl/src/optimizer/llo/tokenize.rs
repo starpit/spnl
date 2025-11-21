@@ -59,9 +59,9 @@ impl Tokenizer {
     }
 
     /// Push plus token then extend to block boundary
-    fn plus_pad(&self, tokens: &mut Vec<u32>) {
+    fn plus_only(&self, tokens: &mut Vec<u32>) {
         if let Some(plus_token) = self.plus_token {
-            self.push_pad(plus_token, tokens);
+            tokens.push(plus_token)
         }
     }
 
@@ -108,8 +108,7 @@ impl Tokenizer {
     }
 
     /// Push, then pad to block boundary
-    fn push_pad(&self, token: u32, tokens: &mut Vec<u32>) {
-        tokens.push(token);
+    fn pad(&self, tokens: &mut Vec<u32>) {
         let n_pads = self.block_size - tokens.len() % self.block_size;
         if n_pads < self.block_size {
             tokens.extend(::std::iter::repeat_n(self.pad_token, n_pads));
@@ -440,15 +439,17 @@ fn tokenize_map(
     inputs
         .iter()
         .map(|input| {
-            let mut tokens = tok
-                .tok
-                .encode_fast(input.as_str(), false)
-                .map_err(handle_err)?
-                .get_ids()
-                .iter()
-                .copied()
-                .collect::<Vec<_>>();
-            tok.plus_pad(&mut tokens);
+            let mut tokens: Vec<u32> = vec![];
+            tok.plus_only(&mut tokens);
+            tokens.extend(
+                tok.tok
+                    .encode_fast(input.as_str(), false)
+                    .map_err(handle_err)?
+                    .get_ids()
+                    .iter()
+                    .copied(),
+            );
+            tok.pad(&mut tokens);
             Ok(tokens)
         })
         .collect::<Result<Vec<_>, _>>()
