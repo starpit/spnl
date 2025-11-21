@@ -39,7 +39,8 @@ pub async fn map(spec: &Map, mmp: Option<&indicatif::MultiProgress>, prepare: bo
 
         #[cfg(feature = "spnl-api")]
         ["spnl", m] => {
-            backend::spnl::generate(backend::spnl::Spec::Map(spec.with_model(m)?), mp, prepare).await
+            backend::spnl::generate(backend::spnl::Spec::Map(spec.with_model(m)?), mp, prepare)
+                .await
             // FYI this is what we would do to invoke via the openai bulk api directly: backend::openai::generate_completion(OpenAI, spec.with_model(m)?, mp, prepare).await
         }
 
@@ -75,7 +76,14 @@ pub async fn generate(
         }
 
         #[cfg(feature = "spnl-api")]
-        ["spnl", m] => backend::spnl::generate(backend::spnl::Spec::Repeat(spec.with_model(m)?), mp, prepare).await,
+        ["spnl", m] => {
+            backend::spnl::generate(
+                backend::spnl::Spec::Repeat(spec.with_model(m)?),
+                mp,
+                prepare,
+            )
+            .await
+        }
 
         _ => Err(ModelNotFoundError.into()),
     }

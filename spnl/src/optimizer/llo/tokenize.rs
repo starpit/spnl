@@ -58,7 +58,14 @@ impl Tokenizer {
         Ok(())
     }
 
-    /// Push plus token
+    /// Push plus token then extend to block boundary
+    fn plus_pad(&self, tokens: &mut Vec<u32>) {
+        if let Some(plus_token) = self.plus_token {
+            self.push_pad(plus_token, tokens);
+        }
+    }
+
+    /// Push plus token on block boundary
     fn plus(&self, tokens: &mut Vec<u32>) {
         if let Some(plus_token) = self.plus_token {
             self.pad_push(plus_token, tokens);
@@ -98,6 +105,15 @@ impl Tokenizer {
             tokens.extend(::std::iter::repeat_n(self.pad_token, n_pads));
         }
         tokens.push(token);
+    }
+
+    /// Push, then pad to block boundary
+    fn push_pad(&self, token: u32, tokens: &mut Vec<u32>) {
+        tokens.push(token);
+        let n_pads = self.block_size - tokens.len() % self.block_size;
+        if n_pads < self.block_size {
+            tokens.extend(::std::iter::repeat_n(self.pad_token, n_pads));
+        }
     }
 }
 
@@ -167,7 +183,7 @@ pub fn init(max_capacity: u64) -> TokenizerState {
 }
 
 #[pyclass]
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct TokenizedChatCompletionQuery {
     #[pyo3(get)]
     n: u8,
@@ -181,7 +197,7 @@ pub struct TokenizedChatCompletionQuery {
 }
 
 #[pyclass]
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct CompletionRequest {
     #[pyo3(get)]
     model: String,
@@ -189,10 +205,10 @@ pub struct CompletionRequest {
     max_tokens: Option<i32>,
     #[pyo3(get)]
     temperature: Option<f32>,
-    #[pyo3(get,set)]
+    #[pyo3(get, set)]
     stream: Option<bool>,
     #[pyo3(get)]
-    inputs: Vec<String>,
+    inputs: Vec<Vec<u32>>,
 }
 
 #[pyclass]
@@ -382,25 +398,17 @@ fn add_final_assistant_token(
     Ok(())
 }
 
-fn tokenize_query_generate(
+fn tokenize(
     state: &mut TokenizerState,
-    Repeat {
-        n,
-        generate: SingleGenerate { input, metadata },
-    }: Repeat,
+    input: &NonGenerateInput,
+    model: &String,
     pad_token: u32,
     cross_token: Option<u32>,
     plus_token: Option<u32>,
     block_size: usize,
-) -> Result<TokenizedQuery, PyErr> {
+) -> Result<Vec<u32>, PyErr> {
     let tok = state
-        .get_or_create(
-            &metadata.model,
-            pad_token,
-            cross_token,
-            plus_token,
-            block_size,
-        )
+        .get_or_create(model, pad_token, cross_token, plus_token, block_size)
         .map_err(handle_arc_err)?;
     let mut tokens: Vec<u32> = vec![];
     tokenize_part(&input, &tok, &mut tokens)
@@ -413,13 +421,67 @@ fn tokenize_query_generate(
         eprintln!("Reverse de-tokenized message (for debugging): {s}");
     } */
 
-    Ok(TokenizedQuery::TokenizedChatCompletionQuery(TokenizedChatCompletionQuery {
+    Ok(tokens)
+}
+
+fn tokenize_map(
+    state: &mut TokenizerState,
+    inputs: &Vec<String>,
+    model: &String,
+    pad_token: u32,
+    cross_token: Option<u32>,
+    plus_token: Option<u32>,
+    block_size: usize,
+) -> Result<Vec<Vec<u32>>, PyErr> {
+    let tok = state
+        .get_or_create(model, pad_token, cross_token, plus_token, block_size)
+        .map_err(handle_arc_err)?;
+
+    inputs
+        .iter()
+        .map(|input| {
+            let mut tokens = tok
+                .tok
+                .encode_fast(input.as_str(), false)
+                .map_err(handle_err)?
+                .get_ids()
+                .iter()
+                .copied()
+                .collect::<Vec<_>>();
+            tok.plus_pad(&mut tokens);
+            Ok(tokens)
+        })
+        .collect::<Result<Vec<_>, _>>()
+}
+
+fn tokenize_query_generate(
+    state: &mut TokenizerState,
+    Repeat {
         n,
-        model: metadata.model,
-        messages_: tokens,
-        max_tokens: metadata.max_tokens,
-        temperature: metadata.temperature,
-    }))
+        generate: SingleGenerate { input, metadata },
+    }: Repeat,
+    pad_token: u32,
+    cross_token: Option<u32>,
+    plus_token: Option<u32>,
+    block_size: usize,
+) -> Result<TokenizedQuery, PyErr> {
+    Ok(TokenizedQuery::TokenizedChatCompletionQuery(
+        TokenizedChatCompletionQuery {
+            n,
+            messages_: tokenize(
+                state,
+                &input,
+                &metadata.model,
+                pad_token,
+                cross_token,
+                plus_token,
+                block_size,
+            )?,
+            model: metadata.model,
+            max_tokens: metadata.max_tokens,
+            temperature: metadata.temperature,
+        },
+    ))
 }
 
 #[pyfunction]
@@ -448,13 +510,23 @@ pub fn tokenize_query(
             plus_token,
             block_size,
         ),
-        SingleGenerateQuery::Bulk(Bulk::Map(map)) => Ok(TokenizedQuery::CompletionRequest(CompletionRequest {
-            model: map.metadata.model,
-            max_tokens: map.metadata.max_tokens,
-            temperature: map.metadata.temperature,
-            stream: None,
-            inputs: map.inputs
-        })),
+        SingleGenerateQuery::Bulk(Bulk::Map(map)) => {
+            Ok(TokenizedQuery::CompletionRequest(CompletionRequest {
+                inputs: tokenize_map(
+                    state,
+                    &map.inputs,
+                    &map.metadata.model,
+                    pad_token,
+                    cross_token,
+                    plus_token,
+                    block_size,
+                )?,
+                model: map.metadata.model,
+                max_tokens: map.metadata.max_tokens,
+                temperature: map.metadata.temperature,
+                stream: None,
+            }))
+        }
     }
 }
 

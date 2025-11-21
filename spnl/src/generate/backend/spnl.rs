@@ -46,8 +46,7 @@ pub async fn generate(spec: Spec, m: Option<&MultiProgress>, prepare: bool) -> S
 
     // eprintln!("Sending query {:?}", to_string(&query)?);
     let pbs = super::progress::bars(spec.n(), &spec.metadata(), &m)?;
-    let mut response_strings =
-        ::std::iter::repeat_n(String::new(), spec.n()).collect::<Vec<_>>();
+    let mut response_strings = ::std::iter::repeat_n(String::new(), spec.n()).collect::<Vec<_>>();
 
     let response = client
         .post(format!("http://localhost:8000/v1/query/{exec}"))
@@ -67,7 +66,11 @@ pub async fn generate(spec: Spec, m: Option<&MultiProgress>, prepare: bool) -> S
     let mut buffer = Vec::new();
     while let Some(chunk) = stream.next().await {
         let chunk = chunk?;
-        buffer.extend_from_slice(if chunk.starts_with(DATA_COLON) { &chunk[DATA_COLON.len()..] } else { &chunk });
+        buffer.extend_from_slice(if chunk.starts_with(DATA_COLON) {
+            &chunk[DATA_COLON.len()..]
+        } else {
+            &chunk
+        });
 
         // Process complete JSON objects as they arrive
         if let Ok(res) = serde_json::from_slice::<CreateChatCompletionStreamResponse>(&buffer) {

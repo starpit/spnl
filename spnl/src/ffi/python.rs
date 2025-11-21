@@ -77,7 +77,7 @@ pub fn spnl_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     #[cfg(feature = "tok")]
     m.add_class::<crate::optimizer::llo::tokenize::CompletionRequest>()?;
-    
+
     #[cfg(feature = "tok")]
     m.add_function(wrap_pyfunction!(
         crate::optimizer::llo::tokenize::tokenize_query,
