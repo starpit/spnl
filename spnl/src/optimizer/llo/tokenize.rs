@@ -58,7 +58,7 @@ impl Tokenizer {
         Ok(())
     }
 
-    /// Push plus token then extend to block boundary
+    /// Push plus token
     fn plus_only(&self, tokens: &mut Vec<u32>) {
         if let Some(plus_token) = self.plus_token {
             tokens.push(plus_token)
@@ -100,14 +100,11 @@ impl Tokenizer {
 
     /// Pad to block boundary, then push
     fn pad_push(&self, token: u32, tokens: &mut Vec<u32>) {
-        let n_pads = self.block_size - tokens.len() % self.block_size;
-        if n_pads < self.block_size {
-            tokens.extend(::std::iter::repeat_n(self.pad_token, n_pads));
-        }
+        self.pad(tokens);
         tokens.push(token);
     }
 
-    /// Push, then pad to block boundary
+    /// Pad to block boundary
     fn pad(&self, tokens: &mut Vec<u32>) {
         let n_pads = self.block_size - tokens.len() % self.block_size;
         if n_pads < self.block_size {
