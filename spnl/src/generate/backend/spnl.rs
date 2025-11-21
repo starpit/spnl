@@ -37,6 +37,22 @@ impl Spec {
     }
 }
 
+#[derive(serde::Deserialize)]
+struct Message {
+    // role: String,
+    content: String,
+}
+
+#[derive(serde::Deserialize)]
+struct Choice {
+    message: Message,
+}
+
+#[derive(serde::Deserialize)]
+struct Response {
+    choices: Vec<Choice>,
+}
+
 const DATA_COLON: &[u8] = &[100, 97, 116, 97, 58, 32];
 
 /// Call the /api/query/{prepare|execute} API, passing the given query `spec`
@@ -48,9 +64,10 @@ pub async fn generate(spec: Spec, m: Option<&MultiProgress>, prepare: bool) -> S
     let pbs = super::progress::bars(spec.n(), &spec.metadata(), &m)?;
     let mut response_strings = ::std::iter::repeat_n(String::new(), spec.n()).collect::<Vec<_>>();
 
+    let non_streaming = if let Some(mt) = spec.metadata().max_tokens && mt == 1 { true } else { false };
     let response = client
         .post(format!("http://localhost:8000/v1/query/{exec}"))
-        .query(&[("stream", "true")])
+        .query(&[("stream", if non_streaming { "false" } else {"true" })])
         .header("Content-Type", "text/plain")
         .body(to_string(&spec.query())?)
         .send()
@@ -62,6 +79,19 @@ pub async fn generate(spec: Spec, m: Option<&MultiProgress>, prepare: bool) -> S
         stdout.write_all(b"\x1b[1mAssistant: \x1b[0m").await?;
     }
 
+    if non_streaming {
+        response_strings = if prepare {
+            vec!["prepared".to_string()]
+        } else {
+            response
+                .json::<Response>()
+                .await?
+                .choices
+                .into_iter()
+                .map(|choice| choice.message.content)
+                .collect()
+        };
+    } else {
     let mut stream = response.error_for_status()?.bytes_stream();
     let mut buffer = Vec::new();
     while let Some(chunk) = stream.next().await {
@@ -94,6 +124,7 @@ pub async fn generate(spec: Spec, m: Option<&MultiProgress>, prepare: bool) -> S
                 }
             }
         }
+    }
     }
 
     let response = response_strings
