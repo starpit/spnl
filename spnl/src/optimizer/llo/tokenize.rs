@@ -167,8 +167,8 @@ pub fn init(max_capacity: u64) -> TokenizerState {
 }
 
 #[pyclass]
-#[derive(Debug)]
-pub struct TokenizedQuery {
+#[derive(Clone,Debug)]
+pub struct TokenizedChatCompletionQuery {
     #[pyo3(get)]
     n: u8,
     #[pyo3(get)]
@@ -180,8 +180,30 @@ pub struct TokenizedQuery {
     messages_: Vec<u32>,
 }
 
+#[pyclass]
+#[derive(Clone,Debug)]
+pub struct CompletionRequest {
+    #[pyo3(get)]
+    model: String,
+    #[pyo3(get)]
+    max_tokens: Option<i32>,
+    #[pyo3(get)]
+    temperature: Option<f32>,
+    #[pyo3(get,set)]
+    stream: Option<bool>,
+    #[pyo3(get)]
+    inputs: Vec<String>,
+}
+
+#[pyclass]
+#[derive(Debug)]
+pub enum TokenizedQuery {
+    CompletionRequest(CompletionRequest),
+    TokenizedChatCompletionQuery(TokenizedChatCompletionQuery),
+}
+
 #[pymethods]
-impl TokenizedQuery {
+impl TokenizedChatCompletionQuery {
     #[getter]
     fn messages(&self) -> Vec<u32> {
         self.messages_.clone()
@@ -391,13 +413,13 @@ fn tokenize_query_generate(
         eprintln!("Reverse de-tokenized message (for debugging): {s}");
     } */
 
-    Ok(TokenizedQuery {
+    Ok(TokenizedQuery::TokenizedChatCompletionQuery(TokenizedChatCompletionQuery {
         n,
         model: metadata.model,
         messages_: tokens,
         max_tokens: metadata.max_tokens,
         temperature: metadata.temperature,
-    })
+    }))
 }
 
 #[pyfunction]
@@ -426,10 +448,13 @@ pub fn tokenize_query(
             plus_token,
             block_size,
         ),
-        _ => {
-            //SingleGenerateQuery::Bulk(Bulk::Map(Map { metadata, inputs })) => {
-            todo!()
-        }
+        SingleGenerateQuery::Bulk(Bulk::Map(map)) => Ok(TokenizedQuery::CompletionRequest(CompletionRequest {
+            model: map.metadata.model,
+            max_tokens: map.metadata.max_tokens,
+            temperature: map.metadata.temperature,
+            stream: None,
+            inputs: map.inputs
+        })),
     }
 }
 
