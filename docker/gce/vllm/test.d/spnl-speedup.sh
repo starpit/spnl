@@ -12,21 +12,21 @@ DOC="$SCRIPTDIR"/../../../../cli/src/builtins/rag-doc1.pdf
 # TODO: make at least the inner-most loop bound a parameter rather than hard-coded
 for b in email2 rag
 do
-    for n in 1 8
+    for n in 8
     do
-        for l in 1 1000
+        for l in 1000 10000
         do
             curl -XPOST http://localhost:8000/reset_prefix_cache
             unset A
             declare -a A
-            for i in $(seq 1 2)
+            for i in $(seq 1 5)
             do
                 T1=$(spnl -b $b -m openai/$MODEL -n $n -l $l --time gen1 --document $DOC | tail -1 | awk '{print $2}')
                 T2=$(spnl -b $b -m spnl/$MODEL -n $n -l $l --time gen1 --document $DOC | tail -1 | awk '{print $2}')
 
                 speedup=$(calc $T1/$T2)
                 A+=($speedup)
-                echo "SPEEDUP b=$b n=$n l=$l speedup=$speedup"
+                echo "SPEEDUP b=$b n=$n l=$l speedup=$speedup openai=$T1 spnl=$T2"
             done
 
             gsutil cp <(printf "%s\n" ${speedup[*]}) gs://$GCS_BUCKET/runs/$RUN_ID/speedup/b/$b/n/$n/l/$l/speedup.txt
