@@ -43,7 +43,7 @@ pub async fn down(name: &str, _namespace: Option<String>, config: GceConfig) -> 
 
     // Delete the instance
     eprintln!("Submitting instance deletion request...");
-    let operation = client
+    let _operation = client
         .delete()
         .set_project(&project)
         .set_zone(zone)
@@ -54,7 +54,7 @@ pub async fn down(name: &str, _namespace: Option<String>, config: GceConfig) -> 
         .to_result()?;
 
     eprintln!("Instance '{}' deleted successfully", name);
-    eprintln!("Operation: {:?}", operation);
+    // eprintln!("Operation: {:?}", _operation);
 
     Ok(())
 }

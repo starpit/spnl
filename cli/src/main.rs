@@ -70,6 +70,7 @@ async fn main() -> Result<(), SpnlError> {
                         .name(name.name)
                         .model(model)
                         .hf_token(hf_token)
+                        .local_port(_local_port)
                         .config(gce_config)
                         .build()?,
                 )

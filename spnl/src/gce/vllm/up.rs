@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::process::{Child, Command, Stdio};
 
 use super::args::GceConfig;
 
@@ -15,6 +16,10 @@ pub struct UpArgs {
     /// HuggingFace api token
     #[builder(setter(into))]
     pub(crate) hf_token: String,
+
+    /// Local port for SSH tunnel (defaults to 8000)
+    #[builder(default = "Some(8000)")]
+    pub(crate) local_port: Option<u16>,
 
     /// GCE configuration
     #[builder(default)]
@@ -39,20 +44,6 @@ fn indent(text: &str, spaces: usize) -> String {
 
 fn load_cloud_config(args: &UpArgs) -> anyhow::Result<String> {
     let cloud_config_template = include_str!("../../../../docker/gce/vllm/cloud-config.yaml");
-    let setup_script = include_str!("../../../../docker/gce/vllm/setup.sh");
-
-    // Read vllm patch file if it exists
-    let vllm_patch_path = std::path::Path::new("../git/spnl/docker/gce/vllm/vllm.patch");
-    let vllm_patch_b64 = if vllm_patch_path.exists() {
-        let patch_content = std::fs::read(vllm_patch_path)?;
-        use std::io::Write;
-        let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
-        encoder.write_all(&patch_content)?;
-        let compressed = encoder.finish()?;
-        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, compressed)
-    } else {
-        String::new()
-    };
 
     // Generate a unique run ID
     let run_id = uuid::Uuid::new_v4().to_string();
@@ -60,16 +51,22 @@ fn load_cloud_config(args: &UpArgs) -> anyhow::Result<String> {
     // Get configuration from args
     let gcs_bucket = &args.config.gcs_bucket;
 
-    // If SPNL_GITHUB is default, use the compiled version as a release
-    let spnl_release = if args.config.spnl_github == "https://github.com/IBM/spnl.git" {
+    // Determine if we're in dev mode (building from source)
+    // Dev mode is when SPNL_GITHUB is defined (Some)
+    let is_dev_mode = args.config.spnl_github.is_some();
+
+    let spnl_github = args
+        .config
+        .spnl_github
+        .as_deref()
+        .unwrap_or("https://github.com/IBM/spnl.git");
+    let spnl_github_sha = args.config.get_github_sha();
+    let spnl_github_ref = args.config.get_github_ref();
+    let spnl_release = if !is_dev_mode {
         format!("v{}", env!("CARGO_PKG_VERSION"))
     } else {
         String::new()
     };
-
-    let spnl_github = &args.config.spnl_github;
-    let spnl_github_sha = args.config.get_github_sha();
-    let spnl_github_ref = args.config.get_github_ref();
     let vllm_org = &args.config.vllm_org;
     let vllm_repo = &args.config.vllm_repo;
     let vllm_branch = &args.config.vllm_branch;
@@ -78,29 +75,74 @@ fn load_cloud_config(args: &UpArgs) -> anyhow::Result<String> {
         .clone()
         .unwrap_or_else(|| "ibm-granite/granite-3.3-2b-instruct".to_string());
 
-    // Conditionally include packages section (only needed when building from source)
-    let packages = if spnl_release.is_empty() {
-        vec![
-            "build-essential",
-            "pkg-config",
-            "libssl-dev",
-            "protobuf-compiler",
-            "python3-dev",
-        ]
-    } else {
-        vec![]
-    };
-
-    let packages_section = if packages.is_empty() {
-        "# Packages not needed when using release binaries".to_string()
-    } else {
+    // Conditionally include packages section (only needed when building from source in dev mode)
+    let packages_section = if is_dev_mode {
         format!(
             "packages:\n{}",
-            packages
-                .iter()
-                .map(|p| format!("  - {}", p))
-                .collect::<Vec<_>>()
-                .join("\n")
+            [
+                "build-essential",
+                "pkg-config",
+                "libssl-dev",
+                "protobuf-compiler",
+                "python3-dev",
+            ]
+            .iter()
+            .map(|p| format!("  - {}", p))
+            .collect::<Vec<_>>()
+            .join("\n")
+        )
+    } else {
+        "# Packages not needed when using custom image".to_string()
+    };
+
+    // In dev mode, we need the setup-dev.sh script and vllm patch
+    // In production mode, we need to write /etc/vllm/config for systemd service
+    let (setup_dev_script, vllm_patch_b64, vllm_config_section, runcmd_script) = if is_dev_mode {
+        let setup_dev_script = include_str!("../../../../docker/gce/vllm/setup-dev.sh");
+
+        // Read vllm patch file if it exists
+        let vllm_patch_path = std::path::Path::new("../git/spnl/docker/gce/vllm/vllm.patch");
+        let vllm_patch_b64 = if vllm_patch_path.exists() {
+            let patch_content = std::fs::read(vllm_patch_path)?;
+            use std::io::Write;
+            let mut encoder =
+                flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+            encoder.write_all(&patch_content)?;
+            let compressed = encoder.finish()?;
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, compressed)
+        } else {
+            String::new()
+        };
+
+        (
+            indent(setup_dev_script, 6),
+            indent(&vllm_patch_b64, 6),
+            String::new(), // No vllm config file needed in dev mode
+            "/tmp/setup-dev.sh".to_string(),
+        )
+    } else {
+        // Production mode: write /etc/vllm/config for systemd service to read
+        let vllm_config = format!(
+            r#"  - path: /etc/vllm/config
+    permissions: '0644'
+    content: |
+      # vLLM Configuration for systemd service
+      MODEL={}
+      VLLM_ATTENTION_BACKEND=TRITON_ATTN
+      VLLM_USE_V1=1
+      VLLM_V1_SPANS_ENABLED=True
+      VLLM_V1_SPANS_TOKEN_PLUS=10
+      VLLM_V1_SPANS_TOKEN_CROSS=13
+      VLLM_SERVER_DEV_MODE=1
+      HF_TOKEN={}"#,
+            model, args.hf_token
+        );
+
+        (
+            String::new(), // No setup script needed
+            String::new(), // No patch needed
+            vllm_config,
+            "echo 'Using custom image - services managed by systemd'".to_string(),
         )
     };
 
@@ -109,7 +151,7 @@ fn load_cloud_config(args: &UpArgs) -> anyhow::Result<String> {
     substitutions.insert("run_id", run_id.as_str());
     substitutions.insert("hf_token", args.hf_token.as_str());
     substitutions.insert("gcs_bucket", gcs_bucket.as_str());
-    substitutions.insert("spnl_github", spnl_github.as_str());
+    substitutions.insert("spnl_github", spnl_github);
     substitutions.insert("spnl_github_sha", &spnl_github_sha);
     substitutions.insert("spnl_github_ref", &spnl_github_ref);
     substitutions.insert("spnl_release", spnl_release.as_str());
@@ -118,12 +160,10 @@ fn load_cloud_config(args: &UpArgs) -> anyhow::Result<String> {
     substitutions.insert("vllm_branch", vllm_branch.as_str());
     substitutions.insert("model", model.as_str());
     substitutions.insert("packages_section", &packages_section);
-
-    // Indent setup_script and vllm_patch_b64 by 6 spaces for proper YAML formatting
-    let setup_script_indented = indent(setup_script, 6);
-    let vllm_patch_b64_indented = indent(&vllm_patch_b64, 6);
-    substitutions.insert("setup_script", &setup_script_indented);
-    substitutions.insert("vllm_patch_b64", &vllm_patch_b64_indented);
+    substitutions.insert("setup_dev_script", &setup_dev_script);
+    substitutions.insert("vllm_patch_b64", &vllm_patch_b64);
+    substitutions.insert("vllm_config_section", &vllm_config_section);
+    substitutions.insert("runcmd_script", &runcmd_script);
 
     // Perform substitutions
     let mut result = cloud_config_template.to_string();
@@ -150,10 +190,11 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
     // Load and template the cloud-config
     let cloud_config = load_cloud_config(&args)?;
 
-    eprintln!("Cloud config YAML:");
-    eprintln!("---");
-    eprintln!("{}", cloud_config);
-    eprintln!("---\n");
+    // Uncomment to debug cloud-config
+    // eprintln!("Cloud config YAML:");
+    // eprintln!("---");
+    // eprintln!("{}", cloud_config);
+    // eprintln!("---\n");
 
     // Get configuration from args
     let project = args.config.get_project()?;
@@ -177,6 +218,21 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
     eprintln!("  Machine type: {}", machine_type);
     eprintln!("  Run ID: {}", run_id);
 
+    // Determine if we're in dev mode (building from source)
+    let is_dev_mode = args.config.spnl_github.is_some();
+
+    // Determine which image to use
+    let source_image = if is_dev_mode {
+        // Dev mode: use standard Ubuntu accelerator image
+        "projects/ubuntu-os-accelerator-images/global/images/ubuntu-accelerator-2404-amd64-with-nvidia-580-v20251210".to_string()
+    } else {
+        // Production mode: use custom image based on vLLM configuration
+        // Use the image family to get the latest image
+        format!("projects/{}/global/images/family/vllm-spnl", project)
+    };
+
+    eprintln!("Using source image: {}", source_image);
+
     // Create labels
     let mut labels = std::collections::HashMap::new();
     labels.insert("role".to_string(), "gh-runner".to_string());
@@ -197,36 +253,41 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
             .set_device_name(format!("spnl-test-big-{}", run_id))
             .set_initialize_params(
                 AttachedDiskInitializeParams::new()
-                    .set_source_image("projects/ubuntu-os-accelerator-images/global/images/ubuntu-accelerator-2404-amd64-with-nvidia-580-v20251210")
+                    .set_source_image(&source_image)
                     .set_disk_size_gb(100)
-                    .set_disk_type(format!("zones/{}/diskTypes/pd-ssd", zone))
+                    .set_disk_type(format!("zones/{}/diskTypes/pd-ssd", zone)),
             )
             .set_mode("READ_WRITE")])
         .set_network_interfaces([NetworkInterface::new()
             .set_subnetwork(format!("regions/{}/subnetworks/default", region))
-            .set_access_configs([AccessConfig::new()
-                .set_network_tier("PREMIUM")])
-                                 // .set_queue_count(0)
+            .set_access_configs([AccessConfig::new().set_network_tier("PREMIUM")])
+            // .set_queue_count(0)
             .set_stack_type("IPV4_ONLY")])
         .set_guest_accelerators([AcceleratorConfig::new()
             .set_accelerator_count(1)
             .set_accelerator_type(format!("zones/{}/acceleratorTypes/nvidia-l4", zone))])
-        .set_metadata(Metadata::default()
-            .set_items([
+        .set_metadata(
+            Metadata::default().set_items([
                 MetadataItems::default()
                     .set_key("enable-osconfig")
                     .set_value("TRUE"),
                 MetadataItems::default()
                     .set_key("user-data")
                     .set_value(&cloud_config),
-            ]))
-        .set_scheduling(Scheduling::new()
-            .set_automatic_restart(false)
-            .set_on_host_maintenance("TERMINATE")
-            .set_preemptible(true)
-            .set_provisioning_model("SPOT"))
+            ]),
+        )
+        .set_scheduling(
+            Scheduling::new()
+                .set_automatic_restart(false)
+                .set_on_host_maintenance("TERMINATE")
+                .set_preemptible(true)
+                .set_provisioning_model("SPOT"),
+        )
         .set_service_accounts([ServiceAccount::new()
-            .set_email(format!("{}@{}.iam.gserviceaccount.com", service_account, project))
+            .set_email(format!(
+                "{}@{}.iam.gserviceaccount.com",
+                service_account, project
+            ))
             .set_scopes([
                 "https://www.googleapis.com/auth/devstorage.read_write",
                 "https://www.googleapis.com/auth/logging.write",
@@ -235,10 +296,12 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
                 "https://www.googleapis.com/auth/servicecontrol",
                 "https://www.googleapis.com/auth/trace.append",
             ])])
-        .set_shielded_instance_config(ShieldedInstanceConfig::new()
-            .set_enable_integrity_monitoring(true)
-            .set_enable_secure_boot(false)
-            .set_enable_vtpm(true))
+        .set_shielded_instance_config(
+            ShieldedInstanceConfig::new()
+                .set_enable_integrity_monitoring(true)
+                .set_enable_secure_boot(false)
+                .set_enable_vtpm(true),
+        )
         .set_labels(labels)
         .set_can_ip_forward(false)
         .set_deletion_protection(false);
@@ -247,7 +310,7 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
     let client = Instances::builder().build().await?;
 
     eprintln!("Submitting instance creation request...");
-    let operation = client
+    let _operation = client
         .insert()
         .set_project(&project)
         .set_zone(zone)
@@ -258,7 +321,7 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
         .to_result()?;
 
     eprintln!("Instance '{}' created successfully", instance_name);
-    eprintln!("Operation: {:?}", operation);
+    // eprintln!("Operation: {:?}", operation);
 
     // Get the instance details to show the external IP
     let instance_info = client
@@ -281,6 +344,13 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
 
     eprintln!("\nInstance '{}' is now running", instance_name);
     eprintln!("The instance will automatically shut down when setup completes");
+
+    // Start SSH tunnel in the background
+    let local_port = args.local_port.unwrap_or(8000);
+    eprintln!("\nStarting SSH tunnel for vLLM port {}...", local_port);
+    let tunnel_process = start_ssh_tunnel(&instance_name, zone, &project, local_port)?;
+    eprintln!("SSH tunnel established: http://localhost:{}", local_port);
+
     eprintln!("\nStreaming cloud-init output log...\n");
 
     // Extract run_id from cloud_config to fetch exit code later
@@ -288,11 +358,21 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
     let gcs_bucket = std::env::var("GCS_BUCKET").unwrap_or_else(|_| "spnl-test".to_string());
 
     // Stream the cloud-init output log
-    stream_cloud_init_log(&instance_name, zone, &project).await?;
+    let stream_result = stream_cloud_init_log(&instance_name, zone, &project).await;
 
     // Fetch the exit code from GCS
     eprintln!("\nFetching exit code from GCS...");
     let exit_code = fetch_exit_code_from_gcs(&gcs_bucket, &run_id).await?;
+
+    // Clean up SSH tunnel
+    if let Some(mut process) = tunnel_process {
+        eprintln!("\nClosing SSH tunnel...");
+        let _ = process.kill();
+        let _ = process.wait();
+    }
+
+    // Check stream result
+    stream_result?;
 
     if exit_code == 0 {
         eprintln!("Setup completed successfully (exit code: 0)");
@@ -304,6 +384,65 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
         ))
     }
 }
+/// Strip timestamp and instance name prefix from serial port output lines
+/// Format: "YYYY-MM-DDTHH:MM:SS.ffffff+00:00 instance-name "
+/// Converts octal escape sequences (#033) to proper ANSI escape codes for color rendering
+/// Colorizes process prefixes and strips redundant ones when content has detailed process info
+fn strip_serial_prefix(contents: &str) -> String {
+    use std::io::IsTerminal;
+
+    let is_tty = std::io::stdout().is_terminal();
+
+    contents
+        .lines()
+        .map(|line| {
+            // Find the second space (after timestamp and instance name)
+            let mut space_count = 0;
+            let mut stripped_line = line;
+
+            for (i, c) in line.char_indices() {
+                if c == ' ' {
+                    space_count += 1;
+                    if space_count == 2 {
+                        // Get everything after the second space
+                        stripped_line = &line[i + 1..];
+                        break;
+                    }
+                }
+            }
+
+            // Convert octal escape sequences (#033) to proper ANSI escape codes (\x1b)
+            // GCE serial console escapes control characters to octal for safe transmission
+            let result = stripped_line.replace("#033", "\x1b");
+
+            // Handle process prefix coloring and redundant prefix stripping
+            if let Some(colon_pos) = result.find(':') {
+                let prefix = &result[..colon_pos];
+                let rest = &result[colon_pos + 1..];
+
+                // Check if prefix looks like "process[pid]" and rest contains "pid="
+                // If so, strip the redundant prefix
+                if prefix.contains('[') && prefix.contains(']') && rest.contains("pid=") {
+                    return rest.trim_start().to_string();
+                }
+
+                // Otherwise, if TTY and prefix doesn't have colors, colorize it
+                if is_tty && !prefix.contains('\x1b') {
+                    // Check if prefix looks like a service/process name
+                    if prefix.chars().all(|c| {
+                        c.is_alphanumeric() || c == '[' || c == ']' || c == '-' || c == '_'
+                    }) {
+                        // Yellow color for the prefix (avoiding cyan/36 which vLLM uses)
+                        return format!("\x1b[33m{}:\x1b[0m{}", prefix, rest);
+                    }
+                }
+            }
+
+            result
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
 
 async fn stream_cloud_init_log(
     instance_name: &str,
@@ -314,13 +453,13 @@ async fn stream_cloud_init_log(
 
     let client = Instances::builder().build().await?;
 
-    // Wait a bit for the instance to start and cloud-init to begin
-    eprintln!("Waiting for instance to start...");
-    tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
+    // Start polling immediately - the instance may already be outputting
+    eprintln!("Streaming serial console output...");
 
     let mut last_start = 0i64;
     let mut consecutive_errors = 0;
     let mut should_stop = false;
+    let mut first_output = true;
 
     loop {
         if should_stop {
@@ -349,7 +488,13 @@ async fn stream_cloud_init_log(
                         if let Some(contents) = output.contents
                             && !contents.is_empty()
                         {
-                            print!("{}", contents);
+                            if first_output {
+                                eprintln!("Instance is running, output received:\n");
+                                first_output = false;
+                            }
+                            // Strip timestamp and instance name prefix from each line
+                            let cleaned = strip_serial_prefix(&contents);
+                            print!("{}", cleaned);
                             std::io::Write::flush(&mut std::io::stdout()).ok();
                         }
                         // Update the start position for next request
@@ -432,6 +577,61 @@ async fn fetch_exit_code_from_gcs(bucket: &str, run_id: &str) -> anyhow::Result<
         .await?;
 
     Ok(exit_code)
+}
+
+/// Start an SSH tunnel to forward vLLM port
+fn start_ssh_tunnel(
+    instance_name: &str,
+    zone: &str,
+    project: &str,
+    local_port: u16,
+) -> anyhow::Result<Option<Child>> {
+    // Build the gcloud compute ssh command with port forwarding
+    let port_forward = format!("{}:localhost:8000", local_port);
+    let mut cmd = Command::new("gcloud");
+    cmd.args([
+        "compute",
+        "ssh",
+        instance_name,
+        "--project",
+        project,
+        "--zone",
+        zone,
+        "--",
+        "-N", // Don't execute remote command
+        "-L",
+        &port_forward, // Forward vLLM port
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "UserKnownHostsFile=/dev/null",
+        "-o",
+        "ServerAliveInterval=60",
+        "-o",
+        "ServerAliveCountMax=3",
+    ]);
+
+    // Start the tunnel process in the background
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    match cmd.spawn() {
+        Ok(child) => {
+            // Give the tunnel a moment to establish
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            Ok(Some(child))
+        }
+        Err(e) => {
+            eprintln!("Warning: Failed to start SSH tunnel: {}", e);
+            eprintln!("You can manually create a tunnel with:");
+            eprintln!(
+                "  gcloud compute ssh {} --project {} --zone {} -- -L {}:localhost:8000",
+                instance_name, project, zone, local_port
+            );
+            Ok(None)
+        }
+    }
 }
 
 #[cfg(test)]
