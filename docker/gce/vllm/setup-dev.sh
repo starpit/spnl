@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 #
-# Note: this script is executed inside the VM, via a cloud-init runcmd. See ./cloud-config.yaml
+# Note: this script is executed inside the VM for development/testing builds.
+# For release builds, use setup-for-release-image.sh with custom images.
+# This script is executed via a cloud-init runcmd. See ./cloud-config.yaml
 #
 
 set -eo pipefail
@@ -34,77 +36,11 @@ export RUSTC_WRAPPER=/usr/local/bin/sccache
 export SCCACHE_GCS_RW_MODE=READ_WRITE
 export SCCACHE_GCS_KEY_PREFIX=sccache
 
-# Install and build spnl
+# Install and build spnl from source (development mode)
 export CARGO_INCREMENTAL=0 # Disable incremental compilation for faster from-scratch builds
 export CARGO_PROFILE_TEST_DEBUG=0
 
-if [[ -n "$SPNL_RELEASE" ]]
-then
-    echo "Downloading spnl release $SPNL_RELEASE"
-
-    # Detect OS and architecture
-    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-    ARCH=$(uname -m)
-
-    # Map architecture names to match GitHub release naming
-    case "$ARCH" in
-        x86_64)
-            ARCH="x86_64"
-            ;;
-        aarch64|arm64)
-            ARCH="aarch64"
-            ;;
-        *)
-            echo "Unsupported architecture: $ARCH"
-            exit 1
-            ;;
-    esac
-
-    # Map OS and ABI to match GitHub release naming
-    # Format: spnl-{version}-{os}-{arch}-{abi}.tar.gz
-    case "$OS" in
-        linux)
-            OS="linux"
-            ABI="gnu"
-            ;;
-        darwin)
-            OS="macos"
-            ABI=""
-            ;;
-        *)
-            echo "Unsupported OS: $OS"
-            exit 1
-            ;;
-    esac
-
-    # Construct the asset name
-    if [[ -n "$ABI" ]]; then
-        ASSET_NAME="spnl-${SPNL_RELEASE}-${OS}-${ARCH}-${ABI}.tar.gz"
-    else
-        ASSET_NAME="spnl-${SPNL_RELEASE}-${OS}-${ARCH}.tar.gz"
-    fi
-
-    # Extract repo owner and name from SPNL_GITHUB (e.g., https://github.com/owner/repo)
-    REPO_PATH=$(echo "$SPNL_GITHUB" | sed -E 's|https?://github.com/||' | sed 's|\.git$||')
-
-    # Download the release asset
-    DOWNLOAD_URL="https://github.com/${REPO_PATH}/releases/download/${SPNL_RELEASE}/${ASSET_NAME}"
-    echo "Downloading from: $DOWNLOAD_URL"
-
-    wget -q "$DOWNLOAD_URL" -O spnl-release.tar.gz || {
-        echo "Failed to download release asset. Falling back to building from source."
-        exit 1
-    }
-
-    # Extract and install
-    tar xzf spnl-release.tar.gz
-    sudo cp spnl /usr/local/bin/
-    sudo chmod a+rX /usr/local/bin/spnl
-    rm spnl-release.tar.gz spnl
-
-    # No need to clone repo or build - we'll install Python package from PyPI later
-    spnl_pid=0
-elif [[ -n "$GITHUB_SHA" ]] && [[ -n "$GITHUB_REF" ]]
+if [[ -n "$GITHUB_SHA" ]] && [[ -n "$GITHUB_REF" ]]
 then
     echo "Cloning spnl from GITHUB_SHA=$GITHUB_SHA GITHUB_REF=$GITHUB_REF"
     (
@@ -150,18 +86,10 @@ fi
 # Patch the vllm code and install spnl Python package
 spnl vllm patchfile | git apply
 
-if [[ -n "$SPNL_RELEASE" ]]
-then
-    # Install spnl from PyPI (strip 'v' prefix if present)
-    SPNL_VERSION="${SPNL_RELEASE#v}"
-    echo "Installing spnl==$SPNL_VERSION from PyPI"
-    uv pip install "spnl==$SPNL_VERSION"
-else
-    # Build the cloned version of spnl into vLLM, via maturin
-    uv pip install maturin[patchelf]
-    source $HOME/.cargo/env # to get rustc on path
-    (cd $HOME/spnl && maturin develop -F tok,run_py -m spnl/Cargo.toml)
-fi
+# Build the cloned version of spnl into vLLM, via maturin
+uv pip install maturin[patchelf]
+source $HOME/.cargo/env # to get rustc on path
+(cd $HOME/spnl && maturin develop -F tok,run_py -m spnl/Cargo.toml)
 
 # Start vLLM
 VLLM_ATTENTION_BACKEND=TRITON_ATTN \
@@ -184,24 +112,19 @@ echo "vllm is ready"
 timeout 5m bash -c 'until ollama ps; do sleep 3; done'
 echo "ollama is ready"
 
-# Run tests only if not using a release (releases are for production, not testing)
-if [[ -z "$SPNL_RELEASE" ]]
-then
-    # Here are the variables we will allow to be used in the test.d/* scripts
-    declare -x GCS_BUCKET
-    declare -x RUN_ID
-    declare -x MODEL
-    declare -x OPENAI_API_BASE=http://localhost:8000/v1
+# Run tests (development mode always runs tests)
+# Here are the variables we will allow to be used in the test.d/* scripts
+declare -x GCS_BUCKET
+declare -x RUN_ID
+declare -x MODEL
+declare -x OPENAI_API_BASE=http://localhost:8000/v1
 
-    cd $HOME
-    TESTS_DIR=$HOME/spnl/docker/gce/vllm/test.d
-    if [ -d "$TESTS_DIR" ]
-    then
-        n_tests=$(ls "$TESTS_DIR" | wc -l | xargs)
-        echo "Starting $n_tests tests"
-        find "$TESTS_DIR" -type f -name '*.sh' -print0 | xargs -0L1 -I{} bash -c 'echo "Executing {} at $(date -u)"; "{}"'
-    else echo "No tests found in $TESTS_DIR"
-    fi
-else
-    echo "Skipping tests (SPNL_RELEASE is set)"
+cd $HOME
+TESTS_DIR=$HOME/spnl/docker/gce/vllm/test.d
+if [ -d "$TESTS_DIR" ]
+then
+    n_tests=$(ls "$TESTS_DIR" | wc -l | xargs)
+    echo "Starting $n_tests tests"
+    find "$TESTS_DIR" -type f -name '*.sh' -print0 | xargs -0L1 -I{} bash -c 'echo "Executing {} at $(date -u)"; "{}"'
+else echo "No tests found in $TESTS_DIR"
 fi

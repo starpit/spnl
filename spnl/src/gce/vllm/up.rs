@@ -15,6 +15,37 @@ pub struct UpArgs {
     pub(crate) hf_token: String,
 }
 
+/// Check if a custom GCE image exists for the given SPNL release version
+async fn check_custom_image_exists(
+    project: &str,
+    image_name: &str,
+) -> anyhow::Result<Option<String>> {
+    use google_cloud_compute_v1::client::Images;
+
+    let client = Images::builder().build().await?;
+
+    match client
+        .get()
+        .set_project(project)
+        .set_image(image_name)
+        .send()
+        .await
+    {
+        Ok(image) => {
+            if let Some(self_link) = image.self_link {
+                eprintln!("Found custom image: {}", image_name);
+                Ok(Some(self_link))
+            } else {
+                Ok(None)
+            }
+        }
+        Err(_) => {
+            // Image doesn't exist
+            Ok(None)
+        }
+    }
+}
+
 /// Indent each line of text by the specified number of spaces, except the first line
 fn indent(text: &str, spaces: usize) -> String {
     let indent_str = " ".repeat(spaces);
@@ -31,9 +62,15 @@ fn indent(text: &str, spaces: usize) -> String {
     }
 }
 
-fn load_cloud_config(args: &UpArgs) -> anyhow::Result<String> {
+fn load_cloud_config(args: &UpArgs, use_custom_image: bool) -> anyhow::Result<String> {
     let cloud_config_template = include_str!("../../../../docker/gce/vllm/cloud-config.yaml");
-    let setup_script = include_str!("../../../../docker/gce/vllm/setup.sh");
+    let setup_script = if use_custom_image {
+        // When using custom image, vLLM is already installed, just need to start services
+        include_str!("../../../../docker/gce/vllm/setup-for-release-image.sh")
+    } else {
+        // Development mode: build from source
+        include_str!("../../../../docker/gce/vllm/setup-dev.sh")
+    };
 
     // Read vllm patch file if it exists
     let vllm_patch_path = std::path::Path::new("../git/spnl/docker/gce/vllm/vllm.patch");
@@ -142,20 +179,47 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
     };
     use google_cloud_lro::Poller;
 
-    // Load and template the cloud-config
-    let cloud_config = load_cloud_config(&args)?;
-
-    eprintln!("Cloud config YAML:");
-    eprintln!("---");
-    eprintln!("{}", cloud_config);
-    eprintln!("---\n");
-
     // Get configuration from environment variables (matching terraform defaults)
     let project = std::env::var("GCP_PROJECT")
         .or_else(|_| std::env::var("GOOGLE_CLOUD_PROJECT"))
         .map_err(|_| {
             anyhow::anyhow!("GCP_PROJECT or GOOGLE_CLOUD_PROJECT environment variable must be set")
         })?;
+
+    // Check if we should use a custom image
+    // If SPNL_GITHUB is not set, use the compiled version as a release
+    let spnl_release = match std::env::var("SPNL_GITHUB") {
+        Ok(_) => String::new(),
+        Err(_) => format!("v{}", env!("CARGO_PKG_VERSION")),
+    };
+
+    let (use_custom_image, source_image) = if !spnl_release.is_empty() {
+        // Check if custom image exists for this release
+        let custom_image_name = format!("vllm-spnl-{}", spnl_release);
+        eprintln!("Checking for custom image: {}", custom_image_name);
+
+        match check_custom_image_exists(&project, &custom_image_name).await? {
+            Some(image_link) => {
+                eprintln!("Using custom image: {}", custom_image_name);
+                (true, image_link)
+            }
+            None => {
+                eprintln!("Custom image not found, using base image with setup.sh");
+                (false, "projects/ubuntu-os-accelerator-images/global/images/ubuntu-accelerator-2404-amd64-with-nvidia-580-v20251210".to_string())
+            }
+        }
+    } else {
+        eprintln!("Building from source (SPNL_GITHUB is set), using base image with setup.sh");
+        (false, "projects/ubuntu-os-accelerator-images/global/images/ubuntu-accelerator-2404-amd64-with-nvidia-580-v20251210".to_string())
+    };
+
+    // Load and template the cloud-config
+    let cloud_config = load_cloud_config(&args, use_custom_image)?;
+
+    eprintln!("Cloud config YAML:");
+    eprintln!("---");
+    eprintln!("{}", cloud_config);
+    eprintln!("---\n");
     let service_account = std::env::var("GCP_SERVICE_ACCOUNT")
         .map_err(|_| anyhow::anyhow!("GCP_SERVICE_ACCOUNT environment variable must be set"))?;
     let region = std::env::var("GCE_REGION").unwrap_or_else(|_| "us-west1".to_string());
@@ -198,36 +262,41 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
             .set_device_name(format!("spnl-test-big-{}", run_id))
             .set_initialize_params(
                 AttachedDiskInitializeParams::new()
-                    .set_source_image("projects/ubuntu-os-accelerator-images/global/images/ubuntu-accelerator-2404-amd64-with-nvidia-580-v20251210")
+                    .set_source_image(&source_image)
                     .set_disk_size_gb(100)
-                    .set_disk_type(format!("zones/{}/diskTypes/pd-ssd", zone))
+                    .set_disk_type(format!("zones/{}/diskTypes/pd-ssd", zone)),
             )
             .set_mode("READ_WRITE")])
         .set_network_interfaces([NetworkInterface::new()
             .set_subnetwork(format!("regions/{}/subnetworks/default", region))
-            .set_access_configs([AccessConfig::new()
-                .set_network_tier("PREMIUM")])
-                                 // .set_queue_count(0)
+            .set_access_configs([AccessConfig::new().set_network_tier("PREMIUM")])
+            // .set_queue_count(0)
             .set_stack_type("IPV4_ONLY")])
         .set_guest_accelerators([AcceleratorConfig::new()
             .set_accelerator_count(1)
             .set_accelerator_type(format!("zones/{}/acceleratorTypes/nvidia-l4", zone))])
-        .set_metadata(Metadata::default()
-            .set_items([
+        .set_metadata(
+            Metadata::default().set_items([
                 MetadataItems::default()
                     .set_key("enable-osconfig")
                     .set_value("TRUE"),
                 MetadataItems::default()
                     .set_key("user-data")
                     .set_value(&cloud_config),
-            ]))
-        .set_scheduling(Scheduling::new()
-            .set_automatic_restart(false)
-            .set_on_host_maintenance("TERMINATE")
-            .set_preemptible(true)
-            .set_provisioning_model("SPOT"))
+            ]),
+        )
+        .set_scheduling(
+            Scheduling::new()
+                .set_automatic_restart(false)
+                .set_on_host_maintenance("TERMINATE")
+                .set_preemptible(true)
+                .set_provisioning_model("SPOT"),
+        )
         .set_service_accounts([ServiceAccount::new()
-            .set_email(format!("{}@{}.iam.gserviceaccount.com", service_account, project))
+            .set_email(format!(
+                "{}@{}.iam.gserviceaccount.com",
+                service_account, project
+            ))
             .set_scopes([
                 "https://www.googleapis.com/auth/devstorage.read_write",
                 "https://www.googleapis.com/auth/logging.write",
@@ -236,10 +305,12 @@ pub async fn up(args: UpArgs) -> anyhow::Result<()> {
                 "https://www.googleapis.com/auth/servicecontrol",
                 "https://www.googleapis.com/auth/trace.append",
             ])])
-        .set_shielded_instance_config(ShieldedInstanceConfig::new()
-            .set_enable_integrity_monitoring(true)
-            .set_enable_secure_boot(false)
-            .set_enable_vtpm(true))
+        .set_shielded_instance_config(
+            ShieldedInstanceConfig::new()
+                .set_enable_integrity_monitoring(true)
+                .set_enable_secure_boot(false)
+                .set_enable_vtpm(true),
+        )
         .set_labels(labels)
         .set_can_ip_forward(false)
         .set_deletion_protection(false);
@@ -444,7 +515,7 @@ mod tests {
     fn test_load_cloud_config() -> anyhow::Result<()> {
         let args = UpArgsBuilder::default().hf_token("test_token").build()?;
 
-        let config = load_cloud_config(&args)?;
+        let config = load_cloud_config(&args, false)?;
         assert!(config.contains("#cloud-config"));
         assert!(config.contains("test_token"));
 
@@ -458,7 +529,7 @@ mod tests {
             .model(Some("meta-llama/Llama-2-7b-hf".to_string()))
             .build()?;
 
-        let config = load_cloud_config(&args)?;
+        let config = load_cloud_config(&args, false)?;
         assert!(config.contains("meta-llama/Llama-2-7b-hf"));
 
         Ok(())
@@ -471,9 +542,24 @@ mod tests {
             .hf_token("test_token")
             .build()?;
 
-        let config = load_cloud_config(&args)?;
+        let config = load_cloud_config(&args, false)?;
         // Name is used in instance creation, not in cloud-config
         assert!(config.contains("#cloud-config"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_load_cloud_config_with_custom_image() -> anyhow::Result<()> {
+        let args = UpArgsBuilder::default().hf_token("test_token").build()?;
+
+        // When using custom image, should use the minimal setup-for-release-image.sh script
+        let config = load_cloud_config(&args, true)?;
+        assert!(config.contains("#cloud-config"));
+        // Should contain the release image setup script
+        assert!(config.contains("Services started successfully"));
+        // Should not contain the full setup script that builds from source
+        assert!(!config.contains("Install vLLM"));
 
         Ok(())
     }
@@ -609,7 +695,7 @@ mod tests {
                 .model(Some("test-model".to_string()))
                 .build()?;
 
-            let config = load_cloud_config(&args)?;
+            let config = load_cloud_config(&args, false)?;
 
             // Verify cloud-config structure
             assert!(config.contains("#cloud-config"));
@@ -624,7 +710,7 @@ mod tests {
             // Test that cloud config uses default values when env vars are not set
             let args = UpArgsBuilder::default().hf_token("test_token").build()?;
 
-            let config = load_cloud_config(&args)?;
+            let config = load_cloud_config(&args, false)?;
 
             // Should contain default values from the code
             assert!(config.contains("#cloud-config"));
@@ -637,7 +723,7 @@ mod tests {
         fn test_cloud_config_default_model() -> anyhow::Result<()> {
             let args = UpArgsBuilder::default().hf_token("test_token").build()?;
 
-            let config = load_cloud_config(&args)?;
+            let config = load_cloud_config(&args, false)?;
 
             // Should use default model
             assert!(config.contains("ibm-granite/granite-3.3-2b-instruct"));
@@ -670,7 +756,7 @@ mod tests {
         fn test_cloud_config_includes_setup_script() -> anyhow::Result<()> {
             let args = UpArgsBuilder::default().hf_token("test_token").build()?;
 
-            let config = load_cloud_config(&args)?;
+            let config = load_cloud_config(&args, false)?;
 
             // Verify setup script is included (it should be base64 encoded or embedded)
             assert!(config.len() > 100); // Cloud config should be substantial
