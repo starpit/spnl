@@ -2,6 +2,7 @@ mod config;
 mod download;
 mod download_progress;
 mod loader;
+mod model_pool;
 mod template_tokenizer;
 
 pub mod llama;
@@ -9,6 +10,16 @@ pub mod model;
 pub mod qwen2;
 pub mod qwen3;
 pub mod qwen3_moe;
+
+use model_pool::ModelPool;
+use std::sync::OnceLock;
+
+// Global model pool - initialized once and reused across all requests
+static MODEL_POOL: OnceLock<ModelPool> = OnceLock::new();
+
+fn get_model_pool() -> &'static ModelPool {
+    MODEL_POOL.get_or_init(ModelPool::new)
+}
 
 use indicatif::MultiProgress;
 use tokio::io::{AsyncWriteExt, stdout};
@@ -47,7 +58,6 @@ struct WorkResult {
 }
 
 pub use llama::{LlamaGenericConfig, LlamaModelWrapper};
-pub use loader::load_model;
 pub use model::{CandleModel, TokenCallback};
 pub use qwen2::{Qwen2GenericConfig, Qwen2ModelWrapper};
 pub use qwen3::{Qwen3GenericConfig, Qwen3ModelWrapper};
@@ -106,6 +116,9 @@ pub async fn generate_completion(
             let result_tx = result_tx.clone();
 
             tokio::task::spawn_blocking(move || {
+                // Get the model pool reference
+                let pool = get_model_pool();
+
                 loop {
                     let item = {
                         let mut rx = work_rx.lock().unwrap();
@@ -116,15 +129,26 @@ pub async fn generate_completion(
                         Some(item) => item,
                         None => break, // Channel closed
                     };
-                    // Load model for this worker
-                    let (mut model, tokenizer, device, _dtype) = match load_model(&item.model_path)
-                    {
+
+                    // Get model from pool (will load if not cached)
+                    let cached_model = match pool.get_or_load(&item.model_path) {
                         Ok(m) => m,
                         Err(e) => {
-                            eprintln!("Failed to load model: {}", e);
+                            eprintln!("Failed to get model from pool: {}", e);
                             continue;
                         }
                     };
+
+                    // Lock the cached model for this generation
+                    let mut cached = match cached_model.lock() {
+                        Ok(c) => c,
+                        Err(e) => {
+                            eprintln!("Failed to lock model: {}", e);
+                            continue;
+                        }
+                    };
+
+                    let (tokenizer, device, _dtype) = cached.resources();
 
                     // Tokenize the input with chat template
                     let tokens = match tokenize_with_chat_template(
@@ -160,7 +184,7 @@ pub async fn generate_completion(
                         progress_bar: item.progress_bar.as_ref(),
                     };
 
-                    match model.generate(&tokens, config, callback.as_mut()) {
+                    match cached.generate(&tokens, config, callback.as_mut()) {
                         Ok(generated) => {
                             let _ = result_tx.blocking_send(WorkResult {
                                 idx: item.idx,
@@ -286,6 +310,9 @@ pub async fn generate_chat(
             let result_tx = result_tx.clone();
 
             tokio::task::spawn_blocking(move || {
+                // Get the model pool reference
+                let pool = get_model_pool();
+
                 loop {
                     let item = {
                         let mut rx = work_rx.lock().unwrap();
@@ -296,15 +323,26 @@ pub async fn generate_chat(
                         Some(item) => item,
                         None => break, // Channel closed
                     };
-                    // Load model for this worker
-                    let (mut model, tokenizer, device, _dtype) = match load_model(&item.model_path)
-                    {
+
+                    // Get model from pool (will load if not cached)
+                    let cached_model = match pool.get_or_load(&item.model_path) {
                         Ok(m) => m,
                         Err(e) => {
-                            eprintln!("Failed to load model: {}", e);
+                            eprintln!("Failed to get model from pool: {}", e);
                             continue;
                         }
                     };
+
+                    // Lock the cached model for this generation
+                    let mut cached = match cached_model.lock() {
+                        Ok(c) => c,
+                        Err(e) => {
+                            eprintln!("Failed to lock model: {}", e);
+                            continue;
+                        }
+                    };
+
+                    let (tokenizer, device, _dtype) = cached.resources();
 
                     // Tokenize the input with chat template
                     let tokens = match tokenize_with_chat_template(
@@ -340,7 +378,7 @@ pub async fn generate_chat(
                         progress_bar: item.progress_bar.as_ref(),
                     };
 
-                    match model.generate(&tokens, config, callback.as_mut()) {
+                    match cached.generate(&tokens, config, callback.as_mut()) {
                         Ok(generated) => {
                             let _ = result_tx.blocking_send(WorkResult {
                                 idx: item.idx,

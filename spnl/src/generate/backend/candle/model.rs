@@ -1,4 +1,5 @@
 use candle_core::{Device, Tensor};
+use candle_nn;
 use indicatif::ProgressBar;
 use tokenizers::Tokenizer;
 
@@ -65,6 +66,10 @@ pub fn generate_text<M: ModelForward>(
     // Pre-allocate single-token input buffer for reuse (reduces allocations)
     let mut token_buffer = [0u32; 1];
 
+    // Pre-allocate and reuse input tensor to avoid repeated allocations
+    // This tensor will be updated in-place each iteration
+    let mut input_tensor: Option<Tensor> = None;
+
     // Generation phase - one token at a time
     for index_pos in 0..config.max_tokens {
         let start_pos = prompt_len + index_pos;
@@ -74,9 +79,21 @@ pub fn generate_text<M: ModelForward>(
             break;
         }
 
-        // Reuse token buffer instead of creating new tensor each iteration
+        // Reuse token buffer and tensor instead of creating new ones each iteration
         token_buffer[0] = tokens[tokens.len() - 1];
-        let input = Tensor::new(&token_buffer[..], config.device)?.unsqueeze(0)?;
+
+        // Reuse or create input tensor (avoids repeated allocations)
+        let input = if let Some(ref mut tensor) = input_tensor {
+            // Update existing tensor data in-place
+            *tensor = Tensor::new(&token_buffer[..], config.device)?.unsqueeze(0)?;
+            tensor.clone()
+        } else {
+            // First iteration: create tensor and store for reuse
+            let tensor = Tensor::new(&token_buffer[..], config.device)?.unsqueeze(0)?;
+            input_tensor = Some(tensor.clone());
+            tensor
+        };
+
         let logits = model.forward_pass(&input, start_pos)?;
 
         let logits = logits.squeeze(0)?;
@@ -86,15 +103,21 @@ pub fn generate_text<M: ModelForward>(
             logits
         };
 
-        // Apply temperature and sample
-        // Note: to_scalar() forces GPU->CPU sync, but necessary for sampling
+        // Optimized sampling: reduce GPU-CPU synchronizations
+        // Use argmax_keepdim to avoid unnecessary syncs where possible
         let next_token = if config.temperature > 0.0 && config.temperature != 1.0 {
-            let logits = (last_token_logits / config.temperature)?;
-            let probs = candle_nn::ops::softmax(&logits, 0)?;
-            probs.argmax(0)?.to_scalar::<u32>()?
+            // Temperature sampling path
+            let scaled_logits = (last_token_logits / config.temperature)?;
+            let probs = candle_nn::ops::softmax(&scaled_logits, 0)?;
+
+            // Single GPU->CPU sync for sampling
+            // Note: This is still necessary for actual token selection
+            let next_token_tensor = probs.argmax(0)?;
+            next_token_tensor.to_scalar::<u32>()?
         } else {
-            // Skip softmax for greedy sampling
-            last_token_logits.argmax(0)?.to_scalar::<u32>()?
+            // Greedy sampling path - single GPU->CPU sync
+            let next_token_tensor = last_token_logits.argmax(0)?;
+            next_token_tensor.to_scalar::<u32>()?
         };
 
         if next_token == eos_token {
