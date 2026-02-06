@@ -58,44 +58,11 @@ pub fn generate_text<M: ModelForward>(
     // Clear KV cache before starting generation
     model.clear_cache();
 
-    // Prefill phase - process prompt tokens with chunking for long prompts
-    // Chunking improves memory efficiency and cache utilization for long contexts
-    const PREFILL_CHUNK_SIZE: usize = 256;
+    // Prefill phase - process all prompt tokens at once
+    // Single forward pass is optimal for prefill (maximizes parallelism)
     let prompt_len = tokens.len();
-
-    if prompt_len > PREFILL_CHUNK_SIZE {
-        // Process long prompts in chunks for better performance
-        // Pre-allocate chunk buffer to avoid repeated allocations
-        let mut chunk_buffer = vec![0u32; PREFILL_CHUNK_SIZE];
-        let mut prefill_tensor: Option<Tensor> = None;
-
-        for chunk_start in (0..prompt_len).step_by(PREFILL_CHUNK_SIZE) {
-            let chunk_end = (chunk_start + PREFILL_CHUNK_SIZE).min(prompt_len);
-            let chunk_len = chunk_end - chunk_start;
-
-            // Copy chunk data into reusable buffer
-            chunk_buffer[..chunk_len].copy_from_slice(&tokens[chunk_start..chunk_end]);
-
-            // Reuse or create tensor (avoids repeated allocations)
-            let input = if let Some(ref mut tensor) = prefill_tensor {
-                // Update existing tensor data in-place
-                *tensor = Tensor::new(&chunk_buffer[..chunk_len], config.device)?.unsqueeze(0)?;
-                tensor.clone()
-            } else {
-                // First iteration: create tensor and store for reuse
-                let tensor =
-                    Tensor::new(&chunk_buffer[..chunk_len], config.device)?.unsqueeze(0)?;
-                prefill_tensor = Some(tensor.clone());
-                tensor
-            };
-
-            let _logits = model.forward_pass(&input, chunk_start)?;
-        }
-    } else {
-        // Short prompts: process all tokens at once (original behavior)
-        let input = Tensor::new(&tokens[..], config.device)?.unsqueeze(0)?;
-        let _logits = model.forward_pass(&input, 0)?;
-    }
+    let input = Tensor::new(&tokens[..], config.device)?.unsqueeze(0)?;
+    let _logits = model.forward_pass(&input, 0)?;
 
     // Pre-allocate single-token input buffer for reuse (reduces allocations)
     let mut token_buffer = [0u32; 1];

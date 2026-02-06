@@ -44,7 +44,7 @@ impl ModelPool {
 
 ---
 
-### 2. **No Batching in Prefill Phase**
+### 2. **No Batching in Prefill Phase** ❌ NOT BENEFICIAL
 **Location:** `model.rs` lines 60-63
 
 **Problem:**
@@ -55,14 +55,17 @@ let input = Tensor::new(&tokens[..], config.device)?.unsqueeze(0)?;
 let _logits = model.forward_pass(&input, 0)?;
 ```
 
-The prefill processes all tokens but could be optimized with batching strategies.
+**Attempted Solution:**
+- Tried chunked processing (256 tokens at a time)
+- Added tensor reuse across chunks
 
-**Solution:** 
-- Process prompt tokens in optimized batch sizes (e.g., 128-256 tokens at a time)
-- Use separate code paths for prefill vs decode phases
-- Consider chunked prefill for very long prompts
+**Result:** ❌ **No performance improvement**
+- Chunking added overhead from multiple forward passes
+- Lost parallelism benefit of single-pass processing
+- Memory copies added CPU overhead
+- **Conclusion:** Single-pass prefill is already optimal
 
-**Expected Improvement:** 1.2-1.5x speedup for long prompts
+**Current Status:** Reverted to original single-pass approach
 
 ---
 
@@ -119,23 +122,102 @@ use_flash_attn: device.is_cuda() && supports_flash_attention(),
 
 ---
 
-### 5. **KV Cache Recreation**
-**Location:** `llama.rs` line 89
+### 5. **Position-Independent KV Cache for Cross-Generate Reuse** 🚀 ADVANCED
+**Applies to:** All RoPE-based models (Llama, Qwen, Mistral, etc.)
+**Location:** All model implementations, candle-transformers upstream
 
-**Problem:**
+**Current Problem:**
 ```rust
-fn clear_cache(&mut self) {
-    // Reinitialize cache for Llama model - expensive!
-    self.cache = Cache::new(true, self.dtype, &self.config, &self.device).ok();
+// In candle-transformers (all RoPE models)
+let k = self.apply_rotary_emb(&k, index_pos, cache)?;  // RoPE applied
+cache.kvs[block_idx] = Some((k.clone(), v.clone()));   // Cached WITH position
+```
+
+RoPE is applied **before** caching, so cached K tensors have position embeddings baked in. This prevents reusing cache across different positions.
+
+**Use Case:**
+- Generate 1: "What is the capital of France?" → "Paris"
+- Generate 2: "When I visit **Paris**, I will eat quiche"
+- Want to reuse K/V tensors for "Paris" even though it's at different positions
+
+**Proposed Solution: Cache Pre-RoPE Tensors**
+
+Modify candle-transformers to cache **pre-RoPE** K tensors:
+
+```rust
+// Compute K and V projections
+let k_pre_rope = self.k_proj.forward(x)?;
+let v = self.v_proj.forward(x)?;
+
+// Cache pre-RoPE tensors (position-independent!)
+cache.kvs[block_idx] = Some((k_pre_rope.clone(), v.clone()));
+
+// Apply RoPE only when using cached tensors for attention
+if let Some((cache_k_pre, cache_v)) = &cache.kvs[block_idx] {
+    // Apply RoPE to cached K based on NEW positions in current context
+    let cache_k = self.apply_rotary_emb(cache_k_pre, new_position, cache)?;
+    
+    // Apply RoPE to new K
+    let k = self.apply_rotary_emb(&k_pre_rope, index_pos, cache)?;
+    
+    // Concatenate
+    k = Tensor::cat(&[cache_k, &k], 2)?;
+    v = Tensor::cat(&[cache_v, &v], 2)?;
 }
 ```
 
-**Solution:** 
-- Don't recreate cache, just reset/clear it
-- Implement `cache.reset()` method instead of full recreation
-- Keep cache allocated between generations
+**Key Insight:** Pre-RoPE K tensors are position-independent. We can apply RoPE with ANY position when we use them!
 
-**Expected Improvement:** 1.1-1.2x speedup
+**Implementation Steps:**
+
+1. **Modify candle-transformers** (all RoPE models):
+   - Cache K **before** applying RoPE
+   - Apply RoPE lazily during attention
+   - No need to store positions - tensors are position-independent!
+
+2. **Add token-level cache management** in spnl:
+   ```rust
+   // Map tokens to their pre-RoPE K/V tensors
+   struct TokenCache {
+       cache: HashMap<u32, (Tensor, Tensor)>,  // token_id → (k_pre_rope, v)
+   }
+   ```
+
+3. **Extend API** to support cache reuse:
+   ```rust
+   pub fn generate_with_token_cache(
+       &mut self,
+       tokens: &[u32],
+       token_cache: &TokenCache,  // Reusable pre-RoPE tensors
+       config: GenerateConfig,
+   ) -> Result<String>
+   ```
+
+4. **Cache lookup logic**:
+   - For each token in new prompt, check if it's in token_cache
+   - If found, reuse pre-RoPE K/V and apply RoPE for current position
+   - If not found, compute normally and add to cache
+
+**Expected Improvement:**
+- **2-5x speedup** for prompts with significant token overlap
+- Especially beneficial for:
+  - Templated prompts with variable insertions
+  - Multi-step reasoning with shared context
+  - Batch processing with common prefixes/suffixes
+
+**Challenges:**
+- Requires candle-transformers fork or upstream contribution
+- Slightly increased memory (pre-RoPE vs post-RoPE tensors are same size)
+- Need token matching/hashing system
+- Must update all RoPE-based model implementations
+
+**Alternative: Upstream Contribution**
+- Propose to candle-transformers as opt-in feature
+- Config flag: `cache_pre_rope: bool`
+- Would benefit entire community
+- Works for all RoPE models automatically
+
+**Status:** 📋 Design phase - feasible and model-agnostic
 
 ---
 
@@ -145,7 +227,7 @@ fn clear_cache(&mut self) {
 - [ ] 2. **Flash Attention** (High Impact) - 2-3x improvement
 - [x] 3. **Reduce GPU-CPU Syncs** (Medium Impact) - 1.3-1.5x improvement
 - [ ] 4. **Optimize KV Cache** (Medium Impact) - 1.1-1.2x improvement
-- [x] 5. **Batch Prefill** (Medium Impact) - 1.2-1.5x improvement
+- [~] 5. **Batch Prefill** (Attempted - No benefit) - Reverted
 
 **Combined Expected Improvement:** 5-10x speedup (matching or exceeding Ollama)
 
