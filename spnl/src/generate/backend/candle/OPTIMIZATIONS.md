@@ -145,7 +145,7 @@ fn clear_cache(&mut self) {
 - [ ] 2. **Flash Attention** (High Impact) - 2-3x improvement
 - [x] 3. **Reduce GPU-CPU Syncs** (Medium Impact) - 1.3-1.5x improvement
 - [ ] 4. **Optimize KV Cache** (Medium Impact) - 1.1-1.2x improvement
-- [ ] 5. **Batch Prefill** (Medium Impact) - 1.2-1.5x improvement
+- [x] 5. **Batch Prefill** (Medium Impact) - 1.2-1.5x improvement
 
 **Combined Expected Improvement:** 5-10x speedup (matching or exceeding Ollama)
 
