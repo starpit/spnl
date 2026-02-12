@@ -16,6 +16,7 @@ use crate::{
     ir::{Map, Message::*, Query, Repeat},
 };
 
+mod device;
 mod loader;
 use loader::ModelPool;
 

@@ -8,6 +8,8 @@ use mistralrs::{
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+use super::device;
 use std::time::Duration;
 use tokio::sync::RwLock;
 
@@ -338,25 +340,8 @@ impl ModelPool {
         // Check if model files are already cached (to determine if we need to download)
         let is_cached = self.is_model_cached(model_name, is_gguf).await;
 
-        // Determine device - prefer Metal on macOS, fallback to CPU
-        let device = if cfg!(target_os = "macos") {
-            match Device::new_metal(0) {
-                Ok(metal_device) => {
-                    if should_enable_logging() {
-                        eprintln!("Using Metal GPU acceleration");
-                    }
-                    metal_device
-                }
-                Err(e) => {
-                    if should_enable_logging() {
-                        eprintln!("Metal not available ({}), falling back to CPU", e);
-                    }
-                    Device::Cpu
-                }
-            }
-        } else {
-            Device::Cpu
-        };
+        // Detect the best available device (CUDA, Metal, or CPU)
+        let device = device::detect_device();
 
         // Build the model using the appropriate builder
         let model = if is_gguf {

@@ -17,6 +17,7 @@ k8s = ["spnl/k8s", "vllm"]
 gce = ["spnl/gce", "vllm"]
 local = ["spnl/local"]
 metal = ["spnl/local-metal"]
+cuda = ["spnl/local-cuda-flashv2"]
 
 [dependencies]
 anyhow = "1.0.99"
