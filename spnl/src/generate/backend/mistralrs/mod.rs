@@ -77,7 +77,7 @@ pub async fn generate_completion(
     let quiet = mp.is_some() || options.time;
 
     // Create progress bars if in quiet mode
-    let pbs = super::progress::bars(n_prompts, &spec.metadata, &mp, Some(1))?;
+    let pbs = super::progress::bars(n_prompts, &spec.metadata, &mp, None)?;
 
     // Print "Assistant: " prefix if not in quiet mode
     if !quiet {
@@ -283,7 +283,7 @@ pub async fn generate_chat(
     let quiet = mp.is_some() || options.time;
 
     // Create progress bars if in quiet mode
-    let pbs = super::progress::bars(n_usize, &spec.generate.metadata, &mp, Some(1))?;
+    let pbs = super::progress::bars(n_usize, &spec.generate.metadata, &mp, None)?;
 
     // Print "Assistant: " prefix if not in quiet mode
     if !quiet {
