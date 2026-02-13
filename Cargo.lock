@@ -4099,9 +4099,9 @@ dependencies = [
 
 [[package]]
 name = "google-cloud-compute-v1"
-version = "2.1.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e4f58ba25e5ef1842fa40657c55578b5e47d1b1fc26776cbc923a2f705fc06b"
+checksum = "2043f77201385f0751ff5b47643461cb67a2fe0d38fa20a8c7538ec9f02b172f"
 dependencies = [
  "async-trait",
  "bytes",
@@ -4111,7 +4111,6 @@ dependencies = [
  "google-cloud-rpc",
  "google-cloud-wkt",
  "lazy_static 1.5.0",
- "reqwest 0.13.2",
  "serde",
  "serde_json",
  "serde_with",
