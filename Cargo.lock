@@ -4213,9 +4213,9 @@ dependencies = [
 
 [[package]]
 name = "google-cloud-lro"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a52a26fb12ea9b67eab358dbb8dc5e22aac666cab947a10d15699ff95f203b87"
+checksum = "7ef3969c85cf6b163c655f7ddcdee5bb5c3241f680ab648951239ef9cd4ffb0f"
 dependencies = [
  "google-cloud-gax",
  "google-cloud-longrunning",
